@@ -105,11 +105,14 @@
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
-                    <button class="btn btn-outline-secondary">
-                        <i data-feather="download" class="me-2"></i> Export to CSV
-                    </button>
-                    <button class="btn btn-outline-secondary">
-                        <i data-feather="share-2" class="me-2"></i> Share Reports
+                    {% for format in export_formats %}
+                    <a href="{{ url_for('export_data', format=format.id) }}" class="btn btn-outline-secondary">
+                        <i data-feather="download" class="me-2"></i> Export to {{ format.name }}
+                    </a>
+                    {% endfor %}
+                    
+                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#exportModal">
+                        <i data-feather="sliders" class="me-2"></i> Advanced Export Options
                     </button>
                 </div>
             </div>
@@ -117,6 +120,50 @@
     </div>
 </div>
 {% endif %}
+<!-- Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportModalLabel">Advanced Export Options</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="exportForm" action="" method="get">
+                    <div class="mb-3">
+                        <label for="exportFormat" class="form-label">Export Format</label>
+                        <select class="form-select" id="exportFormat" name="format">
+                            {% for format in export_formats %}
+                            <option value="{{ format.id }}">{{ format.name }} ({{ format.extension }})</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text" id="formatHelp"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="exportLimit" class="form-label">Number of Records</label>
+                        <input type="number" class="form-control" id="exportLimit" name="limit" value="100" min="1" max="1000">
+                        <div class="form-text">Maximum number of records to export (1-1000)</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Data to Include</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="true" id="includeMetadata" name="include_metadata">
+                            <label class="form-check-label" for="includeMetadata">
+                                Include export metadata (timestamp, user, query info)
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="exportSubmit">Export Data</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -124,6 +171,49 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize Feather icons
         feather.replace();
+        
+        // Format descriptions
+        const formatDescriptions = {
+            {% for format in export_formats %}
+            '{{ format.id }}': '{{ format.description }}',
+            {% endfor %}
+        };
+        
+        // Update format help text when selection changes
+        const formatSelect = document.getElementById('exportFormat');
+        const formatHelp = document.getElementById('formatHelp');
+        
+        if (formatSelect && formatHelp) {
+            formatSelect.addEventListener('change', function() {
+                formatHelp.textContent = formatDescriptions[this.value] || '';
+            });
+            
+            // Set initial help text
+            formatHelp.textContent = formatDescriptions[formatSelect.value] || '';
+        }
+        
+        // Handle export form submission
+        const exportForm = document.getElementById('exportForm');
+        const exportSubmit = document.getElementById('exportSubmit');
+        
+        if (exportForm && exportSubmit) {
+            exportSubmit.addEventListener('click', function() {
+                const format = formatSelect.value;
+                const limit = document.getElementById('exportLimit').value;
+                const includeMetadata = document.getElementById('includeMetadata').checked;
+                
+                // Build the URL
+                let url = `{{ url_for('export_data', format='FORMAT') }}`.replace('FORMAT', format);
+                url += `?limit=${limit}`;
+                
+                if (includeMetadata) {
+                    url += '&include_metadata=true';
+                }
+                
+                // Navigate to the URL
+                window.location.href = url;
+            });
+        }
     });
 </script>
 {% endblock %}

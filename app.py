@@ -1,7 +1,7 @@
 import os
 import logging
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, send_file
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -9,6 +9,7 @@ from etl.narrpr_scraper import NarrprScraper
 from db.database import save_to_database, Database
 from utils.logger import setup_logger
 from utils.config import load_config, update_config
+from utils.export import export_to_csv, export_to_json, export_to_excel, get_export_formats
 
 # Initialize logger
 setup_logger()
@@ -144,6 +145,7 @@ def run_scraper():
 def reports():
     """Display scraped reports."""
     reports_data = []
+    export_formats = get_export_formats()
     
     try:
         # Get reports from database
@@ -163,7 +165,96 @@ def reports():
         flash(f"Error connecting to database: {str(e)}", "danger")
         logger.exception("Error in reports route")
     
-    return render_template('reports.html', reports=reports_data)
+    return render_template('reports.html', reports=reports_data, export_formats=export_formats)
+
+@app.route('/export/<format>')
+def export_data(format):
+    """Export data in the specified format."""
+    try:
+        # Get reports from database
+        db_conn = Database()
+        try:
+            # Get query parameters
+            limit = request.args.get('limit', default=100, type=int)
+            include_metadata = request.args.get('include_metadata', default=False, type=lambda v: v.lower() == 'true')
+            
+            # Add safety limit
+            if limit > 1000:
+                limit = 1000
+            
+            reports_query = f"""
+            SELECT * FROM narrpr_reports 
+            ORDER BY created_at DESC 
+            LIMIT {limit}
+            """
+            reports_data = db_conn.execute_query(reports_query)
+            
+            if not reports_data:
+                flash("No data available to export.", "warning")
+                return redirect(url_for('reports'))
+                
+            # Generate timestamp for filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"narrpr_export_{timestamp}"
+            
+            # Add metadata if requested
+            if include_metadata:
+                # Add export metadata to the data
+                export_metadata = {
+                    "export_timestamp": datetime.now().isoformat(),
+                    "export_user": "system",  # Replace with actual user if authentication is added
+                    "record_count": len(reports_data),
+                    "query_limit": limit,
+                    "export_format": format
+                }
+                
+                # Add metadata as the first record for CSV and Excel formats
+                # For JSON, we'll include it in a separate metadata section
+                if format in ['csv', 'excel']:
+                    reports_data = [export_metadata] + reports_data
+            
+            # Export data in the specified format
+            if format == 'csv':
+                file_path = export_to_csv(reports_data, filename)
+                if file_path:
+                    flash(f"Data exported to CSV successfully. {len(reports_data)} records exported.", "success")
+                    return send_file(file_path, as_attachment=True, download_name=os.path.basename(file_path))
+                    
+            elif format == 'json':
+                # For JSON, structure the data differently with metadata section
+                if include_metadata:
+                    structured_data = {
+                        "metadata": export_metadata,
+                        "data": reports_data
+                    }
+                    file_path = export_to_json(structured_data, filename)
+                else:
+                    file_path = export_to_json(reports_data, filename)
+                
+                if file_path:
+                    flash(f"Data exported to JSON successfully. {len(reports_data)} records exported.", "success")
+                    return send_file(file_path, as_attachment=True, download_name=os.path.basename(file_path))
+                    
+            elif format == 'excel':
+                file_path = export_to_excel(reports_data, filename)
+                if file_path:
+                    flash(f"Data exported to Excel successfully. {len(reports_data)} records exported.", "success")
+                    return send_file(file_path, as_attachment=True, download_name=os.path.basename(file_path))
+            else:
+                flash(f"Unsupported export format: {format}", "danger")
+                
+        except Exception as e:
+            logger.warning(f"Could not export data: {str(e)}")
+            flash(f"Error exporting data: {str(e)}", "danger")
+            
+        finally:
+            db_conn.close()
+            
+    except Exception as e:
+        flash(f"Error connecting to database: {str(e)}", "danger")
+        logger.exception("Error in export_data route")
+    
+    return redirect(url_for('reports'))
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
