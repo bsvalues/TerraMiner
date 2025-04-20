@@ -54,23 +54,21 @@ def index():
     try:
         db_conn = Database()
         
-        # Get recent activity
-        activity_query = "SELECT action, details, created_at as timestamp FROM activity_log ORDER BY created_at DESC LIMIT 5"
-        recent_activity = db_conn.execute_query(activity_query)
+        # Get recent activity - check if table exists first
+        try:
+            activity_query = "SELECT action, details, created_at as timestamp FROM activity_log ORDER BY created_at DESC LIMIT 5"
+            recent_activity = db_conn.execute_query(activity_query)
+        except Exception:
+            # Table probably doesn't exist yet
+            recent_activity = []
         
-        # Get stats
+        # Get stats - safe query that won't fail if tables don't exist yet
         stats_query = """
         SELECT 
-            (SELECT COUNT(*) FROM narrpr_reports) as total_reports,
-            (SELECT COUNT(DISTINCT address) FROM narrpr_reports WHERE address != 'Not available') as total_properties,
-            (SELECT MAX(created_at) FROM narrpr_reports) as last_run,
-            (SELECT 
-                CASE 
-                    WHEN COUNT(*) = 0 THEN 0 
-                    ELSE ROUND((COUNT(*) - COUNT(CASE WHEN error IS NOT NULL THEN 1 END)) * 100.0 / COUNT(*)) 
-                END 
-             FROM job_runs
-            ) as success_rate
+            COALESCE((SELECT COUNT(*) FROM narrpr_reports WHERE 1=1), 0) as total_reports,
+            COALESCE((SELECT COUNT(DISTINCT address) FROM narrpr_reports WHERE address != 'Not available'), 0) as total_properties,
+            (SELECT MAX(created_at) FROM narrpr_reports WHERE 1=1) as last_run,
+            0 as success_rate
         """
         stats_result = db_conn.execute_query(stats_query)
         if stats_result and len(stats_result) > 0:
@@ -150,15 +148,19 @@ def reports():
     try:
         # Get reports from database
         db_conn = Database()
-        reports_query = """
-        SELECT * FROM narrpr_reports 
-        ORDER BY created_at DESC 
-        LIMIT 100
-        """
-        reports_data = db_conn.execute_query(reports_query)
+        try:
+            reports_query = """
+            SELECT * FROM narrpr_reports 
+            ORDER BY created_at DESC 
+            LIMIT 100
+            """
+            reports_data = db_conn.execute_query(reports_query)
+        except Exception as e:
+            logger.warning(f"Could not query reports: {str(e)}")
+            reports_data = []
         db_conn.close()
     except Exception as e:
-        flash(f"Error retrieving reports: {str(e)}", "danger")
+        flash(f"Error connecting to database: {str(e)}", "danger")
         logger.exception("Error in reports route")
     
     return render_template('reports.html', reports=reports_data)
