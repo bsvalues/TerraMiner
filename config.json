@@ -1,0 +1,25 @@
+{
+    "narrpr": {
+        "username": "",
+        "password": "",
+        "base_url": "https://www.narrpr.com",
+        "headless": true,
+        "timeout": 30
+    },
+    "scraping": {
+        "wait_time": 5,
+        "retry_attempts": 3,
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    },
+    "database": {
+        "host": "ep-bitter-bread-a6jrmkkm.us-west-2.aws.neon.tech",
+        "port": "5432",
+        "user": "neondb_owner",
+        "password": "npg_Rhrpq0sLAJX2",
+        "database": "neondb"
+    },
+    "output": {
+        "csv_directory": "output",
+        "report_directory": "reports"
+    }
+}
