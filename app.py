@@ -170,22 +170,60 @@ def settings():
     """Settings page for configuring the scraper."""
     if request.method == 'POST':
         try:
+            # Get form data
+            username = request.form.get('username')
+            password = request.form.get('password')
+            headless = 'headless' in request.form
+            timeout = int(request.form.get('timeout', 30))
+            wait_time = int(request.form.get('wait_time', 5))
+            retry_attempts = int(request.form.get('retry_attempts', 3))
+            
             # Update configuration based on form data
             new_config = {
                 'narrpr': {
-                    'username': request.form.get('username'),
-                    'password': request.form.get('password'),
-                    'headless': 'headless' in request.form,
-                    'timeout': int(request.form.get('timeout', 30))
+                    'username': username,
+                    'password': password if password else "",  # Don't overwrite with empty password
+                    'headless': headless,
+                    'timeout': timeout
                 },
                 'scraping': {
-                    'wait_time': int(request.form.get('wait_time', 5)),
-                    'retry_attempts': int(request.form.get('retry_attempts', 3))
+                    'wait_time': wait_time,
+                    'retry_attempts': retry_attempts
                 }
             }
             
             # Update config file
             result = update_config(new_config)
+            
+            # If credentials provided, save to database model
+            if username and password:
+                try:
+                    # Check if credentials already exist
+                    existing_cred = NarrprCredential.query.first()
+                    if existing_cred:
+                        # Update existing credentials
+                        existing_cred.username = username
+                        existing_cred.password = password
+                        existing_cred.updated_at = datetime.now()
+                    else:
+                        # Create new credentials
+                        new_cred = NarrprCredential(username=username, password=password)
+                        db.session.add(new_cred)
+                    
+                    db.session.commit()
+                    logger.info("NARRPR credentials saved to database")
+                    
+                    # Add activity log entry
+                    activity = ActivityLog(
+                        action="update_credentials",
+                        details=f"Updated NARRPR credentials for {username}"
+                    )
+                    db.session.add(activity)
+                    db.session.commit()
+                except Exception as e:
+                    logger.error(f"Error saving credentials to database: {str(e)}")
+                    db.session.rollback()
+            
             if result:
                 flash("Settings updated successfully.", "success")
             else:
@@ -200,6 +238,16 @@ def settings():
     
     # Load current configuration
     current_config = load_config()
+    
+    # Get credentials from database if available
+    try:
+        cred = NarrprCredential.query.first()
+        if cred:
+            current_config['narrpr']['username'] = cred.username
+            # Don't populate password field with actual password for security
+            # current_config['narrpr']['password'] = "••••••••"
+    except Exception as e:
+        logger.error(f"Error retrieving credentials from database: {str(e)}")
     
     return render_template('settings.html', config=current_config)
 
@@ -232,11 +280,11 @@ def page_not_found(e):
 def server_error(e):
     return render_template('error.html', error_code=500, error_message="Internal server error"), 500
 
+# Import models
+from models import ActivityLog, JobRun, NarrprCredential
+
 # Initialize database tables
 with app.app_context():
-    # Import models to ensure they're registered with SQLAlchemy
-    from models import ActivityLog, JobRun
-    
     # Create tables
     db.create_all()
 
