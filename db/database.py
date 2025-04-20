@@ -1,7 +1,7 @@
 import os
 import logging
 import pandas as pd
-from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Float, DateTime, Text
+from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Float, DateTime, Text, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
@@ -98,18 +98,20 @@ class Database:
             logger.error(f"Error saving data to database: {str(e)}")
             return False
     
-    def execute_query(self, query):
+    def execute_query(self, query_str):
         """
         Execute a SQL query.
         
         Args:
-            query (str): SQL query to execute
+            query_str (str): SQL query to execute
             
         Returns:
             list: Query results
         """
         try:
-            result = self.session.execute(query)
+            # Use SQLAlchemy's text() function to properly handle raw SQL
+            sql = text(query_str)
+            result = self.session.execute(sql)
             self.session.commit()
             
             # Convert result to list of dictionaries
