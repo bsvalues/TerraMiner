@@ -10,6 +10,7 @@ from db.database import save_to_database, Database
 from utils.logger import setup_logger
 from utils.config import load_config, update_config
 from utils.export import export_to_csv, export_to_json, export_to_excel, get_export_formats
+from utils.test_data import insert_test_data
 
 # Initialize logger
 setup_logger()
@@ -361,6 +362,35 @@ def api_status():
     }
     
     return jsonify(status_data)
+
+@app.route('/load-test-data')
+def load_test_data():
+    """Route to load test data for development and testing."""
+    try:
+        # Insert test data
+        result = insert_test_data()
+        
+        if result:
+            # Add activity log entry
+            try:
+                activity = ActivityLog(
+                    action="load_test_data",
+                    details="Inserted sample property data for testing"
+                )
+                db.session.add(activity)
+                db.session.commit()
+            except Exception as e:
+                logger.error(f"Error adding activity log: {str(e)}")
+                
+            flash("Test data loaded successfully.", "success")
+        else:
+            flash("Failed to load test data.", "danger")
+            
+    except Exception as e:
+        flash(f"Error loading test data: {str(e)}", "danger")
+        logger.exception("Error in load_test_data route")
+        
+    return redirect(url_for('reports'))
 
 # Error handlers
 @app.errorhandler(404)
