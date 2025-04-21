@@ -488,6 +488,166 @@ def get_recent_feedback():
             "message": str(e)
         }), 500
 
+@ai_api.route('/feedback/export', methods=['GET'])
+def export_feedback():
+    """Export feedback data in specified format"""
+    try:
+        from models import AIFeedback
+        from app import db
+        from utils.feedback_export import generate_csv_response, generate_excel_response
+        
+        # Get query parameters
+        export_format = request.args.get('format', 'csv').lower()
+        agent_type = request.args.get('agent_type')
+        rating = request.args.get('rating')
+        date_from = request.args.get('date_from')
+        date_to = request.args.get('date_to')
+        
+        # Build query
+        query = db.session.query(AIFeedback)
+        
+        # Apply filters if provided
+        if agent_type:
+            query = query.filter(AIFeedback.agent_type == agent_type)
+            
+        if rating:
+            try:
+                rating_value = int(rating)
+                query = query.filter(AIFeedback.rating == rating_value)
+            except ValueError:
+                pass
+                
+        if date_from:
+            try:
+                from_date = datetime.fromisoformat(date_from)
+                query = query.filter(AIFeedback.created_at >= from_date)
+            except ValueError:
+                pass
+                
+        if date_to:
+            try:
+                to_date = datetime.fromisoformat(date_to)
+                query = query.filter(AIFeedback.created_at <= to_date)
+            except ValueError:
+                pass
+        
+        # Get results
+        results = query.order_by(AIFeedback.created_at.desc()).all()
+        
+        # Format feedback data
+        feedback_data = []
+        for feedback in results:
+            feedback_data.append({
+                "id": feedback.id,
+                "agent_type": feedback.agent_type,
+                "rating": feedback.rating,
+                "comments": feedback.comments,
+                "session_id": feedback.session_id,
+                "created_at": feedback.created_at.isoformat(),
+                "query_data": feedback.query_data,
+                "response_data": feedback.response_data
+            })
+        
+        # Generate appropriate response based on format
+        if export_format == 'excel':
+            return generate_excel_response(feedback_data)
+        else:
+            # Default to CSV
+            return generate_csv_response(feedback_data)
+        
+    except Exception as e:
+        logger.error(f"Error exporting feedback data: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": f"Error exporting feedback data: {str(e)}"
+        }), 500
+        
+@ai_api.route('/feedback/all', methods=['GET'])
+def get_all_feedback():
+    """Get all feedback entries with optional filtering"""
+    try:
+        from models import AIFeedback
+        from app import db
+        
+        # Get query parameters
+        agent_type = request.args.get('agent_type')
+        rating = request.args.get('rating')
+        date_from = request.args.get('date_from')
+        date_to = request.args.get('date_to')
+        limit = request.args.get('limit', 100)
+        offset = request.args.get('offset', 0)
+        
+        try:
+            limit = int(limit)
+            offset = int(offset)
+        except ValueError:
+            limit = 100
+            offset = 0
+            
+        # Build query
+        query = db.session.query(AIFeedback)
+        
+        # Apply filters if provided
+        if agent_type:
+            query = query.filter(AIFeedback.agent_type == agent_type)
+            
+        if rating:
+            try:
+                rating_value = int(rating)
+                query = query.filter(AIFeedback.rating == rating_value)
+            except ValueError:
+                pass
+                
+        if date_from:
+            try:
+                from_date = datetime.fromisoformat(date_from)
+                query = query.filter(AIFeedback.created_at >= from_date)
+            except ValueError:
+                pass
+                
+        if date_to:
+            try:
+                to_date = datetime.fromisoformat(date_to)
+                query = query.filter(AIFeedback.created_at <= to_date)
+            except ValueError:
+                pass
+        
+        # Get total count for pagination
+        total_count = query.count()
+        
+        # Apply pagination
+        results = query.order_by(AIFeedback.created_at.desc()).limit(limit).offset(offset).all()
+        
+        # Format feedback data
+        feedback_data = []
+        for feedback in results:
+            feedback_data.append({
+                "id": feedback.id,
+                "agent_type": feedback.agent_type,
+                "rating": feedback.rating,
+                "comments": feedback.comments,
+                "session_id": feedback.session_id,
+                "created_at": feedback.created_at.isoformat()
+            })
+        
+        return jsonify({
+            "status": "success",
+            "feedback": feedback_data,
+            "pagination": {
+                "total": total_count,
+                "limit": limit,
+                "offset": offset,
+                "has_more": (offset + limit) < total_count
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error retrieving feedback data: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
 def register_endpoints(app):
     """Register all API endpoints with the Flask app"""
     app.register_blueprint(ai_api)

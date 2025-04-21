@@ -6,9 +6,22 @@
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>AI Feedback Analytics</h2>
-        <a href="{{ url_for('ai_demo') }}" class="btn btn-outline-primary">
-            <i class="bi bi-robot me-2"></i>Return to AI Demo
-        </a>
+        <div>
+            <div class="dropdown d-inline-block me-2">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-download me-2"></i>Export Data
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                    <li><a class="dropdown-item" href="/api/ai/feedback/export?format=csv" target="_blank">Export as CSV</a></li>
+                    <li><a class="dropdown-item" href="/api/ai/feedback/export?format=excel" target="_blank">Export as Excel</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#exportFilterModal">Advanced Export Options</a></li>
+                </ul>
+            </div>
+            <a href="{{ url_for('ai_demo') }}" class="btn btn-outline-primary">
+                <i class="bi bi-robot me-2"></i>Return to AI Demo
+            </a>
+        </div>
     </div>
     
     <div class="row">
@@ -81,6 +94,62 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Filter Modal -->
+<div class="modal fade" id="exportFilterModal" tabindex="-1" aria-labelledby="exportFilterModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportFilterModalLabel">Advanced Export Options</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="exportFilterForm">
+                    <div class="mb-3">
+                        <label for="exportFormat" class="form-label">Export Format</label>
+                        <select class="form-select" id="exportFormat" name="format">
+                            <option value="csv" selected>CSV</option>
+                            <option value="excel">Excel</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="exportAgentType" class="form-label">Agent Type</label>
+                        <select class="form-select" id="exportAgentType" name="agent_type">
+                            <option value="" selected>All Agents</option>
+                            <option value="summarizer">Text Summarization</option>
+                            <option value="nl_search">Natural Language Search</option>
+                            <option value="market_analyzer">Market Analysis</option>
+                            <option value="recommender">Property Recommendation</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="exportRating" class="form-label">Rating</label>
+                        <select class="form-select" id="exportRating" name="rating">
+                            <option value="" selected>All Ratings</option>
+                            <option value="5">5 Stars</option>
+                            <option value="4">4 Stars</option>
+                            <option value="3">3 Stars</option>
+                            <option value="2">2 Stars</option>
+                            <option value="1">1 Star</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="exportDateFrom" class="form-label">Date From</label>
+                        <input type="date" class="form-control" id="exportDateFrom" name="date_from">
+                    </div>
+                    <div class="mb-3">
+                        <label for="exportDateTo" class="form-label">Date To</label>
+                        <input type="date" class="form-control" id="exportDateTo" name="date_to">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="exportFiltersApply">Export Data</button>
             </div>
         </div>
     </div>
