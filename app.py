@@ -426,6 +426,46 @@ def server_error(e):
 # Import models
 from models import ActivityLog, JobRun, NarrprCredential
 
+# Import AI API endpoints
+try:
+    from ai.api.endpoints import ai_api
+    from ai.api.model_content import model_content_api
+    
+    # Register AI blueprints
+    app.register_blueprint(ai_api)
+    app.register_blueprint(model_content_api)
+    
+    app.config['AI_ENABLED'] = True
+    logger.info("AI modules loaded successfully")
+except Exception as e:
+    logger.warning(f"Failed to load AI modules: {str(e)}")
+    app.config['AI_ENABLED'] = False
+
+# Add route to check AI status
+@app.route('/api/ai-status')
+def ai_status():
+    """API endpoint to check the status of AI capabilities"""
+    status_data = {
+        'ai_enabled': app.config.get('AI_ENABLED', False),
+        'timestamp': datetime.now().isoformat(),
+        'version': '1.0.0'
+    }
+    
+    # Check AI key configuration
+    status_data['openai_configured'] = bool(os.environ.get('OPENAI_API_KEY'))
+    status_data['anthropic_configured'] = bool(os.environ.get('ANTHROPIC_API_KEY'))
+    
+    # Check available agents if AI is enabled
+    if app.config.get('AI_ENABLED', False):
+        status_data['available_agents'] = [
+            'text_summarizer',
+            'market_analyzer',
+            'recommendation_agent',
+            'natural_language_search'
+        ]
+    
+    return jsonify(status_data)
+
 # Initialize database tables
 with app.app_context():
     # Create tables
