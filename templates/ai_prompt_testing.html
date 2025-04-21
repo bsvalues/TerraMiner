@@ -1,0 +1,505 @@
+{% extends "layout.html" %}
+
+{% block title %}AI Prompt A/B Testing{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">AI Prompt A/B Testing</h1>
+    
+    <div class="row mb-4">
+        <div class="col-md-6 col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Create New A/B Test</h5>
+                    <form id="create-ab-test-form">
+                        <div class="mb-3">
+                            <label for="agent-type" class="form-label">Agent Type</label>
+                            <select class="form-select" id="agent-type" name="agent_type" required>
+                                <option value="summarizer">Text Summarizer</option>
+                                <option value="market_analyzer">Market Analyzer</option>
+                                <option value="recommender">Recommendation Agent</option>
+                                <option value="nl_search">Natural Language Search</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="original-prompt" class="form-label">Original Prompt (Version A)</label>
+                            <textarea class="form-control" id="original-prompt" name="original_prompt" rows="4" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="improved-prompt" class="form-label">Improved Prompt (Version B)</label>
+                            <textarea class="form-control" id="improved-prompt" name="improved_prompt" rows="4" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="duration-days" class="form-label">Test Duration (Days)</label>
+                            <input type="number" class="form-control" id="duration-days" name="duration_days" min="1" max="30" value="7">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Create Test</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-12 mt-3 mt-md-0">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Active A/B Tests</h5>
+                    <div id="active-tests">
+                        <div class="text-center py-4" id="tests-loading">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        <div id="tests-content" class="d-none">
+                            <!-- Active tests will be loaded here -->
+                        </div>
+                        <div id="no-tests-message" class="alert alert-info d-none">
+                            No active A/B tests found.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Test Results</h5>
+                    <ul class="nav nav-tabs" id="testResultsTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="completed-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#completed" type="button" role="tab" 
+                                    aria-controls="completed" aria-selected="true">Completed</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="all-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#all" type="button" role="tab" 
+                                    aria-controls="all" aria-selected="false">All Tests</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content mt-3" id="testResultsContent">
+                        <div class="tab-pane fade show active" id="completed" role="tabpanel" aria-labelledby="completed-tab">
+                            <div class="text-center py-4" id="completed-loading">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                            <div id="completed-content" class="d-none">
+                                <!-- Completed tests will be loaded here -->
+                            </div>
+                            <div id="no-completed-message" class="alert alert-info d-none">
+                                No completed A/B tests found.
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="all" role="tabpanel" aria-labelledby="all-tab">
+                            <div class="text-center py-4" id="all-loading">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                            <div id="all-content" class="d-none">
+                                <!-- All tests will be loaded here -->
+                            </div>
+                            <div id="no-all-message" class="alert alert-info d-none">
+                                No A/B tests found.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Test Details Modal -->
+    <div class="modal fade" id="testDetailsModal" tabindex="-1" aria-labelledby="testDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="testDetailsModalLabel">Test Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="test-details-content">
+                    <!-- Test details will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="evaluate-test-btn">Evaluate Test</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load active tests
+    loadTests('active');
+    
+    // Load completed tests
+    loadTests('completed');
+    
+    // Load all tests
+    loadTests('all');
+    
+    // Form submission
+    document.getElementById('create-ab-test-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = {
+            agent_type: document.getElementById('agent-type').value,
+            original_prompt: document.getElementById('original-prompt').value,
+            improved_prompt: document.getElementById('improved-prompt').value,
+            duration_days: parseInt(document.getElementById('duration-days').value)
+        };
+        
+        // Send API request
+        fetch('/api/ai/prompts/ab-tests', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Show success message
+                alert('A/B test created successfully!');
+                
+                // Reset form
+                document.getElementById('create-ab-test-form').reset();
+                
+                // Reload tests
+                loadTests('active');
+                loadTests('all');
+            } else {
+                // Show error message
+                alert('Error creating A/B test: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while creating the A/B test.');
+        });
+    });
+    
+    // Evaluate test button
+    document.getElementById('evaluate-test-btn').addEventListener('click', function() {
+        const testId = this.getAttribute('data-test-id');
+        
+        if (!testId) {
+            alert('No test selected');
+            return;
+        }
+        
+        // Send API request
+        fetch(`/api/ai/prompts/ab-tests/${testId}/evaluate`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Show success message
+                alert('Test evaluated successfully!');
+                
+                // Reload tests
+                loadTests('completed');
+                loadTests('all');
+                
+                // Load test details
+                loadTestDetails(testId);
+            } else {
+                // Show error message
+                alert('Error evaluating test: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while evaluating the test.');
+        });
+    });
+});
+
+function loadTests(status) {
+    // Show loading spinner
+    document.getElementById(`${status}-loading`).classList.remove('d-none');
+    document.getElementById(`${status}-content`).classList.add('d-none');
+    document.getElementById(`no-${status}-message`).classList.add('d-none');
+    
+    // Determine URL
+    let url = '/api/ai/prompts/ab-tests';
+    if (status === 'active') {
+        url += '?status=active';
+    } else if (status === 'completed') {
+        url += '?status=completed';
+    }
+    
+    // Send API request
+    fetch(url)
+    .then(response => response.json())
+    .then(data => {
+        // Hide loading spinner
+        document.getElementById(`${status}-loading`).classList.add('d-none');
+        
+        if (data.status === 'success' && data.tests && data.tests.length > 0) {
+            // Show content
+            document.getElementById(`${status}-content`).classList.remove('d-none');
+            
+            // Render tests
+            renderTests(data.tests, status);
+        } else {
+            // Show no tests message
+            document.getElementById(`no-${status}-message`).classList.remove('d-none');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        
+        // Hide loading spinner
+        document.getElementById(`${status}-loading`).classList.add('d-none');
+        
+        // Show no tests message
+        document.getElementById(`no-${status}-message`).classList.remove('d-none');
+        document.getElementById(`no-${status}-message`).textContent = 'Error loading tests.';
+    });
+}
+
+function renderTests(tests, containerId) {
+    const container = document.getElementById(`${containerId}-content`);
+    container.innerHTML = '';
+    
+    if (containerId === 'active') {
+        // Render active tests as cards
+        tests.forEach(test => {
+            const card = document.createElement('div');
+            card.className = 'card mb-3';
+            
+            const startDate = new Date(test.start_date);
+            const endDate = new Date(test.end_date);
+            const now = new Date();
+            
+            const progress = Math.min(100, Math.max(0, 
+                ((now - startDate) / (endDate - startDate)) * 100));
+            
+            card.innerHTML = `
+                <div class="card-body">
+                    <h6 class="card-title">${test.agent_type} Test #${test.id}</h6>
+                    <p class="card-text mb-1">Start: ${new Date(test.start_date).toLocaleDateString()}</p>
+                    <p class="card-text mb-2">End: ${new Date(test.end_date).toLocaleDateString()}</p>
+                    <div class="progress mb-2">
+                        <div class="progress-bar" role="progressbar" style="width: ${progress}%" 
+                             aria-valuenow="${progress}" aria-valuemin="0" aria-valuemax="100">
+                            ${Math.round(progress)}%
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-secondary view-test-btn" data-test-id="${test.id}">
+                        View Details
+                    </button>
+                </div>
+            `;
+            
+            container.appendChild(card);
+            
+            // Add event listener
+            card.querySelector('.view-test-btn').addEventListener('click', function() {
+                loadTestDetails(test.id);
+            });
+        });
+    } else {
+        // Render as table
+        const table = document.createElement('table');
+        table.className = 'table table-striped';
+        
+        table.innerHTML = `
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Agent</th>
+                    <th>Status</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Results</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${tests.map(test => `
+                    <tr>
+                        <td>${test.id}</td>
+                        <td>${test.agent_type}</td>
+                        <td><span class="badge bg-${test.status === 'active' ? 'primary' : test.status === 'completed' ? 'success' : 'secondary'}">${test.status}</span></td>
+                        <td>${new Date(test.start_date).toLocaleDateString()}</td>
+                        <td>${new Date(test.end_date).toLocaleDateString()}</td>
+                        <td>${test.results && test.results.winner ? 
+                               `Winner: ${test.results.winner}` : 
+                               test.status === 'active' ? 'In progress' : 'Not evaluated'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-secondary view-test-btn" data-test-id="${test.id}">
+                                View
+                            </button>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        `;
+        
+        container.appendChild(table);
+        
+        // Add event listeners
+        table.querySelectorAll('.view-test-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                loadTestDetails(this.getAttribute('data-test-id'));
+            });
+        });
+    }
+}
+
+function loadTestDetails(testId) {
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('testDetailsModal'));
+    modal.show();
+    
+    // Set loading state
+    document.getElementById('test-details-content').innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    `;
+    
+    // Disable evaluate button by default
+    const evaluateBtn = document.getElementById('evaluate-test-btn');
+    evaluateBtn.setAttribute('data-test-id', testId);
+    evaluateBtn.disabled = true;
+    
+    // Send API request
+    fetch(`/api/ai/prompts/ab-tests/${testId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success' && data.test) {
+            const test = data.test;
+            
+            // Set evaluate button state
+            evaluateBtn.disabled = test.status !== 'active';
+            
+            // Render test details
+            let resultsHtml = '';
+            if (test.results && Object.keys(test.results).length > 0) {
+                if (test.results.version_a && test.results.version_b) {
+                    resultsHtml = `
+                        <h5 class="mt-4">Results</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card ${test.results.winner === 'A' ? 'border-success' : ''}">
+                                    <div class="card-header">
+                                        Version A (Original) ${test.results.winner === 'A' ? '<span class="badge bg-success">Winner</span>' : ''}
+                                    </div>
+                                    <div class="card-body">
+                                        <p>Sample size: ${test.results.version_a.sample_size}</p>
+                                        <p>Average rating: ${test.results.version_a.avg_rating} / 5</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card ${test.results.winner === 'B' ? 'border-success' : ''}">
+                                    <div class="card-header">
+                                        Version B (Improved) ${test.results.winner === 'B' ? '<span class="badge bg-success">Winner</span>' : ''}
+                                    </div>
+                                    <div class="card-body">
+                                        <p>Sample size: ${test.results.version_b.sample_size}</p>
+                                        <p>Average rating: ${test.results.version_b.avg_rating} / 5</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        ${test.results.improvement !== 0 ? `
+                            <div class="alert alert-info mt-3">
+                                Improvement: ${test.results.improvement}%
+                            </div>
+                        ` : ''}
+                        <div class="mt-3">
+                            <h6>Conclusion</h6>
+                            <p>${test.results.conclusion}</p>
+                        </div>
+                    `;
+                } else {
+                    resultsHtml = `
+                        <div class="alert alert-warning mt-4">
+                            ${test.results.message || 'Test results are incomplete or not available.'}
+                        </div>
+                    `;
+                }
+            } else if (test.status === 'active') {
+                resultsHtml = `
+                    <div class="alert alert-info mt-4">
+                        This test is still active. Results will be available after evaluation.
+                    </div>
+                `;
+            } else {
+                resultsHtml = `
+                    <div class="alert alert-warning mt-4">
+                        No results are available for this test.
+                    </div>
+                `;
+            }
+            
+            document.getElementById('test-details-content').innerHTML = `
+                <h5>Test Information</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>ID:</strong> ${test.id}</p>
+                        <p><strong>Agent Type:</strong> ${test.agent_type}</p>
+                        <p><strong>Status:</strong> <span class="badge bg-${test.status === 'active' ? 'primary' : test.status === 'completed' ? 'success' : 'secondary'}">${test.status}</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Start Date:</strong> ${new Date(test.start_date).toLocaleString()}</p>
+                        <p><strong>End Date:</strong> ${new Date(test.end_date).toLocaleString()}</p>
+                        <p><strong>Created:</strong> ${new Date(test.created_at).toLocaleString()}</p>
+                    </div>
+                </div>
+                
+                <h5 class="mt-4">Prompts</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">Version A (Original)</div>
+                            <div class="card-body">
+                                <pre>${test.original_prompt}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">Version B (Improved)</div>
+                            <div class="card-body">
+                                <pre>${test.improved_prompt}</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                ${resultsHtml}
+            `;
+        } else {
+            document.getElementById('test-details-content').innerHTML = `
+                <div class="alert alert-danger">
+                    Error loading test details: ${data.message || 'Unknown error'}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('test-details-content').innerHTML = `
+            <div class="alert alert-danger">
+                An error occurred while loading test details.
+            </div>
+        `;
+    });
+}
+</script>
+{% endblock %}

@@ -150,3 +150,44 @@ class PromptVersion(db.Model):
                 db.session.commit()
         
         return prompt
+        
+class LearningCycle(db.Model):
+    """Model for tracking AI continuous learning cycles."""
+    id = db.Column(db.Integer, primary_key=True)
+    start_date = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    end_date = db.Column(db.DateTime, nullable=True)
+    status = db.Column(db.String(20), nullable=False, default='in_progress')  # 'in_progress', 'completed', 'failed', 'cancelled'
+    agents_processed = db.Column(db.Integer, default=0)  # Number of agents processed
+    agents_optimized = db.Column(db.Integer, default=0)  # Number of agents that were successfully optimized
+    average_improvement = db.Column(db.Float, default=0.0)  # Average percentage improvement across all agents
+    error_message = db.Column(db.Text, nullable=True)  # Error message if failed
+    results = db.Column(db.Text, nullable=True)  # JSON blob with detailed results
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    def __repr__(self):
+        return f"<LearningCycle id={self.id} status={self.status} agents_optimized={self.agents_optimized}>"
+        
+class AgentOptimizationResult(db.Model):
+    """Model for storing results of agent optimizations in learning cycles."""
+    id = db.Column(db.Integer, primary_key=True)
+    learning_cycle_id = db.Column(db.Integer, db.ForeignKey('learning_cycle.id'), nullable=False)
+    agent_type = db.Column(db.String(50), nullable=False)  # Type of agent
+    original_prompt_id = db.Column(db.Integer, db.ForeignKey('prompt_version.id'), nullable=True)
+    new_prompt_id = db.Column(db.Integer, db.ForeignKey('prompt_version.id'), nullable=True)
+    original_rating = db.Column(db.Float, nullable=True)  # Average rating before optimization
+    new_rating = db.Column(db.Float, nullable=True)  # Average rating after optimization
+    improvement_percentage = db.Column(db.Float, nullable=True)  # Percentage improvement
+    tests_run = db.Column(db.Integer, default=0)  # Number of A/B tests run
+    successful = db.Column(db.Boolean, default=False)  # Whether optimization was successful
+    applied = db.Column(db.Boolean, default=False)  # Whether the optimization was applied
+    notes = db.Column(db.Text, nullable=True)  # Notes about the optimization
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    # Relationships
+    learning_cycle = db.relationship('LearningCycle', backref=db.backref('agent_results', lazy=True))
+    original_prompt = db.relationship('PromptVersion', foreign_keys=[original_prompt_id])
+    new_prompt = db.relationship('PromptVersion', foreign_keys=[new_prompt_id])
+    
+    def __repr__(self):
+        return f"<AgentOptimizationResult id={self.id} agent={self.agent_type} improvement={self.improvement_percentage}%>"

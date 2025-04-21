@@ -476,6 +476,16 @@ def ai_feedback_analytics():
     """AI feedback analytics dashboard"""
     return render_template('ai_feedback_analytics.html')
     
+@app.route('/ai/prompt-testing', methods=['GET'])
+def ai_prompt_testing():
+    """AI prompt A/B testing page"""
+    return render_template('ai_prompt_testing.html')
+    
+@app.route('/ai/continuous-learning', methods=['GET'])
+def ai_continuous_learning():
+    """AI continuous learning system page"""
+    return render_template('ai_continuous_learning.html')
+
 @app.route('/ai/reports/settings', methods=['GET', 'POST'])
 def ai_report_settings():
     """AI feedback report settings page"""
