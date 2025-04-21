@@ -1,246 +1,296 @@
 """
-Notification service for sending alerts and notifications through various channels.
+Notification service for sending alerts through various channels.
 """
 import os
-import logging
 import json
+import logging
 from datetime import datetime
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
-# Set up logging
+# Set up logger
 logger = logging.getLogger(__name__)
 
 class NotificationService:
-    """Service for sending notifications through various channels."""
+    """
+    Service for sending notifications through various channels.
+    """
     
-    @staticmethod
-    def send_slack_alert(message, severity="info", channel=None, attachments=None):
+    def __init__(self):
         """
-        Send an alert message to Slack.
+        Initialize notification service.
+        """
+        # Setup for Slack
+        self.slack_token = os.environ.get('SLACK_BOT_TOKEN')
+        if self.slack_token:
+            try:
+                from slack_sdk import WebClient
+                from slack_sdk.errors import SlackApiError
+                self.slack_client = WebClient(token=self.slack_token)
+                self.slack_available = True
+                logger.info("Slack notification service initialized")
+            except ImportError:
+                logger.warning("Slack SDK not installed. Slack notifications will not be available.")
+                self.slack_available = False
+            except Exception as e:
+                logger.error(f"Error initializing Slack client: {str(e)}")
+                self.slack_available = False
+        else:
+            logger.warning("SLACK_BOT_TOKEN not found in environment variables. Slack notifications will not be available.")
+            self.slack_available = False
+            
+        # Setup for Email (SendGrid)
+        self.sendgrid_api_key = os.environ.get('SENDGRID_API_KEY')
+        if self.sendgrid_api_key:
+            try:
+                self.email_available = True
+                logger.info("Email notification service initialized (SendGrid)")
+            except Exception as e:
+                logger.error(f"Error initializing SendGrid client: {str(e)}")
+                self.email_available = False
+        else:
+            logger.warning("SENDGRID_API_KEY not found in environment variables. Email notifications will not be available via SendGrid.")
+            self.email_available = False
+            
+        # Try SMTP as fallback if SendGrid is not available
+        if not self.email_available:
+            self.smtp_host = os.environ.get('SMTP_HOST')
+            self.smtp_port = os.environ.get('SMTP_PORT')
+            self.smtp_username = os.environ.get('SMTP_USERNAME')
+            self.smtp_password = os.environ.get('SMTP_PASSWORD')
+            self.smtp_from_email = os.environ.get('SMTP_FROM_EMAIL')
+            
+            if self.smtp_host and self.smtp_port and self.smtp_username and self.smtp_password and self.smtp_from_email:
+                self.email_available = True
+                logger.info("Email notification service initialized (SMTP)")
+            else:
+                logger.warning("SMTP configuration incomplete. Email notifications will not be available.")
+                self.email_available = False
+            
+        # Setup for SMS (Twilio)
+        self.twilio_account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
+        self.twilio_auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
+        self.twilio_phone_number = os.environ.get('TWILIO_PHONE_NUMBER')
+        
+        if self.twilio_account_sid and self.twilio_auth_token and self.twilio_phone_number:
+            try:
+                self.sms_available = True
+                logger.info("SMS notification service initialized")
+            except Exception as e:
+                logger.error(f"Error initializing Twilio client: {str(e)}")
+                self.sms_available = False
+        else:
+            logger.warning("Twilio credentials not found in environment variables. SMS notifications will not be available.")
+            self.sms_available = False
+            
+    def send_slack_notification(self, message, channel_id, severity='info'):
+        """
+        Send a notification to a Slack channel.
         
         Args:
-            message (str): The alert message.
-            severity (str): The severity level (info, warning, error, critical).
-            channel (str, optional): The Slack channel to send to. If None, uses the default channel.
-            attachments (list, optional): A list of attachment dictionaries for rich formatting.
+            message (str): The message to send
+            channel_id (str): The Slack channel ID to send the message to
+            severity (str, optional): The severity level, used for formatting. Defaults to 'info'.
             
         Returns:
-            bool: True if the message was sent successfully, False otherwise.
+            bool: True if successful, False otherwise
         """
+        if not self.slack_available:
+            logger.warning("Slack notifications are not available")
+            return False
+            
         try:
             from slack_sdk import WebClient
             from slack_sdk.errors import SlackApiError
             
-            slack_token = os.environ.get("SLACK_BOT_TOKEN")
-            default_channel = os.environ.get("SLACK_CHANNEL_ID")
-            
-            if not slack_token:
-                logger.error("SLACK_BOT_TOKEN environment variable not set")
-                return False
+            # Format the message with appropriate emoji based on severity
+            emoji = ":information_source:"
+            if severity == 'warning':
+                emoji = ":warning:"
+            elif severity == 'error':
+                emoji = ":x:"
+            elif severity == 'critical':
+                emoji = ":rotating_light:"
                 
-            channel_id = channel or default_channel
-            if not channel_id:
-                logger.error("SLACK_CHANNEL_ID environment variable not set and no channel provided")
-                return False
+            # Add emoji to beginning of message
+            formatted_message = f"{emoji} {message}"
             
-            # Initialize Slack client
-            client = WebClient(token=slack_token)
-            
-            # Create message with appropriate emoji for severity
-            emoji = NotificationService._get_severity_emoji(severity)
-            formatted_message = f"{emoji} *{severity.upper()}*: {message}"
-            
-            # Prepare attachments if any
-            slack_attachments = attachments or []
-            
-            # Add timestamp to attachments
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            if not attachments:
-                slack_attachments = [
-                    {
-                        "color": NotificationService._get_severity_color(severity),
-                        "fields": [
-                            {
-                                "title": "Time",
-                                "value": timestamp,
-                                "short": True
-                            },
-                            {
-                                "title": "Severity",
-                                "value": severity.upper(),
-                                "short": True
-                            }
-                        ],
-                        "footer": "NARRPR Monitoring System"
-                    }
-                ]
-            
-            # Send message to Slack
-            response = client.chat_postMessage(
+            response = self.slack_client.chat_postMessage(
                 channel=channel_id,
                 text=formatted_message,
-                attachments=slack_attachments,
                 unfurl_links=False,
                 unfurl_media=False
             )
             
-            if response["ok"]:
-                logger.info(f"Slack alert sent successfully: {message}")
-                return True
-            else:
-                logger.error(f"Failed to send Slack alert: {response.get('error', 'Unknown error')}")
-                return False
-                
-        except ImportError:
-            logger.error("slack_sdk package not installed")
-            return False
+            logger.info(f"Sent Slack notification to channel {channel_id}")
+            return True
+            
         except Exception as e:
-            logger.error(f"Error sending Slack alert: {str(e)}")
+            logger.error(f"Error sending Slack notification: {str(e)}")
             return False
-    
-    @staticmethod
-    def send_email_alert(subject, message, recipients, attachments=None):
+            
+    def send_email_notification(self, subject, message, recipients, severity='info'):
         """
-        Send an alert email.
+        Send an email notification.
         
         Args:
-            subject (str): The email subject.
-            message (str): The email message body.
-            recipients (list): A list of recipient email addresses.
-            attachments (list, optional): A list of file paths to attach.
+            subject (str): The email subject
+            message (str): The email message
+            recipients (list): List of email addresses to send to
+            severity (str, optional): The severity level, used for formatting. Defaults to 'info'.
             
         Returns:
-            bool: True if the email was sent successfully, False otherwise.
+            bool: True if successful, False otherwise
         """
+        if not self.email_available:
+            logger.warning("Email notifications are not available")
+            return False
+            
         try:
-            from sendgrid import SendGridAPIClient
-            from sendgrid.helpers.mail import Mail, Attachment, FileContent, FileName, FileType, Disposition, ContentId
-            import base64
-            import mimetypes
-            
-            sendgrid_api_key = os.environ.get("SENDGRID_API_KEY")
-            sender_email = os.environ.get("SENDGRID_SENDER_EMAIL") or "monitoring@narrpr-scraper.app"
-            
-            if not sendgrid_api_key:
-                logger.error("SENDGRID_API_KEY environment variable not set")
-                return False
-            
-            # Create email message
-            mail = Mail(
-                from_email=sender_email,
-                to_emails=recipients,
-                subject=subject,
-                html_content=message
-            )
-            
-            # Add attachments if any
-            if attachments:
-                for file_path in attachments:
-                    if os.path.isfile(file_path):
-                        with open(file_path, 'rb') as f:
-                            file_data = f.read()
-                            file_name = os.path.basename(file_path)
-                            file_type = mimetypes.guess_type(file_path)[0] or 'application/octet-stream'
-                            
-                            encoded_file = base64.b64encode(file_data).decode()
-                            attachment = Attachment()
-                            attachment.file_content = FileContent(encoded_file)
-                            attachment.file_name = FileName(file_name)
-                            attachment.file_type = FileType(file_type)
-                            attachment.disposition = Disposition('attachment')
-                            attachment.content_id = ContentId(file_name)
-                            
-                            mail.add_attachment(attachment)
-            
-            # Send email
-            sg = SendGridAPIClient(sendgrid_api_key)
-            response = sg.send(mail)
-            
-            if response.status_code in [200, 201, 202]:
-                logger.info(f"Email alert sent successfully to {', '.join(recipients)}")
-                return True
-            else:
-                logger.error(f"Failed to send email alert: {response.body}")
-                return False
+            # For SendGrid
+            if self.sendgrid_api_key:
+                import sendgrid
+                from sendgrid.helpers.mail import Mail, Email, To, Content
                 
-        except ImportError:
-            logger.error("sendgrid package not installed")
-            return False
+                sg = sendgrid.SendGridAPIClient(api_key=self.sendgrid_api_key)
+                
+                # Format HTML content
+                html_content = f"""
+                <html>
+                <head>
+                    <style>
+                        body {{ font-family: Arial, sans-serif; }}
+                        .alert-header {{ padding: 10px; border-radius: 5px; margin-bottom: 20px; }}
+                        .severity-info {{ background-color: #d9edf7; color: #31708f; }}
+                        .severity-warning {{ background-color: #fcf8e3; color: #8a6d3b; }}
+                        .severity-error {{ background-color: #f2dede; color: #a94442; }}
+                        .severity-critical {{ background-color: #f2dede; color: #a94442; font-weight: bold; }}
+                        pre {{ background-color: #f5f5f5; padding: 10px; border-radius: 5px; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="alert-header severity-{severity}">
+                        <h2>{subject}</h2>
+                    </div>
+                    <pre>{message}</pre>
+                    <p>Sent at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                </body>
+                </html>
+                """
+                
+                # Create message
+                from_email = Email(self.smtp_from_email or "alerts@example.com")
+                
+                for recipient in recipients:
+                    to_email = To(recipient)
+                    content = Content("text/html", html_content)
+                    mail = Mail(from_email, to_email, subject, content)
+                    
+                    try:
+                        response = sg.client.mail.send.post(request_body=mail.get())
+                        logger.info(f"Sent email notification to {recipient}")
+                    except Exception as e:
+                        logger.error(f"Error sending email to {recipient}: {str(e)}")
+                        
+                return True
+                
+            # For SMTP
+            else:
+                # Create message
+                msg = MIMEMultipart('alternative')
+                msg['Subject'] = subject
+                msg['From'] = self.smtp_from_email
+                
+                # Format HTML content
+                html_content = f"""
+                <html>
+                <head>
+                    <style>
+                        body {{ font-family: Arial, sans-serif; }}
+                        .alert-header {{ padding: 10px; border-radius: 5px; margin-bottom: 20px; }}
+                        .severity-info {{ background-color: #d9edf7; color: #31708f; }}
+                        .severity-warning {{ background-color: #fcf8e3; color: #8a6d3b; }}
+                        .severity-error {{ background-color: #f2dede; color: #a94442; }}
+                        .severity-critical {{ background-color: #f2dede; color: #a94442; font-weight: bold; }}
+                        pre {{ background-color: #f5f5f5; padding: 10px; border-radius: 5px; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="alert-header severity-{severity}">
+                        <h2>{subject}</h2>
+                    </div>
+                    <pre>{message}</pre>
+                    <p>Sent at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                </body>
+                </html>
+                """
+                
+                # Attach parts
+                text_part = MIMEText(message, 'plain')
+                html_part = MIMEText(html_content, 'html')
+                msg.attach(text_part)
+                msg.attach(html_part)
+                
+                # Connect to SMTP server and send
+                smtp = smtplib.SMTP(self.smtp_host, int(self.smtp_port))
+                smtp.starttls()
+                smtp.login(self.smtp_username, self.smtp_password)
+                
+                for recipient in recipients:
+                    msg['To'] = recipient
+                    try:
+                        smtp.sendmail(self.smtp_from_email, recipient, msg.as_string())
+                        logger.info(f"Sent email notification to {recipient}")
+                    except Exception as e:
+                        logger.error(f"Error sending email to {recipient}: {str(e)}")
+                        
+                smtp.quit()
+                return True
+                
         except Exception as e:
-            logger.error(f"Error sending email alert: {str(e)}")
+            logger.error(f"Error sending email notification: {str(e)}")
             return False
-    
-    @staticmethod
-    def send_sms_alert(message, recipients):
+            
+    def send_sms_notification(self, message, recipients):
         """
-        Send an SMS alert.
+        Send an SMS notification.
         
         Args:
-            message (str): The SMS message body.
-            recipients (list): A list of recipient phone numbers.
+            message (str): The SMS message
+            recipients (list): List of phone numbers to send to
             
         Returns:
-            bool: True if the SMS was sent successfully, False otherwise.
+            bool: True if successful, False otherwise
         """
+        if not self.sms_available:
+            logger.warning("SMS notifications are not available")
+            return False
+            
         try:
             from twilio.rest import Client
             
-            twilio_account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
-            twilio_auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
-            twilio_phone_number = os.environ.get("TWILIO_PHONE_NUMBER")
+            client = Client(self.twilio_account_sid, self.twilio_auth_token)
             
-            if not twilio_account_sid or not twilio_auth_token or not twilio_phone_number:
-                logger.error("Twilio environment variables not set")
-                return False
-            
-            # Initialize Twilio client
-            client = Client(twilio_account_sid, twilio_auth_token)
-            
-            # Send SMS to each recipient
+            # Limit message length for SMS
+            if len(message) > 160:
+                message = message[:157] + "..."
+                
             success_count = 0
             for recipient in recipients:
                 try:
-                    sms = client.messages.create(
+                    message_obj = client.messages.create(
                         body=message,
-                        from_=twilio_phone_number,
+                        from_=self.twilio_phone_number,
                         to=recipient
                     )
-                    logger.info(f"SMS alert sent to {recipient} with SID: {sms.sid}")
+                    logger.info(f"Sent SMS to {recipient} (SID: {message_obj.sid})")
                     success_count += 1
                 except Exception as e:
                     logger.error(f"Error sending SMS to {recipient}: {str(e)}")
-            
-            # Return True if at least one SMS was sent successfully
+                    
             return success_count > 0
-                
-        except ImportError:
-            logger.error("twilio package not installed")
-            return False
+            
         except Exception as e:
-            logger.error(f"Error sending SMS alert: {str(e)}")
+            logger.error(f"Error sending SMS notification: {str(e)}")
             return False
-    
-    @staticmethod
-    def _get_severity_emoji(severity):
-        """Get the appropriate emoji for a severity level."""
-        severity = severity.lower()
-        if severity == "critical":
-            return ":rotating_light:"
-        elif severity == "error":
-            return ":x:"
-        elif severity == "warning":
-            return ":warning:"
-        else:
-            return ":information_source:"
-    
-    @staticmethod
-    def _get_severity_color(severity):
-        """Get the appropriate color for a severity level."""
-        severity = severity.lower()
-        if severity == "critical":
-            return "#FF0000"  # Red
-        elif severity == "error":
-            return "#FF8000"  # Orange
-        elif severity == "warning":
-            return "#FFFF00"  # Yellow
-        else:
-            return "#00FF00"  # Green

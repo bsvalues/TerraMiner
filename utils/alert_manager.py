@@ -1,85 +1,84 @@
 """
-Alert management service for handling alert generation and notifications.
+Alert manager for handling alerts and notifications.
 """
-import os
 import json
 import logging
 from datetime import datetime, timedelta
-import traceback
 
 from app import db
-from models import MonitoringAlert, NotificationChannel, AlertRule, AlertNotificationMap
+from models import MonitoringAlert, AlertRule, AlertNotificationMap, NotificationChannel
 from utils.notification_service import NotificationService
 
-# Set up logging
+# Set up logger
 logger = logging.getLogger(__name__)
 
 class AlertManager:
-    """Manager for handling alert creation, resolution, and notifications."""
+    """
+    Alert manager for handling the creation, updating, and notification of alerts.
+    """
     
     @staticmethod
     def create_alert(alert_type, severity, component, message, details=None, rule_id=None):
         """
-        Create a new monitoring alert.
+        Create a new alert in the database and send notifications.
         
         Args:
-            alert_type (str): Type of alert (error, warning, etc.)
-            severity (str): Severity level (critical, error, warning, info)
-            component (str): Component generating the alert
-            message (str): Alert message
-            details (str, optional): Additional details about the alert
+            alert_type (str): Type of alert, e.g., 'high_cpu_usage'
+            severity (str): Severity level, e.g., 'critical', 'error', 'warning', 'info'
+            component (str): Component that generated the alert, e.g., 'system', 'api', 'database'
+            message (str): Brief message describing the alert
+            details (str, optional): Detailed information about the alert
             rule_id (int, optional): ID of the alert rule that triggered this alert
             
         Returns:
-            MonitoringAlert: The created alert object
+            MonitoringAlert: The created alert, or None if creation failed
         """
         try:
-            # Check if there's already an active alert with the same properties
+            # Check if a similar active alert already exists (prevent duplicates)
             existing_alert = MonitoringAlert.query.filter_by(
                 alert_type=alert_type,
                 component=component,
                 status='active'
-            ).order_by(MonitoringAlert.created_at.desc()).first()
+            ).first()
             
-            # If there's an existing alert less than the cooldown period, don't create a new one
             if existing_alert:
-                # If rule exists, check cooldown
-                if rule_id:
-                    rule = AlertRule.query.get(rule_id)
-                    if rule:
-                        cooldown = timedelta(minutes=rule.cooldown_minutes)
-                        if existing_alert.created_at > datetime.now() - cooldown:
-                            logger.info(f"Alert suppressed due to cooldown: {alert_type} - {message}")
-                            return existing_alert
-                elif existing_alert.created_at > datetime.now() - timedelta(minutes=60):  # Default 60 minute cooldown
-                    logger.info(f"Alert suppressed due to default cooldown: {alert_type} - {message}")
+                # If an alert with the same type and component is already active,
+                # only create a new one if it's been more than 1 hour or if the severity increased
+                one_hour_ago = datetime.now() - timedelta(hours=1)
+                severity_levels = {'info': 1, 'warning': 2, 'error': 3, 'critical': 4}
+                
+                existing_severity = severity_levels.get(existing_alert.severity.lower(), 0)
+                new_severity = severity_levels.get(severity.lower(), 0)
+                
+                if existing_alert.created_at >= one_hour_ago and new_severity <= existing_severity:
+                    logger.info(f"Similar alert already exists (ID: {existing_alert.id}). Skipping creation.")
                     return existing_alert
             
-            # Create new alert
+            # Create a new alert
             alert = MonitoringAlert(
                 alert_type=alert_type,
                 severity=severity,
                 component=component,
                 message=message,
                 details=details,
-                alert_rule_id=rule_id,
-                status='active'
+                rule_id=rule_id,
+                status='active',
+                created_at=datetime.now()
             )
             
             db.session.add(alert)
             db.session.commit()
             
-            logger.info(f"Created new alert: {alert_type} - {message}")
+            logger.info(f"Created alert (ID: {alert.id}) of type {alert_type} with severity {severity}")
             
-            # Send notifications
+            # Send notifications for the new alert
             AlertManager.send_alert_notifications(alert)
             
             return alert
             
         except Exception as e:
-            logger.error(f"Error creating alert: {str(e)}")
-            logger.error(traceback.format_exc())
             db.session.rollback()
+            logger.error(f"Error creating alert: {str(e)}")
             return None
     
     @staticmethod
@@ -96,23 +95,23 @@ class AlertManager:
         try:
             alert = MonitoringAlert.query.get(alert_id)
             if not alert:
-                logger.error(f"Alert not found: {alert_id}")
+                logger.error(f"Alert with ID {alert_id} not found")
                 return False
-                
-            if alert.status != 'active':
-                logger.warning(f"Cannot acknowledge alert {alert_id} with status {alert.status}")
+            
+            if alert.status == 'resolved':
+                logger.warning(f"Alert with ID {alert_id} is already resolved")
                 return False
                 
             alert.status = 'acknowledged'
             alert.acknowledged_at = datetime.now()
             db.session.commit()
             
-            logger.info(f"Alert {alert_id} acknowledged")
+            logger.info(f"Acknowledged alert with ID {alert_id}")
             return True
             
         except Exception as e:
-            logger.error(f"Error acknowledging alert: {str(e)}")
             db.session.rollback()
+            logger.error(f"Error acknowledging alert: {str(e)}")
             return False
     
     @staticmethod
@@ -129,48 +128,185 @@ class AlertManager:
         try:
             alert = MonitoringAlert.query.get(alert_id)
             if not alert:
-                logger.error(f"Alert not found: {alert_id}")
+                logger.error(f"Alert with ID {alert_id} not found")
                 return False
-                
-            if alert.status == 'resolved':
-                logger.warning(f"Alert {alert_id} already resolved")
-                return True
                 
             alert.status = 'resolved'
             alert.resolved_at = datetime.now()
+            
+            # If the alert was not acknowledged, set the acknowledged_at timestamp
+            if not alert.acknowledged_at:
+                alert.acknowledged_at = alert.resolved_at
+                
             db.session.commit()
             
-            logger.info(f"Alert {alert_id} resolved")
+            logger.info(f"Resolved alert with ID {alert_id}")
             return True
             
         except Exception as e:
-            logger.error(f"Error resolving alert: {str(e)}")
             db.session.rollback()
+            logger.error(f"Error resolving alert: {str(e)}")
             return False
     
     @staticmethod
-    def get_active_alerts(component=None, max_count=100):
+    def check_alert_rules():
         """
-        Get active alerts.
+        Check all active alert rules against the current system state.
         
-        Args:
-            component (str, optional): Filter by component
-            max_count (int, optional): Maximum number of alerts to return
-            
         Returns:
-            list: List of active alert objects
+            int: Number of alerts generated
         """
         try:
-            query = MonitoringAlert.query.filter(MonitoringAlert.status != 'resolved')
+            # Get all active alert rules
+            rules = AlertRule.query.filter_by(is_active=True).all()
             
-            if component:
-                query = query.filter_by(component=component)
+            if not rules:
+                logger.debug("No active alert rules found")
+                return 0
                 
-            return query.order_by(MonitoringAlert.created_at.desc()).limit(max_count).all()
+            alerts_generated = 0
+            
+            for rule in rules:
+                try:
+                    # Parse condition configuration
+                    condition_config = json.loads(rule.condition_config)
+                    
+                    # Check if the rule is in cooldown
+                    if rule.last_triggered:
+                        cooldown_minutes = rule.cooldown_minutes or 60
+                        cooldown_until = rule.last_triggered + timedelta(minutes=cooldown_minutes)
+                        
+                        if datetime.now() < cooldown_until:
+                            # Rule is in cooldown, skip it
+                            logger.debug(f"Rule {rule.id} ({rule.name}) is in cooldown until {cooldown_until}")
+                            continue
+                    
+                    # Check if the rule condition is met based on condition type
+                    if rule.condition_type == 'threshold':
+                        # Handle threshold condition
+                        from models import SystemMetric
+                        
+                        metric_name = condition_config.get('metric_name')
+                        threshold = condition_config.get('threshold')
+                        operator = condition_config.get('operator')
+                        
+                        if not metric_name or threshold is None or not operator:
+                            logger.warning(f"Invalid threshold condition for rule {rule.id} ({rule.name})")
+                            continue
+                            
+                        # Get the latest metric value
+                        metric = SystemMetric.query.filter_by(
+                            metric_name=metric_name,
+                            component=rule.component
+                        ).order_by(SystemMetric.timestamp.desc()).first()
+                        
+                        if not metric:
+                            logger.debug(f"No metric found for {metric_name} in component {rule.component}")
+                            continue
+                            
+                        metric_value = metric.metric_value
+                        
+                        # Check the condition based on the operator
+                        condition_met = False
+                        if operator == '>':
+                            condition_met = metric_value > threshold
+                        elif operator == '>=':
+                            condition_met = metric_value >= threshold
+                        elif operator == '<':
+                            condition_met = metric_value < threshold
+                        elif operator == '<=':
+                            condition_met = metric_value <= threshold
+                        elif operator == '==':
+                            condition_met = metric_value == threshold
+                        elif operator == '!=':
+                            condition_met = metric_value != threshold
+                            
+                        if condition_met:
+                            # Generate an alert
+                            alert = AlertManager.create_alert(
+                                alert_type=rule.alert_type,
+                                severity=rule.severity,
+                                component=rule.component,
+                                message=rule.description or f"{metric_name} {operator} {threshold}",
+                                details=f"Metric {metric_name} value {metric_value} {operator} threshold {threshold}",
+                                rule_id=rule.id
+                            )
+                            
+                            if alert:
+                                alerts_generated += 1
+                                
+                                # Update the rule's last_triggered timestamp
+                                rule.last_triggered = datetime.now()
+                                
+                    elif rule.condition_type == 'pattern':
+                        # Handle pattern matching condition
+                        # This would require logs or other text data sources to search for patterns
+                        # Not implemented in this version
+                        pass
+                        
+                    elif rule.condition_type == 'frequency':
+                        # Handle frequency condition (e.g., number of errors in a time period)
+                        from models import APIUsageLog
+                        
+                        event_type = condition_config.get('event_type')
+                        count = condition_config.get('count')
+                        period_minutes = condition_config.get('period_minutes')
+                        
+                        if not event_type or count is None or period_minutes is None:
+                            logger.warning(f"Invalid frequency condition for rule {rule.id} ({rule.name})")
+                            continue
+                            
+                        # Calculate the time range
+                        period_start = datetime.now() - timedelta(minutes=period_minutes)
+                        
+                        # Count events based on event type
+                        actual_count = 0
+                        
+                        if event_type == 'api_error':
+                            # Count API errors
+                            actual_count = APIUsageLog.query.filter(
+                                APIUsageLog.timestamp >= period_start,
+                                APIUsageLog.status_code >= 400
+                            ).count()
+                        elif event_type == 'job_failure':
+                            # Count job failures
+                            from models import JobRun
+                            actual_count = JobRun.query.filter(
+                                JobRun.start_time >= period_start,
+                                JobRun.status == 'failed'
+                            ).count()
+                            
+                        # Check if the condition is met
+                        if actual_count >= count:
+                            # Generate an alert
+                            alert = AlertManager.create_alert(
+                                alert_type=rule.alert_type,
+                                severity=rule.severity,
+                                component=rule.component,
+                                message=rule.description or f"{event_type} frequency exceeded",
+                                details=f"Detected {actual_count} {event_type} events in the last {period_minutes} minutes (threshold: {count})",
+                                rule_id=rule.id
+                            )
+                            
+                            if alert:
+                                alerts_generated += 1
+                                
+                                # Update the rule's last_triggered timestamp
+                                rule.last_triggered = datetime.now()
+                                
+                except Exception as e:
+                    logger.error(f"Error checking rule {rule.id} ({rule.name}): {str(e)}")
+                    continue
+                
+            # Commit any changes to rules (last_triggered timestamps)
+            db.session.commit()
+            
+            return alerts_generated
             
         except Exception as e:
-            logger.error(f"Error getting active alerts: {str(e)}")
-            return []
+            db.session.rollback()
+            logger.error(f"Error checking alert rules: {str(e)}")
+            return 0
     
     @staticmethod
     def send_alert_notifications(alert):
@@ -181,240 +317,125 @@ class AlertManager:
             alert (MonitoringAlert): The alert to send notifications for
             
         Returns:
-            bool: True if notifications were sent successfully, False otherwise
+            int: Number of notifications sent
         """
         try:
-            # If notifications were already sent, don't send again
-            if alert.notifications_sent:
-                logger.info(f"Notifications already sent for alert {alert.id}")
-                return True
+            # Get notification mappings that match this alert
+            mappings = AlertNotificationMap.query.filter(
+                AlertNotificationMap.is_active == True,
+                (
+                    (AlertNotificationMap.alert_type == '*') |
+                    (AlertNotificationMap.alert_type == alert.alert_type)
+                )
+            ).all()
+            
+            if not mappings:
+                logger.debug(f"No notification mappings found for alert {alert.id}")
+                return 0
                 
-            # Find notification channels for this alert type and severity
-            severity_levels = {
-                'critical': 4,
-                'error': 3,
-                'warning': 2,
-                'info': 1
-            }
+            # Map severity levels for comparison
+            severity_levels = {'info': 1, 'warning': 2, 'error': 3, 'critical': 4}
+            alert_severity = severity_levels.get(alert.severity.lower(), 0)
             
-            alert_severity_level = severity_levels.get(alert.severity.lower(), 0)
+            sent_count = 0
             
-            # Get all active notification mappings
-            mappings = AlertNotificationMap.query.filter_by(is_active=True).all()
-            
-            channels_to_notify = []
             for mapping in mappings:
-                # Check if this mapping applies to this alert type
-                if mapping.alert_type == alert.alert_type or mapping.alert_type == '*':
-                    # Check if this mapping applies to this severity level
-                    mapping_severity_level = severity_levels.get(mapping.min_severity.lower(), 0)
-                    if alert_severity_level >= mapping_severity_level:
-                        # Get the associated channel if active
-                        channel = NotificationChannel.query.get(mapping.channel_id)
-                        if channel and channel.is_active:
-                            channels_to_notify.append(channel)
-            
-            if not channels_to_notify:
-                logger.warning(f"No notification channels found for alert {alert.id}")
-                return False
-                
-            # Send notifications through each channel
-            success = False
-            for channel in channels_to_notify:
-                if AlertManager._send_notification(channel, alert):
-                    success = True
-            
-            # Mark notifications as sent
-            if success:
-                alert.notifications_sent = True
-                alert.notification_sent_at = datetime.now()
-                db.session.commit()
-                
-            return success
+                try:
+                    # Check if the alert meets the minimum severity requirement
+                    mapping_min_severity = severity_levels.get(mapping.min_severity.lower(), 0)
+                    
+                    if alert_severity < mapping_min_severity:
+                        logger.debug(f"Alert {alert.id} severity {alert.severity} does not meet mapping {mapping.id} min severity {mapping.min_severity}")
+                        continue
+                        
+                    # Get the notification channel
+                    channel = NotificationChannel.query.get(mapping.channel_id)
+                    
+                    if not channel or not channel.is_active:
+                        logger.warning(f"Notification channel {mapping.channel_id} not found or not active")
+                        continue
+                        
+                    # Format the alert message
+                    alert_time = alert.created_at.strftime("%Y-%m-%d %H:%M:%S")
+                    message = f"""
+ALERT [{alert.severity.upper()}]: {alert.message}
+Time: {alert_time}
+Component: {alert.component}
+Type: {alert.alert_type}
+ID: {alert.id}
+                    """
+                    
+                    if alert.details:
+                        message += f"\nDetails: {alert.details}"
+                        
+                    # Send the notification based on channel type
+                    notification_service = NotificationService()
+                    
+                    if channel.channel_type == 'slack':
+                        # Send Slack notification
+                        config = json.loads(channel.config)
+                        slack_channel_id = config.get('channel_id')
+                        
+                        if not slack_channel_id:
+                            logger.warning(f"Slack channel ID not found in channel {channel.id} config")
+                            continue
+                            
+                        success = notification_service.send_slack_notification(
+                            message=message,
+                            channel_id=slack_channel_id,
+                            severity=alert.severity
+                        )
+                        
+                        if success:
+                            sent_count += 1
+                            
+                    elif channel.channel_type == 'email':
+                        # Send email notification
+                        config = json.loads(channel.config)
+                        recipients = config.get('recipients', [])
+                        
+                        if not recipients:
+                            logger.warning(f"No recipients found in channel {channel.id} config")
+                            continue
+                            
+                        email_subject = f"[{alert.severity.upper()}] Alert: {alert.message}"
+                        
+                        success = notification_service.send_email_notification(
+                            subject=email_subject,
+                            message=message,
+                            recipients=recipients,
+                            severity=alert.severity
+                        )
+                        
+                        if success:
+                            sent_count += 1
+                            
+                    elif channel.channel_type == 'sms':
+                        # Send SMS notification
+                        config = json.loads(channel.config)
+                        recipients = config.get('recipients', [])
+                        
+                        if not recipients:
+                            logger.warning(f"No recipients found in channel {channel.id} config")
+                            continue
+                            
+                        # Truncate message for SMS
+                        short_message = f"{alert.severity.upper()}: {alert.message} - {alert.component}"
+                        
+                        success = notification_service.send_sms_notification(
+                            message=short_message,
+                            recipients=recipients
+                        )
+                        
+                        if success:
+                            sent_count += 1
+                            
+                except Exception as e:
+                    logger.error(f"Error sending notification for mapping {mapping.id}: {str(e)}")
+                    continue
+                    
+            return sent_count
             
         except Exception as e:
             logger.error(f"Error sending alert notifications: {str(e)}")
-            return False
-    
-    @staticmethod
-    def _send_notification(channel, alert):
-        """
-        Send a notification through a specific channel.
-        
-        Args:
-            channel (NotificationChannel): The notification channel to use
-            alert (MonitoringAlert): The alert to send
-            
-        Returns:
-            bool: True if the notification was sent successfully, False otherwise
-        """
-        try:
-            # Parse channel config
-            config = json.loads(channel.config)
-            
-            # Format alert message
-            alert_details = f"Component: {alert.component}\nCreated: {alert.created_at}\n"
-            if alert.details:
-                alert_details += f"\nDetails:\n{alert.details}"
-                
-            # Send through appropriate channel
-            if channel.channel_type == 'slack':
-                return NotificationService.send_slack_alert(
-                    message=alert.message,
-                    severity=alert.severity,
-                    channel=config.get('channel_id'),
-                    attachments=[{
-                        "title": f"Alert: {alert.alert_type}",
-                        "text": alert_details,
-                        "color": AlertManager._get_severity_color(alert.severity)
-                    }]
-                )
-            elif channel.channel_type == 'email':
-                subject = f"{alert.severity.upper()} Alert: {alert.alert_type} - {alert.component}"
-                html_message = f"""
-                <h2>{alert.severity.upper()} Alert</h2>
-                <p><strong>Type:</strong> {alert.alert_type}</p>
-                <p><strong>Component:</strong> {alert.component}</p>
-                <p><strong>Time:</strong> {alert.created_at}</p>
-                <p><strong>Message:</strong> {alert.message}</p>
-                {f'<h3>Details:</h3><pre>{alert.details}</pre>' if alert.details else ''}
-                """
-                return NotificationService.send_email_alert(
-                    subject=subject,
-                    message=html_message,
-                    recipients=config.get('recipients', [])
-                )
-            elif channel.channel_type == 'sms':
-                message = f"{alert.severity.upper()} Alert: {alert.message}"
-                return NotificationService.send_sms_alert(
-                    message=message,
-                    recipients=config.get('recipients', [])
-                )
-            else:
-                logger.error(f"Unsupported notification channel type: {channel.channel_type}")
-                return False
-                
-        except Exception as e:
-            logger.error(f"Error sending notification through channel {channel.id}: {str(e)}")
-            return False
-    
-    @staticmethod
-    def _get_severity_color(severity):
-        """Get the appropriate color for a severity level."""
-        severity = severity.lower()
-        if severity == "critical":
-            return "#FF0000"  # Red
-        elif severity == "error":
-            return "#FF8000"  # Orange
-        elif severity == "warning":
-            return "#FFFF00"  # Yellow
-        else:
-            return "#00FF00"  # Green
-
-    @staticmethod
-    def check_alert_rules():
-        """
-        Check all active alert rules.
-        
-        Returns:
-            int: Number of alerts generated
-        """
-        try:
-            # Get all active alert rules
-            rules = AlertRule.query.filter_by(is_active=True).all()
-            
-            alerts_generated = 0
-            for rule in rules:
-                try:
-                    # Parse condition config
-                    condition = json.loads(rule.condition_config)
-                    
-                    # Check if rule should fire
-                    if AlertManager._evaluate_rule_condition(rule.condition_type, condition, rule.component):
-                        # Create alert
-                        alert = AlertManager.create_alert(
-                            alert_type=rule.alert_type,
-                            severity=rule.severity,
-                            component=rule.component,
-                            message=rule.name,
-                            details=rule.description,
-                            rule_id=rule.id
-                        )
-                        
-                        if alert:
-                            alerts_generated += 1
-                            
-                except Exception as e:
-                    logger.error(f"Error evaluating rule {rule.id}: {str(e)}")
-                    
-            return alerts_generated
-            
-        except Exception as e:
-            logger.error(f"Error checking alert rules: {str(e)}")
             return 0
-    
-    @staticmethod
-    def _evaluate_rule_condition(condition_type, condition, component):
-        """
-        Evaluate an alert rule condition.
-        
-        Args:
-            condition_type (str): Type of condition (threshold, pattern, etc.)
-            condition (dict): Condition configuration
-            component (str): Component to monitor
-            
-        Returns:
-            bool: True if the condition is met, False otherwise
-        """
-        # Implementation will depend on specific condition types
-        # This is a simplified example
-        if condition_type == 'threshold':
-            # Example: check if a metric exceeds a threshold
-            from models import SystemMetric
-            
-            metric_name = condition.get('metric_name')
-            threshold = condition.get('threshold')
-            operator = condition.get('operator', '>')  # Default to greater than
-            
-            # Get the latest metric value
-            metric = SystemMetric.query.filter_by(
-                metric_name=metric_name,
-                component=component
-            ).order_by(SystemMetric.timestamp.desc()).first()
-            
-            if not metric:
-                return False
-                
-            # Compare based on operator
-            if operator == '>':
-                return metric.metric_value > threshold
-            elif operator == '>=':
-                return metric.metric_value >= threshold
-            elif operator == '<':
-                return metric.metric_value < threshold
-            elif operator == '<=':
-                return metric.metric_value <= threshold
-            elif operator == '==':
-                return metric.metric_value == threshold
-            else:
-                return False
-                
-        elif condition_type == 'pattern':
-            # Example: check for error patterns in logs
-            # Implementation would depend on log storage mechanism
-            return False
-            
-        elif condition_type == 'frequency':
-            # Example: check if an event occurs too frequently
-            event_type = condition.get('event_type')
-            count = condition.get('count')
-            period_minutes = condition.get('period_minutes', 60)
-            
-            # Logic to check event frequency would go here
-            # ...
-            
-            return False
-            
-        else:
-            logger.warning(f"Unsupported condition type: {condition_type}")
-            return False

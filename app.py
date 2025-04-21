@@ -39,6 +39,14 @@ db.init_app(app)
 # Load configuration
 config = load_config()
 
+# Register blueprints
+try:
+    from app_monitor import monitor_bp
+    app.register_blueprint(monitor_bp)
+    logger.info("Registered monitoring blueprint")
+except ImportError:
+    logger.warning("Could not import monitoring blueprint")
+
 # Routes
 @app.route('/')
 def index():
@@ -505,7 +513,176 @@ def ai_integration_automation():
 @app.route('/monitoring/dashboard', methods=['GET'])
 def monitoring_dashboard():
     """Monitoring dashboard overview page"""
-    return render_template('monitoring_dashboard.html')
+    from models import (
+        MonitoringAlert, SystemMetric, APIUsageLog, 
+        AIAgentMetrics, JobRun, ScheduledReport
+    )
+    from sqlalchemy import func
+    from datetime import datetime, timedelta
+    
+    # Time periods for metrics
+    now = datetime.now()
+    last_24h = now - timedelta(hours=24)
+    last_7d = now - timedelta(days=7)
+    last_30d = now - timedelta(days=30)
+    
+    # Get alert metrics
+    alerts_summary = {
+        'active': {
+            'total': MonitoringAlert.query.filter_by(status='active').count(),
+            'critical': MonitoringAlert.query.filter_by(status='active', severity='critical').count(),
+            'error': MonitoringAlert.query.filter_by(status='active', severity='error').count(),
+            'warning': MonitoringAlert.query.filter_by(status='active', severity='warning').count(),
+            'info': MonitoringAlert.query.filter_by(status='active', severity='info').count(),
+        },
+        'latest': MonitoringAlert.query.order_by(MonitoringAlert.created_at.desc()).limit(5).all(),
+        'last_24h': MonitoringAlert.query.filter(MonitoringAlert.created_at >= last_24h).count(),
+        'last_7d': MonitoringAlert.query.filter(MonitoringAlert.created_at >= last_7d).count(),
+    }
+    
+    # Get system metrics
+    system_metrics = {
+        'latest': SystemMetric.query.filter_by(
+            component='system'
+        ).order_by(SystemMetric.timestamp.desc()).limit(10).all(),
+        'performance': {
+            'cpu': SystemMetric.query.filter_by(
+                metric_name='cpu_percent', 
+                component='system'
+            ).order_by(SystemMetric.timestamp.desc()).first(),
+            'memory': SystemMetric.query.filter_by(
+                metric_name='memory_percent', 
+                component='system'
+            ).order_by(SystemMetric.timestamp.desc()).first(),
+            'disk': SystemMetric.query.filter_by(
+                metric_name='disk_percent', 
+                component='system'
+            ).order_by(SystemMetric.timestamp.desc()).first(),
+        }
+    }
+    
+    # Get API metrics
+    api_metrics = {
+        'total_requests_24h': APIUsageLog.query.filter(
+            APIUsageLog.timestamp >= last_24h
+        ).count(),
+        'error_rate_24h': db.session.query(
+            func.cast(
+                func.count(APIUsageLog.id).filter(APIUsageLog.status_code >= 400) * 100.0, 
+                db.Float
+            ) / func.nullif(func.count(APIUsageLog.id), 0)
+        ).filter(APIUsageLog.timestamp >= last_24h).scalar() or 0,
+        'avg_response_time': db.session.query(
+            func.avg(APIUsageLog.response_time)
+        ).filter(APIUsageLog.timestamp >= last_24h).scalar() or 0,
+    }
+    
+    # Get database metrics
+    database_metrics = {
+        'connection_count': SystemMetric.query.filter_by(
+            metric_name='db_connection_count', 
+            component='database'
+        ).order_by(SystemMetric.timestamp.desc()).first(),
+        'query_time_avg': SystemMetric.query.filter_by(
+            metric_name='db_query_time_avg', 
+            component='database'
+        ).order_by(SystemMetric.timestamp.desc()).first(),
+    }
+    
+    # Get AI metrics
+    ai_metrics = {
+        'total_requests_24h': db.session.query(
+            func.sum(AIAgentMetrics.request_count)
+        ).filter(AIAgentMetrics.date >= last_24h.date()).scalar() or 0,
+        'avg_rating': db.session.query(
+            func.avg(AIAgentMetrics.average_rating)
+        ).filter(AIAgentMetrics.date >= last_7d.date()).scalar() or 0,
+        'agent_performance': AIAgentMetrics.query.filter(
+            AIAgentMetrics.date >= last_7d.date()
+        ).order_by(AIAgentMetrics.date.desc()).all(),
+    }
+    
+    # Get job metrics
+    job_metrics = {
+        'total_jobs_30d': JobRun.query.filter(JobRun.start_time >= last_30d).count(),
+        'success_rate_30d': db.session.query(
+            func.cast(
+                func.count(JobRun.id).filter(JobRun.status == 'completed') * 100.0, 
+                db.Float
+            ) / func.nullif(func.count(JobRun.id), 0)
+        ).filter(JobRun.start_time >= last_30d).scalar() or 0,
+        'latest_jobs': JobRun.query.order_by(JobRun.start_time.desc()).limit(5).all(),
+    }
+    
+    # Get report metrics
+    report_metrics = {
+        'total_scheduled': ScheduledReport.query.filter_by(is_active=True).count(),
+        'upcoming': ScheduledReport.query.filter_by(is_active=True).all(),
+    }
+    
+    # Calculate system health score (0-100)
+    health_score = 100
+    
+    # Reduce score based on active critical/error alerts
+    critical_count = alerts_summary['active']['critical']
+    error_count = alerts_summary['active']['error']
+    health_score -= critical_count * 10  # -10 points per critical alert
+    health_score -= error_count * 5      # -5 points per error alert
+    
+    # Reduce score based on system metrics if available
+    if system_metrics['performance']['cpu']:
+        cpu_percent = system_metrics['performance']['cpu'].metric_value
+        if cpu_percent > 90:
+            health_score -= 15
+        elif cpu_percent > 80:
+            health_score -= 10
+        elif cpu_percent > 70:
+            health_score -= 5
+            
+    if system_metrics['performance']['memory']:
+        memory_percent = system_metrics['performance']['memory'].metric_value
+        if memory_percent > 90:
+            health_score -= 15
+        elif memory_percent > 80:
+            health_score -= 10
+        elif memory_percent > 70:
+            health_score -= 5
+    
+    # Reduce score based on API error rate
+    if api_metrics['error_rate_24h'] > 5:
+        health_score -= 15
+    elif api_metrics['error_rate_24h'] > 2:
+        health_score -= 10
+    elif api_metrics['error_rate_24h'] > 1:
+        health_score -= 5
+        
+    # Clamp health score between 0 and 100
+    health_score = max(0, min(100, health_score))
+    
+    # Determine health status based on score
+    if health_score >= 90:
+        health_status = 'excellent'
+    elif health_score >= 75:
+        health_status = 'good'
+    elif health_score >= 50:
+        health_status = 'fair'
+    elif health_score >= 25:
+        health_status = 'poor'
+    else:
+        health_status = 'critical'
+    
+    return render_template(
+        'monitoring_dashboard.html',
+        alerts_summary=alerts_summary,
+        system_metrics=system_metrics,
+        api_metrics=api_metrics,
+        database_metrics=database_metrics,
+        ai_metrics=ai_metrics,
+        job_metrics=job_metrics,
+        report_metrics=report_metrics,
+        health_score=health_score,
+        health_status=health_status
+    )
     
 @app.route('/monitoring/system', methods=['GET'])
 def monitoring_system():
@@ -559,7 +736,51 @@ def monitoring_alerts_active():
 @app.route('/monitoring/alerts/history', methods=['GET'])
 def monitoring_alerts_history():
     """Alert history page"""
-    return render_template('monitoring_alerts_history.html')
+    from models import MonitoringAlert
+    
+    # Get query parameters
+    days = request.args.get('days', default=30, type=int)
+    severity = request.args.get('severity', default=None)
+    component = request.args.get('component', default=None)
+    status = request.args.get('status', default=None)
+    
+    # Build query
+    query = MonitoringAlert.query
+    
+    # Apply filters
+    if days > 0:
+        from datetime import datetime, timedelta
+        cutoff_date = datetime.now() - timedelta(days=days)
+        query = query.filter(MonitoringAlert.created_at >= cutoff_date)
+        
+    if severity:
+        query = query.filter(MonitoringAlert.severity == severity)
+        
+    if component:
+        query = query.filter(MonitoringAlert.component == component)
+        
+    if status:
+        query = query.filter(MonitoringAlert.status == status)
+    
+    # Execute query with sorting
+    alerts = query.order_by(MonitoringAlert.created_at.desc()).all()
+    
+    # Get unique values for filter dropdowns
+    all_components = db.session.query(MonitoringAlert.component).distinct().all()
+    components = [c[0] for c in all_components]
+    
+    severities = ['critical', 'error', 'warning', 'info']
+    statuses = ['active', 'acknowledged', 'resolved']
+    
+    return render_template('monitoring_alerts_history.html', 
+                          alerts=alerts,
+                          components=components,
+                          severities=severities,
+                          statuses=statuses,
+                          current_days=days,
+                          current_severity=severity,
+                          current_component=component,
+                          current_status=status)
     
 @app.route('/monitoring/reports/scheduled', methods=['GET'])
 def monitoring_reports_scheduled():
