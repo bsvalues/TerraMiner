@@ -6,6 +6,10 @@ from etl.narrpr_scraper import NarrprScraper
 from db.database import save_to_database
 from utils.logger import setup_logger
 from utils.config import load_config
+from ai.api.prompt_endpoints import register_endpoints as register_prompt_endpoints
+
+# Register AI prompt optimization endpoints
+register_prompt_endpoints(app)
 
 # Set up logging
 setup_logger()

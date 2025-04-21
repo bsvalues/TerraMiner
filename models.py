@@ -44,7 +44,13 @@ class AIFeedback(db.Model):
     rating = db.Column(db.Integer, nullable=False)  # 1-5 star rating
     comments = db.Column(db.Text, nullable=True)  # Optional user comments
     session_id = db.Column(db.String(64), nullable=True)  # To group multiple interactions from same session
+    prompt_version_id = db.Column(db.Integer, db.ForeignKey('prompt_version.id'), nullable=True)  # The prompt version used
+    extra_data = db.Column(db.Text, nullable=True)  # JSON blob with additional metadata (e.g., A/B test data)
     created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    # Relationship with prompt version
+    prompt_version = db.relationship('PromptVersion', backref=db.backref('feedback', lazy=True))
     
     def __repr__(self):
         return f"<AIFeedback {self.agent_type} - {self.rating} stars>"
@@ -91,3 +97,56 @@ class AIFeedbackReportSettings(db.Model):
             db.session.commit()
         
         return settings
+        
+class PromptABTest(db.Model):
+    """Model for storing A/B test data for prompt optimization."""
+    id = db.Column(db.Integer, primary_key=True)
+    agent_type = db.Column(db.String(50), nullable=False)  # Type of agent being tested
+    original_prompt = db.Column(db.Text, nullable=False)  # Version A (original)
+    improved_prompt = db.Column(db.Text, nullable=False)  # Version B (improved)
+    start_date = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    end_date = db.Column(db.DateTime, nullable=False)
+    status = db.Column(db.String(20), nullable=False)  # 'active', 'completed', 'cancelled'
+    results = db.Column(db.Text, nullable=True)  # JSON blob with test results
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    def __repr__(self):
+        return f"<PromptABTest id={self.id} agent={self.agent_type} status={self.status}>"
+        
+class PromptVersion(db.Model):
+    """Model for storing prompt versions for different agents."""
+    id = db.Column(db.Integer, primary_key=True)
+    agent_type = db.Column(db.String(50), nullable=False)  # Type of agent
+    version = db.Column(db.Integer, nullable=False)  # Version number
+    prompt_text = db.Column(db.Text, nullable=False)  # The prompt text
+    is_active = db.Column(db.Boolean, default=False)  # Whether this is the currently active version
+    notes = db.Column(db.Text, nullable=True)  # Notes about this version
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    def __repr__(self):
+        return f"<PromptVersion id={self.id} agent={self.agent_type} v{self.version} active={self.is_active}>"
+    
+    @staticmethod
+    def get_active_prompt(agent_type):
+        """Get the active prompt for a specific agent type."""
+        from app import db
+        
+        prompt = PromptVersion.query.filter_by(
+            agent_type=agent_type,
+            is_active=True
+        ).order_by(PromptVersion.version.desc()).first()
+        
+        if not prompt:
+            # If no active prompt exists, get the latest version
+            prompt = PromptVersion.query.filter_by(
+                agent_type=agent_type
+            ).order_by(PromptVersion.version.desc()).first()
+            
+            if prompt:
+                # Make it active
+                prompt.is_active = True
+                db.session.commit()
+        
+        return prompt
