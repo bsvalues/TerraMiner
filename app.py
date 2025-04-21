@@ -178,16 +178,38 @@ def export_data(format):
             # Get query parameters
             limit = request.args.get('limit', default=100, type=int)
             include_metadata = request.args.get('include_metadata', default=False, type=lambda v: v.lower() == 'true')
+            include_all_columns = request.args.get('include_all_columns', default=True, type=lambda v: v.lower() == 'true')
+            start_date = request.args.get('start_date')
+            end_date = request.args.get('end_date')
             
             # Add safety limit
             if limit > 1000:
                 limit = 1000
+                
+            # Build the query with filters
+            if include_all_columns:
+                select_clause = "*"
+            else:
+                select_clause = "id, title, address, price, date, created_at"
+                
+            query_parts = [f"SELECT {select_clause} FROM narrpr_reports"]
+            where_clauses = []
             
-            reports_query = f"""
-            SELECT * FROM narrpr_reports 
-            ORDER BY created_at DESC 
-            LIMIT {limit}
-            """
+            # Add date filters if provided
+            if start_date:
+                where_clauses.append(f"date >= '{start_date}'")
+            if end_date:
+                where_clauses.append(f"date <= '{end_date}'")
+                
+            if where_clauses:
+                query_parts.append("WHERE " + " AND ".join(where_clauses))
+                
+            # Add sorting and limit
+            query_parts.append("ORDER BY created_at DESC")
+            query_parts.append(f"LIMIT {limit}")
+            
+            # Create the final query
+            reports_query = " ".join(query_parts)
             reports_data = db_conn.execute_query(reports_query)
             
             if not reports_data:

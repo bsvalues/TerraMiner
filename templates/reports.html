@@ -145,6 +145,21 @@
                         <input type="number" class="form-control" id="exportLimit" name="limit" value="100" min="1" max="1000">
                         <div class="form-text">Maximum number of records to export (1-1000)</div>
                     </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Date Range</label>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label for="startDate" class="form-label small text-muted">Start Date</label>
+                                <input type="date" class="form-control" id="startDate" name="start_date">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="endDate" class="form-label small text-muted">End Date</label>
+                                <input type="date" class="form-control" id="endDate" name="end_date">
+                            </div>
+                        </div>
+                        <div class="form-text">Filter reports by date range (optional)</div>
+                    </div>
 
                     <div class="mb-3">
                         <label class="form-label">Data to Include</label>
@@ -154,6 +169,38 @@
                                 Include export metadata (timestamp, user, query info)
                             </label>
                         </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="true" id="includeAllColumns" name="include_all_columns" checked>
+                            <label class="form-check-label" for="includeAllColumns">
+                                Include all available columns
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Export Configurations</label>
+                        <div class="row g-2 mb-2">
+                            <div class="col">
+                                <select class="form-select" id="savedConfigs">
+                                    <option value="">-- Saved Configurations --</option>
+                                </select>
+                            </div>
+                            <div class="col-auto">
+                                <button class="btn btn-outline-secondary" type="button" id="loadConfig">
+                                    <i data-feather="download" class="me-1"></i> Load
+                                </button>
+                                <button class="btn btn-outline-danger" type="button" id="deleteConfig">
+                                    <i data-feather="trash-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="configName" name="config_name" placeholder="Name this export configuration">
+                            <button class="btn btn-outline-secondary" type="button" id="saveConfig">
+                                <i data-feather="save" class="me-1"></i> Save
+                            </button>
+                        </div>
+                        <div class="form-text">Save and load your export configurations</div>
                     </div>
                 </form>
             </div>
@@ -171,6 +218,28 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize Feather icons
         feather.replace();
+        
+        // Load saved configurations
+        const savedConfigsSelect = document.getElementById('savedConfigs');
+        function loadSavedConfigs() {
+            const savedConfigs = JSON.parse(localStorage.getItem('exportConfigurations') || '[]');
+            
+            // Clear existing options except the first one
+            while (savedConfigsSelect.options.length > 1) {
+                savedConfigsSelect.remove(1);
+            }
+            
+            // Add saved configurations to dropdown
+            savedConfigs.forEach((config, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.text = config.name;
+                savedConfigsSelect.add(option);
+            });
+        }
+        
+        // Initial load of saved configurations
+        loadSavedConfigs();
         
         // Format descriptions
         const formatDescriptions = {
@@ -198,9 +267,17 @@
         
         if (exportForm && exportSubmit) {
             exportSubmit.addEventListener('click', function() {
+                // Show loading indicator
+                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Exporting...';
+                this.disabled = true;
+                
+                // Get form values
                 const format = formatSelect.value;
                 const limit = document.getElementById('exportLimit').value;
                 const includeMetadata = document.getElementById('includeMetadata').checked;
+                const includeAllColumns = document.getElementById('includeAllColumns').checked;
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
                 
                 // Build the URL
                 let url = `{{ url_for('export_data', format='FORMAT') }}`.replace('FORMAT', format);
@@ -210,9 +287,135 @@
                     url += '&include_metadata=true';
                 }
                 
+                if (!includeAllColumns) {
+                    url += '&include_all_columns=false';
+                }
+                
+                if (startDate) {
+                    url += `&start_date=${startDate}`;
+                }
+                
+                if (endDate) {
+                    url += `&end_date=${endDate}`;
+                }
+                
                 // Navigate to the URL
                 window.location.href = url;
+                
+                // Reset button after a short delay (in case download starts quickly)
+                setTimeout(() => {
+                    this.innerHTML = 'Export Data';
+                    this.disabled = false;
+                }, 3000);
             });
+            
+            // Save configuration functionality
+            const saveConfigBtn = document.getElementById('saveConfig');
+            if (saveConfigBtn) {
+                saveConfigBtn.addEventListener('click', function() {
+                    const configName = document.getElementById('configName').value;
+                    if (!configName) {
+                        alert('Please enter a name for this configuration');
+                        return;
+                    }
+                    
+                    // Get current settings
+                    const config = {
+                        name: configName,
+                        format: formatSelect.value,
+                        limit: document.getElementById('exportLimit').value,
+                        includeMetadata: document.getElementById('includeMetadata').checked,
+                        includeAllColumns: document.getElementById('includeAllColumns').checked,
+                        startDate: document.getElementById('startDate').value,
+                        endDate: document.getElementById('endDate').value
+                    };
+                    
+                    // Save to localStorage
+                    let savedConfigs = JSON.parse(localStorage.getItem('exportConfigurations') || '[]');
+                    savedConfigs.push(config);
+                    localStorage.setItem('exportConfigurations', JSON.stringify(savedConfigs));
+                    
+                    // Reload the configurations dropdown
+                    loadSavedConfigs();
+                    
+                    // Clear the input field
+                    document.getElementById('configName').value = '';
+                    
+                    // Show confirmation
+                    alert(`Configuration "${configName}" has been saved!`);
+                });
+            }
+            
+            // Load configuration functionality
+            const loadConfigBtn = document.getElementById('loadConfig');
+            if (loadConfigBtn && savedConfigsSelect) {
+                loadConfigBtn.addEventListener('click', function() {
+                    const selectedIndex = savedConfigsSelect.value;
+                    if (!selectedIndex || selectedIndex === '') {
+                        alert('Please select a configuration to load');
+                        return;
+                    }
+                    
+                    // Get saved configurations
+                    const savedConfigs = JSON.parse(localStorage.getItem('exportConfigurations') || '[]');
+                    if (selectedIndex >= savedConfigs.length) {
+                        alert('Selected configuration not found');
+                        return;
+                    }
+                    
+                    // Load the selected configuration
+                    const config = savedConfigs[selectedIndex];
+                    
+                    // Apply settings to form
+                    document.getElementById('exportFormat').value = config.format;
+                    document.getElementById('exportLimit').value = config.limit;
+                    document.getElementById('includeMetadata').checked = config.includeMetadata;
+                    document.getElementById('includeAllColumns').checked = config.includeAllColumns;
+                    document.getElementById('startDate').value = config.startDate || '';
+                    document.getElementById('endDate').value = config.endDate || '';
+                    
+                    // Update format help text
+                    formatHelp.textContent = formatDescriptions[config.format] || '';
+                    
+                    // Show confirmation
+                    alert(`Configuration "${config.name}" has been loaded!`);
+                });
+            }
+            
+            // Delete configuration functionality
+            const deleteConfigBtn = document.getElementById('deleteConfig');
+            if (deleteConfigBtn && savedConfigsSelect) {
+                deleteConfigBtn.addEventListener('click', function() {
+                    const selectedIndex = savedConfigsSelect.value;
+                    if (!selectedIndex || selectedIndex === '') {
+                        alert('Please select a configuration to delete');
+                        return;
+                    }
+                    
+                    // Get saved configurations
+                    let savedConfigs = JSON.parse(localStorage.getItem('exportConfigurations') || '[]');
+                    if (selectedIndex >= savedConfigs.length) {
+                        alert('Selected configuration not found');
+                        return;
+                    }
+                    
+                    // Confirm deletion
+                    const configName = savedConfigs[selectedIndex].name;
+                    if (!confirm(`Are you sure you want to delete the configuration "${configName}"?`)) {
+                        return;
+                    }
+                    
+                    // Remove the selected configuration
+                    savedConfigs.splice(selectedIndex, 1);
+                    localStorage.setItem('exportConfigurations', JSON.stringify(savedConfigs));
+                    
+                    // Reload the configurations dropdown
+                    loadSavedConfigs();
+                    
+                    // Show confirmation
+                    alert(`Configuration "${configName}" has been deleted!`);
+                });
+            }
         }
     });
 </script>
