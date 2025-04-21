@@ -495,6 +495,60 @@ def ai_advanced_analytics():
 def ai_integration_automation():
     """AI integration and automation configuration page"""
     return render_template('ai_integration_automation.html')
+    
+# Monitoring routes
+@app.route('/monitoring/dashboard', methods=['GET'])
+def monitoring_dashboard():
+    """Monitoring dashboard overview page"""
+    return render_template('monitoring_dashboard.html')
+    
+@app.route('/monitoring/system', methods=['GET'])
+def monitoring_system():
+    """System performance monitoring page"""
+    return render_template('monitoring_system.html')
+    
+@app.route('/monitoring/api', methods=['GET'])
+def monitoring_api():
+    """API performance monitoring page"""
+    return render_template('monitoring_api.html')
+    
+@app.route('/monitoring/database', methods=['GET'])
+def monitoring_database():
+    """Database performance monitoring page"""
+    return render_template('monitoring_database.html')
+    
+@app.route('/monitoring/ai', methods=['GET'])
+def monitoring_ai():
+    """AI performance monitoring page"""
+    return render_template('monitoring_ai.html')
+    
+@app.route('/monitoring/alerts/active', methods=['GET'])
+def monitoring_alerts_active():
+    """Active alerts monitoring page"""
+    return render_template('monitoring_alerts_active.html')
+    
+@app.route('/monitoring/alerts/history', methods=['GET'])
+def monitoring_alerts_history():
+    """Alert history page"""
+    return render_template('monitoring_alerts_history.html')
+    
+@app.route('/monitoring/reports/scheduled', methods=['GET'])
+def monitoring_reports_scheduled():
+    """Scheduled reports page"""
+    return render_template('monitoring_reports_scheduled.html')
+    
+@app.route('/monitoring/reports/create', methods=['GET', 'POST'])
+def monitoring_reports_create():
+    """Create report page"""
+    if request.method == 'POST':
+        # Handle report creation
+        return redirect(url_for('monitoring_reports_scheduled'))
+    return render_template('monitoring_reports_create.html')
+    
+@app.route('/monitoring/reports/history', methods=['GET'])
+def monitoring_reports_history():
+    """Report execution history page"""
+    return render_template('monitoring_reports_history.html')
 
 @app.route('/ai/reports/settings', methods=['GET', 'POST'])
 def ai_report_settings():
