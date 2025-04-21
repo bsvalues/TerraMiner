@@ -289,11 +289,57 @@ class AIAgentMetrics(db.Model):
     def __repr__(self):
         return f"<AIAgentMetrics id={self.id} agent={self.agent_type} date={self.date}>"
         
+class NotificationChannel(db.Model):
+    """Model for configuring notification channels."""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)  # Descriptive name
+    channel_type = db.Column(db.String(20), nullable=False)  # Type (slack, email, sms)
+    config = db.Column(db.Text, nullable=False)  # JSON configuration (recipients, etc.)
+    is_active = db.Column(db.Boolean, default=True)  # Whether this channel is active
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
+    
+    def __repr__(self):
+        return f"<NotificationChannel id={self.id} name={self.name} type={self.channel_type}>"
+
+class AlertRule(db.Model):
+    """Model for defining alert triggering rules."""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)  # Rule name
+    description = db.Column(db.Text, nullable=True)  # Rule description
+    alert_type = db.Column(db.String(50), nullable=False)  # Type of alert to generate
+    severity = db.Column(db.String(20), nullable=False)  # Severity to assign
+    condition_type = db.Column(db.String(50), nullable=False)  # Type of condition (threshold, pattern, etc.)
+    condition_config = db.Column(db.Text, nullable=False)  # JSON configuration for the condition
+    component = db.Column(db.String(50), nullable=False)  # Component to monitor
+    is_active = db.Column(db.Boolean, default=True)  # Whether this rule is active
+    cooldown_minutes = db.Column(db.Integer, default=60)  # Minutes to wait before firing again
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
+    
+    def __repr__(self):
+        return f"<AlertRule id={self.id} name={self.name} type={self.alert_type}>"
+
+class AlertNotificationMap(db.Model):
+    """Model for mapping alerts to notification channels."""
+    id = db.Column(db.Integer, primary_key=True)
+    alert_type = db.Column(db.String(50), nullable=False)  # Type of alert
+    min_severity = db.Column(db.String(20), nullable=False)  # Minimum severity level
+    channel_id = db.Column(db.Integer, db.ForeignKey('notification_channel.id'), nullable=False)
+    is_active = db.Column(db.Boolean, default=True)  # Whether this mapping is active
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    
+    # Relationship
+    channel = db.relationship('NotificationChannel', backref=db.backref('alert_mappings', lazy=True))
+    
+    def __repr__(self):
+        return f"<AlertNotificationMap id={self.id} alert_type={self.alert_type} severity={self.min_severity}>"
+
 class MonitoringAlert(db.Model):
     """Model for storing monitoring alerts."""
     id = db.Column(db.Integer, primary_key=True)
     alert_type = db.Column(db.String(50), nullable=False)  # Type of alert (error, warning, etc.)
-    severity = db.Column(db.String(20), nullable=False)  # Severity level (high, medium, low)
+    severity = db.Column(db.String(20), nullable=False)  # Severity level (critical, error, warning, info)
     component = db.Column(db.String(50), nullable=False)  # Component generating the alert
     message = db.Column(db.Text, nullable=False)  # Alert message
     details = db.Column(db.Text, nullable=True)  # Additional details
@@ -301,6 +347,12 @@ class MonitoringAlert(db.Model):
     acknowledged_at = db.Column(db.DateTime, nullable=True)  # When the alert was acknowledged
     resolved_at = db.Column(db.DateTime, nullable=True)  # When the alert was resolved
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)  # When the alert was created
+    alert_rule_id = db.Column(db.Integer, db.ForeignKey('alert_rule.id'), nullable=True)  # Rule that triggered the alert
+    notifications_sent = db.Column(db.Boolean, default=False)  # Whether notifications have been sent
+    notification_sent_at = db.Column(db.DateTime, nullable=True)  # When notifications were sent
+    
+    # Relationships
+    alert_rule = db.relationship('AlertRule', backref=db.backref('alerts', lazy=True))
     
     def __repr__(self):
         return f"<MonitoringAlert id={self.id} type={self.alert_type} status={self.status}>"

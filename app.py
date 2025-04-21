@@ -530,7 +530,31 @@ def monitoring_ai():
 @app.route('/monitoring/alerts/active', methods=['GET'])
 def monitoring_alerts_active():
     """Active alerts monitoring page"""
-    return render_template('monitoring_alerts_active.html')
+    from models import MonitoringAlert
+    
+    # Retrieve all active alerts
+    alerts = (MonitoringAlert.query.filter(MonitoringAlert.status != 'resolved')
+              .order_by(MonitoringAlert.severity, MonitoringAlert.created_at.desc())
+              .all())
+              
+    # Group alerts by severity for easier display
+    alerts_by_severity = {
+        'critical': [],
+        'error': [],
+        'warning': [],
+        'info': []
+    }
+    
+    for alert in alerts:
+        severity = alert.severity.lower()
+        if severity in alerts_by_severity:
+            alerts_by_severity[severity].append(alert)
+        else:
+            alerts_by_severity['info'].append(alert)
+    
+    return render_template('monitoring_alerts_active.html', 
+                          alerts=alerts,
+                          alerts_by_severity=alerts_by_severity)
     
 @app.route('/monitoring/alerts/history', methods=['GET'])
 def monitoring_alerts_history():
