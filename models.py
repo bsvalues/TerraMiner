@@ -48,3 +48,46 @@ class AIFeedback(db.Model):
     
     def __repr__(self):
         return f"<AIFeedback {self.agent_type} - {self.rating} stars>"
+        
+class AIFeedbackReportSettings(db.Model):
+    """Model for storing AI feedback report settings."""
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Recipients
+    admin_email = db.Column(db.String(255), nullable=True)  # Primary admin email for reports
+    additional_recipients = db.Column(db.Text, nullable=True)  # JSON array of additional email addresses
+    
+    # Schedule settings
+    send_daily_reports = db.Column(db.Boolean, default=False)
+    send_weekly_reports = db.Column(db.Boolean, default=True)
+    send_monthly_reports = db.Column(db.Boolean, default=True)
+    
+    # Weekly report day (0-6, Monday to Sunday)
+    weekly_report_day = db.Column(db.Integer, default=0)
+    
+    # Monthly report day (1-31)
+    monthly_report_day = db.Column(db.Integer, default=1)
+    
+    # Report content settings
+    include_detailed_feedback = db.Column(db.Boolean, default=True)
+    include_csv_attachment = db.Column(db.Boolean, default=True)
+    include_excel_attachment = db.Column(db.Boolean, default=True)
+    
+    # Updated timestamp
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    def __repr__(self):
+        return f"<AIFeedbackReportSettings id={self.id}>"
+    
+    @staticmethod
+    def get_settings():
+        """Get the current settings, creating default settings if none exist."""
+        from app import db
+        
+        settings = AIFeedbackReportSettings.query.first()
+        if not settings:
+            settings = AIFeedbackReportSettings()
+            db.session.add(settings)
+            db.session.commit()
+        
+        return settings

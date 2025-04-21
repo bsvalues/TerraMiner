@@ -449,5 +449,71 @@
             5: 0
         };
     }
+    
+    // Add handler for the export filters modal
+    document.addEventListener('DOMContentLoaded', function() {
+        const exportFiltersButton = document.getElementById('exportFiltersApply');
+        if (exportFiltersButton) {
+            exportFiltersButton.addEventListener('click', function() {
+                const form = document.getElementById('exportFilterForm');
+                const formData = new FormData(form);
+                
+                // Convert form data to URL parameters
+                const params = new URLSearchParams();
+                for (const [key, value] of formData.entries()) {
+                    if (value) {  // Only add non-empty values
+                        params.append(key, value);
+                    }
+                }
+                
+                // Format dates correctly if they exist
+                const dateFrom = document.getElementById('exportDateFrom').value;
+                const dateTo = document.getElementById('exportDateTo').value;
+                
+                if (dateFrom) {
+                    params.set('date_from', `${dateFrom}T00:00:00`);
+                }
+                
+                if (dateTo) {
+                    params.set('date_to', `${dateTo}T23:59:59`);
+                }
+                
+                // Create the export URL
+                const exportUrl = `/api/ai/feedback/export?${params.toString()}`;
+                
+                // Open in a new tab
+                window.open(exportUrl, '_blank');
+                
+                // Close the modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('exportFilterModal'));
+                modal.hide();
+            });
+        }
+        
+        // Set the current date as the default "to" date
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const formattedDate = `${year}-${month}-${day}`;
+        
+        const dateToField = document.getElementById('exportDateTo');
+        if (dateToField) {
+            dateToField.value = formattedDate;
+        }
+        
+        // Set 30 days ago as the default "from" date
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        const yearFrom = thirtyDaysAgo.getFullYear();
+        const monthFrom = String(thirtyDaysAgo.getMonth() + 1).padStart(2, '0');
+        const dayFrom = String(thirtyDaysAgo.getDate()).padStart(2, '0');
+        const formattedDateFrom = `${yearFrom}-${monthFrom}-${dayFrom}`;
+        
+        const dateFromField = document.getElementById('exportDateFrom');
+        if (dateFromField) {
+            dateFromField.value = formattedDateFrom;
+        }
+    });
 </script>
 {% endblock %}
