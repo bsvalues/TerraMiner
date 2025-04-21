@@ -475,6 +475,118 @@ def ai_demo():
 def ai_feedback_analytics():
     """AI feedback analytics dashboard"""
     return render_template('ai_feedback_analytics.html')
+    
+@app.route('/ai/reports/settings', methods=['GET', 'POST'])
+def ai_report_settings():
+    """AI feedback report settings page"""
+    from models import AIFeedbackReportSettings
+    import json
+    
+    settings = AIFeedbackReportSettings.get_settings()
+    
+    if request.method == 'POST':
+        # Update settings from form data
+        settings.admin_email = request.form.get('admin_email')
+        
+        # Process additional recipients (convert from lines to JSON array)
+        additional_recipients = request.form.get('additional_recipients', '')
+        if additional_recipients:
+            email_list = [email.strip() for email in additional_recipients.split('\n') if email.strip()]
+            settings.additional_recipients = json.dumps(email_list)
+        else:
+            settings.additional_recipients = None
+        
+        # Update schedule settings
+        settings.send_daily_reports = 'send_daily_reports' in request.form
+        settings.send_weekly_reports = 'send_weekly_reports' in request.form
+        settings.send_monthly_reports = 'send_monthly_reports' in request.form
+        
+        # Update day settings
+        try:
+            settings.weekly_report_day = int(request.form.get('weekly_report_day', 0))
+        except ValueError:
+            settings.weekly_report_day = 0
+            
+        try:
+            settings.monthly_report_day = int(request.form.get('monthly_report_day', 1))
+            # Ensure day is between 1-31
+            settings.monthly_report_day = max(1, min(31, settings.monthly_report_day))
+        except ValueError:
+            settings.monthly_report_day = 1
+        
+        # Update content settings
+        settings.include_detailed_feedback = 'include_detailed_feedback' in request.form
+        settings.include_csv_attachment = 'include_csv_attachment' in request.form
+        settings.include_excel_attachment = 'include_excel_attachment' in request.form
+        
+        # Save settings
+        db.session.commit()
+        
+        # If admin email is set and scheduler settings have changed, update schedules
+        if settings.admin_email:
+            from utils.scheduled_tasks import initialize_default_schedules, check_scheduler_status
+            
+            # Only update schedules if scheduler is running
+            if check_scheduler_status():
+                initialize_default_schedules(settings.admin_email)
+        
+        flash('Report settings saved successfully', 'success')
+        return redirect(url_for('ai_report_settings'))
+    
+    # Process additional recipients for display (convert from JSON array to lines)
+    additional_recipients = ''
+    if settings.additional_recipients:
+        try:
+            email_list = json.loads(settings.additional_recipients)
+            if isinstance(email_list, list):
+                additional_recipients = '\n'.join(email_list)
+        except:
+            # If there's an error parsing JSON, leave it empty
+            pass
+    
+    return render_template('ai_report_settings.html', settings=settings, additional_recipients=additional_recipients)
+
+@app.route('/api/ai/feedback/report/settings', methods=['GET'])
+def get_ai_report_settings():
+    """API endpoint to get AI feedback report settings"""
+    try:
+        from models import AIFeedbackReportSettings
+        import json
+        
+        settings = AIFeedbackReportSettings.get_settings()
+        
+        # Format additional recipients
+        additional_recipients = []
+        if settings.additional_recipients:
+            try:
+                additional_recipients = json.loads(settings.additional_recipients)
+            except:
+                # If there's an error parsing JSON, leave it as an empty list
+                pass
+        
+        return jsonify({
+            "status": "success",
+            "settings": {
+                "admin_email": settings.admin_email,
+                "additional_recipients": additional_recipients,
+                "send_daily_reports": settings.send_daily_reports,
+                "send_weekly_reports": settings.send_weekly_reports,
+                "send_monthly_reports": settings.send_monthly_reports,
+                "weekly_report_day": settings.weekly_report_day,
+                "monthly_report_day": settings.monthly_report_day,
+                "include_detailed_feedback": settings.include_detailed_feedback,
+                "include_csv_attachment": settings.include_csv_attachment,
+                "include_excel_attachment": settings.include_excel_attachment
+            }
+        })
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error getting AI report settings: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
 
 # Initialize database tables
 with app.app_context():

@@ -7,13 +7,90 @@ import os
 import requests
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import Dict, List, Any
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
 # Create blueprint
 ai_api = Blueprint('ai_api', __name__, url_prefix='/api/ai')
+
+def compute_feedback_stats(feedback_data):
+    """
+    Compute statistics from feedback data.
+    
+    Args:
+        feedback_data (List[Dict[str, Any]]): List of feedback entries
+        
+    Returns:
+        Dict: Statistics dictionary
+    """
+    # Initialize stats
+    stats = {
+        "overall": {
+            "total_feedback": 0,
+            "avg_rating": 0,
+            "highest_rating": 0,
+            "lowest_rating": 5,  # Start with highest possible
+        },
+        "by_agent": {}
+    }
+    
+    # Initialize rating distribution
+    rating_distribution = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+    
+    if not feedback_data:
+        return {"overall": {"total_feedback": 0, "avg_rating": 0}, "by_agent": {}, "rating_distribution": rating_distribution}
+    
+    # Process feedback data
+    total_rating = 0
+    agent_ratings = {}
+    
+    for item in feedback_data:
+        rating = item.get("rating", 0)
+        agent_type = item.get("agent_type", "unknown")
+        
+        # Skip invalid ratings
+        if rating < 1 or rating > 5:
+            continue
+        
+        # Update overall stats
+        stats["overall"]["total_feedback"] += 1
+        total_rating += rating
+        
+        if rating > stats["overall"]["highest_rating"]:
+            stats["overall"]["highest_rating"] = rating
+            
+        if rating < stats["overall"]["lowest_rating"]:
+            stats["overall"]["lowest_rating"] = rating
+            
+        # Update rating distribution
+        rating_distribution[rating] = rating_distribution.get(rating, 0) + 1
+        
+        # Update agent stats
+        if agent_type not in agent_ratings:
+            agent_ratings[agent_type] = {"total": 0, "count": 0}
+            
+        agent_ratings[agent_type]["total"] += rating
+        agent_ratings[agent_type]["count"] += 1
+    
+    # Calculate averages
+    if stats["overall"]["total_feedback"] > 0:
+        stats["overall"]["avg_rating"] = total_rating / stats["overall"]["total_feedback"]
+    
+    # Calculate agent averages
+    for agent_type, data in agent_ratings.items():
+        if data["count"] > 0:
+            stats["by_agent"][agent_type] = {
+                "avg_rating": data["total"] / data["count"],
+                "count": data["count"]
+            }
+    
+    # Add rating distribution to stats
+    stats["rating_distribution"] = rating_distribution
+    
+    return stats
 
 @ai_api.route('/health')
 def health_check():
@@ -643,6 +720,189 @@ def get_all_feedback():
         
     except Exception as e:
         logger.error(f"Error retrieving feedback data: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+        
+@ai_api.route('/feedback/scheduler/status', methods=['GET'])
+def get_scheduler_status():
+    """Get the status of the feedback report scheduler"""
+    try:
+        from utils.scheduled_tasks import check_scheduler_status
+        
+        # Get the scheduler status
+        running = check_scheduler_status()
+        
+        return jsonify({
+            "status": "success",
+            "running": running
+        })
+    except Exception as e:
+        logger.error(f"Error checking scheduler status: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@ai_api.route('/feedback/scheduler/jobs', methods=['GET'])
+def get_scheduled_jobs():
+    """Get list of scheduled jobs"""
+    try:
+        from utils.scheduled_tasks import get_scheduled_jobs
+        from models import AIFeedbackReportSettings
+        import json
+        
+        jobs_list = get_scheduled_jobs()
+        settings = AIFeedbackReportSettings.get_settings()
+        
+        # Format jobs for display
+        formatted_jobs = []
+        
+        for job in jobs_list:
+            job_type = "unknown"
+            recipients = settings.admin_email or "Not set"
+            
+            # Determine job type from the job tags
+            if hasattr(job, 'tags') and job.tags:
+                for tag in job.tags:
+                    if tag in ['daily', 'weekly', 'monthly']:
+                        job_type = tag
+                        break
+            
+            # Add additional recipients if they exist
+            if settings.additional_recipients:
+                try:
+                    additional_emails = json.loads(settings.additional_recipients)
+                    if isinstance(additional_emails, list) and additional_emails:
+                        recipients += f" and {len(additional_emails)} others"
+                except:
+                    pass
+            
+            formatted_jobs.append({
+                "job_type": job_type,
+                "schedule": str(job.schedule_info()),
+                "recipients": recipients,
+                "next_run": job.next_run.strftime("%Y-%m-%d %H:%M:%S") if job.next_run else "Not scheduled"
+            })
+        
+        return jsonify({
+            "status": "success",
+            "jobs": formatted_jobs
+        })
+    except Exception as e:
+        logger.error(f"Error getting scheduled jobs: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@ai_api.route('/feedback/scheduler/start', methods=['POST'])
+def start_scheduler():
+    """Start the feedback report scheduler"""
+    try:
+        from utils.scheduled_tasks import start_scheduler, initialize_default_schedules
+        from models import AIFeedbackReportSettings
+        
+        # Get settings
+        settings = AIFeedbackReportSettings.get_settings()
+        
+        # Initialize default schedules with admin email
+        if settings.admin_email:
+            initialize_default_schedules(settings.admin_email)
+        
+        # Start the scheduler
+        success = start_scheduler()
+        
+        if success:
+            logger.info("Feedback report scheduler started successfully")
+            return jsonify({
+                "status": "success",
+                "message": "Scheduler started successfully"
+            })
+        else:
+            logger.warning("Feedback report scheduler was already running")
+            return jsonify({
+                "status": "success",
+                "message": "Scheduler was already running"
+            })
+    except Exception as e:
+        logger.error(f"Error starting scheduler: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@ai_api.route('/feedback/scheduler/stop', methods=['POST'])
+def stop_scheduler():
+    """Stop the feedback report scheduler"""
+    try:
+        from utils.scheduled_tasks import stop_scheduler
+        
+        # Stop the scheduler
+        success = stop_scheduler()
+        
+        if success:
+            logger.info("Feedback report scheduler stopped successfully")
+            return jsonify({
+                "status": "success",
+                "message": "Scheduler stopped successfully"
+            })
+        else:
+            logger.warning("Feedback report scheduler was not running")
+            return jsonify({
+                "status": "success",
+                "message": "Scheduler was not running"
+            })
+    except Exception as e:
+        logger.error(f"Error stopping scheduler: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@ai_api.route('/feedback/report/test', methods=['POST'])
+def send_test_report():
+    """Send a test feedback report"""
+    try:
+        from utils.email_reports import send_feedback_report
+        import json
+        
+        # Get request data
+        request_data = request.get_json()
+        
+        if not request_data:
+            return jsonify({
+                "status": "error",
+                "message": "No request data provided"
+            }), 400
+        
+        email = request_data.get('email')
+        report_type = request_data.get('report_type', 'weekly')
+        
+        if not email:
+            return jsonify({
+                "status": "error",
+                "message": "No email address provided"
+            }), 400
+        
+        # Send test report
+        success = send_feedback_report(email, report_type)
+        
+        if success:
+            logger.info(f"Test {report_type} report sent successfully to {email}")
+            return jsonify({
+                "status": "success",
+                "message": f"Test {report_type} report sent successfully"
+            })
+        else:
+            logger.warning(f"Failed to send test {report_type} report to {email}")
+            return jsonify({
+                "status": "error",
+                "message": "Failed to send test report. Please check logs for details."
+            }), 500
+    except Exception as e:
+        logger.error(f"Error sending test report: {str(e)}")
         return jsonify({
             "status": "error",
             "message": str(e)

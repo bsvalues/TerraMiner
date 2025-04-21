@@ -12,6 +12,82 @@ import base64
 
 from utils.feedback_export import export_to_csv, export_to_excel, format_feedback_data
 
+def compute_feedback_stats(feedback_data):
+    """
+    Compute statistics from feedback data.
+    
+    Args:
+        feedback_data (List[Dict[str, Any]]): List of feedback entries
+        
+    Returns:
+        Dict: Statistics dictionary
+    """
+    # Initialize stats
+    stats = {
+        "overall": {
+            "total_feedback": 0,
+            "avg_rating": 0,
+            "highest_rating": 0,
+            "lowest_rating": 5,  # Start with highest possible
+        },
+        "by_agent": {}
+    }
+    
+    # Initialize rating distribution
+    rating_distribution = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+    
+    if not feedback_data:
+        return {"overall": {"total_feedback": 0, "avg_rating": 0}, "by_agent": {}, "rating_distribution": rating_distribution}
+    
+    # Process feedback data
+    total_rating = 0
+    agent_ratings = {}
+    
+    for item in feedback_data:
+        rating = item.get("rating", 0)
+        agent_type = item.get("agent_type", "unknown")
+        
+        # Skip invalid ratings
+        if rating < 1 or rating > 5:
+            continue
+        
+        # Update overall stats
+        stats["overall"]["total_feedback"] += 1
+        total_rating += rating
+        
+        if rating > stats["overall"]["highest_rating"]:
+            stats["overall"]["highest_rating"] = rating
+            
+        if rating < stats["overall"]["lowest_rating"]:
+            stats["overall"]["lowest_rating"] = rating
+            
+        # Update rating distribution
+        rating_distribution[rating] = rating_distribution.get(rating, 0) + 1
+        
+        # Update agent stats
+        if agent_type not in agent_ratings:
+            agent_ratings[agent_type] = {"total": 0, "count": 0}
+            
+        agent_ratings[agent_type]["total"] += rating
+        agent_ratings[agent_type]["count"] += 1
+    
+    # Calculate averages
+    if stats["overall"]["total_feedback"] > 0:
+        stats["overall"]["avg_rating"] = total_rating / stats["overall"]["total_feedback"]
+    
+    # Calculate agent averages
+    for agent_type, data in agent_ratings.items():
+        if data["count"] > 0:
+            stats["by_agent"][agent_type] = {
+                "avg_rating": data["total"] / data["count"],
+                "count": data["count"]
+            }
+    
+    # Add rating distribution to stats
+    stats["rating_distribution"] = rating_distribution
+    
+    return stats
+
 # Setup logger
 logger = logging.getLogger(__name__)
 
@@ -194,7 +270,6 @@ def send_feedback_report(recipient_email, period='weekly', custom_start_date=Non
             return False
         
         # Generate statistics for the report
-        from ai.api.endpoints import compute_feedback_stats
         stats = compute_feedback_stats(feedback_data)
         
         # Generate email content
