@@ -106,7 +106,7 @@ class Database:
             query_str (str): SQL query to execute
             
         Returns:
-            list: Query results
+            list: Query results for SELECT queries, empty list for non-SELECT queries
         """
         try:
             # Use SQLAlchemy's text() function to properly handle raw SQL
@@ -114,11 +114,20 @@ class Database:
             result = self.session.execute(sql)
             self.session.commit()
             
-            # Convert result to list of dictionaries
-            columns = result.keys()
-            data = [dict(zip(columns, row)) for row in result]
-            
-            return data
+            # Check if this is a SELECT query that returns rows
+            query_type = query_str.strip().upper()[:6]
+            if query_type.startswith("SELECT"):
+                # Convert result to list of dictionaries
+                try:
+                    columns = result.keys()
+                    data = [dict(zip(columns, row)) for row in result]
+                    return data
+                except Exception as e:
+                    logger.warning(f"Could not convert query results: {str(e)}")
+                    return []
+            else:
+                # For non-SELECT queries (INSERT, UPDATE, DELETE, CREATE)
+                return []
             
         except Exception as e:
             self.session.rollback()

@@ -30,29 +30,21 @@ def generate_sample_property_data(num_records=20):
         
         # Generate random price
         price = random.randint(200000, 1500000)
+        price_str = f"${price:,}"
         
-        # Generate random property details
-        bedrooms = random.randint(1, 5)
-        bathrooms = random.randint(1, 4)
-        sqft = random.randint(800, 3500)
+        # Generate title from property type and address
+        property_type = random.choice(property_types)
+        street_name = random.choice(['Main', 'Oak', 'Maple', 'Cedar', 'Pine'])
+        street_number = random.randint(100, 9999)
+        address = f"{street_number} {street_name} St, {random.choice(cities)}, CA"
+        title = f"{property_type} Property - {street_name} St"
         
         # Create sample record
         record = {
-            'report_id': f"SAMPLE-{100000 + i}",
-            'address': f"{random.randint(100, 9999)} {random.choice(['Main', 'Oak', 'Maple', 'Cedar', 'Pine'])} St",
-            'city': random.choice(cities),
-            'state': 'CA',
-            'zip_code': f"{random.randint(90000, 97000)}",
-            'property_type': random.choice(property_types),
-            'status': random.choice(statuses),
-            'list_price': price,
-            'bedrooms': bedrooms,
-            'bathrooms': bathrooms,
-            'square_feet': sqft,
-            'lot_size': round(random.uniform(0.1, 2.0), 2),
-            'year_built': random.randint(1950, 2020),
-            'listing_date': date_str,
-            'days_on_market': random.randint(1, 120),
+            'title': title,
+            'date': date_str,
+            'address': address,
+            'price': price_str,
             'created_at': datetime.now().isoformat()
         }
         
@@ -90,21 +82,10 @@ def insert_test_data():
             create_table_query = """
             CREATE TABLE IF NOT EXISTS narrpr_reports (
                 id SERIAL PRIMARY KEY,
-                report_id VARCHAR(50),
-                address TEXT,
-                city VARCHAR(100),
-                state VARCHAR(2),
-                zip_code VARCHAR(10),
-                property_type VARCHAR(50),
-                status VARCHAR(20),
-                list_price NUMERIC,
-                bedrooms INTEGER,
-                bathrooms NUMERIC,
-                square_feet INTEGER,
-                lot_size NUMERIC,
-                year_built INTEGER,
-                listing_date DATE,
-                days_on_market INTEGER,
+                title VARCHAR(255),
+                date VARCHAR(50),
+                address VARCHAR(255),
+                price VARCHAR(50),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
             """
