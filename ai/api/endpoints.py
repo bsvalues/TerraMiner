@@ -335,6 +335,114 @@ def get_recommendations():
             "message": str(e)
         }), 500
 
+@ai_api.route('/feedback', methods=['POST'])
+def submit_feedback():
+    """Submit feedback for an AI agent response"""
+    try:
+        data = request.json
+        if not data or 'agent_type' not in data or 'rating' not in data:
+            return jsonify({
+                "status": "error",
+                "message": "Missing required parameters"
+            }), 400
+            
+        # Extract data
+        agent_type = data.get('agent_type')
+        query_data = data.get('query_data', '')
+        response_data = data.get('response_data', '')
+        rating = data.get('rating')
+        comments = data.get('comments', '')
+        session_id = data.get('session_id', '')
+        
+        # Validate rating
+        try:
+            rating = int(rating)
+            if rating < 1 or rating > 5:
+                raise ValueError("Rating must be between 1-5")
+        except ValueError:
+            return jsonify({
+                "status": "error",
+                "message": "Invalid rating value. Must be integer between 1-5."
+            }), 400
+            
+        # Create feedback entry
+        from models import AIFeedback
+        from app import db
+        
+        feedback = AIFeedback(
+            agent_type=agent_type,
+            query_data=query_data,
+            response_data=response_data,
+            rating=rating,
+            comments=comments,
+            session_id=session_id
+        )
+        
+        db.session.add(feedback)
+        db.session.commit()
+        
+        logger.info(f"Feedback recorded: {agent_type} - {rating} stars")
+        
+        return jsonify({
+            "status": "success",
+            "message": "Feedback recorded successfully",
+            "feedback_id": feedback.id
+        })
+        
+    except Exception as e:
+        logger.error(f"Error recording feedback: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@ai_api.route('/feedback/stats', methods=['GET'])
+def get_feedback_stats():
+    """Get statistics about agent feedback"""
+    try:
+        from models import AIFeedback
+        from sqlalchemy import func
+        from app import db
+        
+        # Get overall stats
+        overall_stats = db.session.query(
+            func.avg(AIFeedback.rating).label('avg_rating'),
+            func.count(AIFeedback.id).label('total_feedback')
+        ).first()
+        
+        # Get stats per agent type
+        agent_stats = db.session.query(
+            AIFeedback.agent_type,
+            func.avg(AIFeedback.rating).label('avg_rating'),
+            func.count(AIFeedback.id).label('count')
+        ).group_by(AIFeedback.agent_type).all()
+        
+        # Format results
+        stats = {
+            "overall": {
+                "avg_rating": float(overall_stats.avg_rating) if overall_stats.avg_rating else 0,
+                "total_feedback": overall_stats.total_feedback
+            },
+            "by_agent": {
+                stat.agent_type: {
+                    "avg_rating": float(stat.avg_rating),
+                    "count": stat.count
+                } for stat in agent_stats
+            }
+        }
+        
+        return jsonify({
+            "status": "success",
+            "stats": stats
+        })
+        
+    except Exception as e:
+        logger.error(f"Error retrieving feedback stats: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
 def register_endpoints(app):
     """Register all API endpoints with the Flask app"""
     app.register_blueprint(ai_api)
