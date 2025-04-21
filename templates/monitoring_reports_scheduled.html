@@ -1,568 +1,148 @@
-{% extends "base_monitoring.html" %}
+{% extends "base.html" %}
 
 {% block title %}Scheduled Reports{% endblock %}
-{% block page_title %}Scheduled Reports{% endblock %}
-
-{% block page_actions %}
-<div class="btn-group me-2">
-    <button type="button" class="btn btn-sm btn-outline-secondary" id="refresh-btn">
-        <i class="bi bi-arrow-clockwise"></i> Refresh
-    </button>
-    <a href="/monitoring/reports/create" class="btn btn-sm btn-primary">
-        <i class="bi bi-plus-circle"></i> Create Report
-    </a>
-</div>
-<div class="dropdown">
-    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-        <i class="bi bi-funnel"></i> Filter
-    </button>
-    <ul class="dropdown-menu" aria-labelledby="filterDropdown">
-        <li><h6 class="dropdown-header">Report Type</h6></li>
-        <li><a class="dropdown-item" href="#" data-filter-type="all">All Types</a></li>
-        <li><a class="dropdown-item" href="#" data-filter-type="system">System Performance</a></li>
-        <li><a class="dropdown-item" href="#" data-filter-type="api">API Usage</a></li>
-        <li><a class="dropdown-item" href="#" data-filter-type="database">Database Metrics</a></li>
-        <li><a class="dropdown-item" href="#" data-filter-type="ai">AI Performance</a></li>
-        <li><hr class="dropdown-divider"></li>
-        <li><h6 class="dropdown-header">Schedule</h6></li>
-        <li><a class="dropdown-item" href="#" data-filter-schedule="all">All Schedules</a></li>
-        <li><a class="dropdown-item" href="#" data-filter-schedule="daily">Daily</a></li>
-        <li><a class="dropdown-item" href="#" data-filter-schedule="weekly">Weekly</a></li>
-        <li><a class="dropdown-item" href="#" data-filter-schedule="monthly">Monthly</a></li>
-    </ul>
-</div>
-{% endblock %}
 
 {% block content %}
-<!-- Report Stats -->
-<div class="row mb-4">
-    <div class="col-md-3 mb-3">
-        <div class="card bg-primary text-white h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-0">Total Reports</h6>
-                        <h2 class="mb-0" id="total-reports-count">0</h2>
-                    </div>
-                    <i class="bi bi-file-earmark-text fs-1"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 mb-3">
-        <div class="card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-0">Daily Reports</h6>
-                        <h2 class="mb-0" id="daily-reports-count">0</h2>
-                    </div>
-                    <i class="bi bi-calendar-day fs-1 text-info"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 mb-3">
-        <div class="card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-0">Weekly Reports</h6>
-                        <h2 class="mb-0" id="weekly-reports-count">0</h2>
-                    </div>
-                    <i class="bi bi-calendar-week fs-1 text-success"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 mb-3">
-        <div class="card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-0">Monthly Reports</h6>
-                        <h2 class="mb-0" id="monthly-reports-count">0</h2>
-                    </div>
-                    <i class="bi bi-calendar-month fs-1 text-warning"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Scheduled Reports Table -->
-<div class="card">
-    <div class="card-header">
-        <h5 class="mb-0"><i class="bi bi-clock"></i> Scheduled Reports</h5>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0" id="reports-table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Schedule</th>
-                        <th>Format</th>
-                        <th>Recipients</th>
-                        <th>Last Run</th>
-                        <th>Status</th>
-                        <th style="width: 150px;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td colspan="8" class="text-center py-4">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <p class="mt-2 mb-0">Loading scheduled reports...</p>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<!-- No Reports Message -->
-<div class="card d-none mt-4" id="no-reports-card">
-    <div class="card-body text-center py-5">
-        <i class="bi bi-file-earmark-x text-muted" style="font-size: 4rem;"></i>
-        <h4 class="mt-3">No Scheduled Reports</h4>
-        <p class="text-muted mb-4">Create a new report to start monitoring your system</p>
-        <a href="/monitoring/reports/create" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Create Report
+<div class="container-fluid mt-4">
+  <div class="card border-0 shadow-sm">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="card-title">Scheduled Reports</h2>
+        <a href="{{ url_for('monitoring_reports_create') }}" class="btn btn-primary">
+          <i class="bi bi-plus"></i> Create New Report
         </a>
-    </div>
-</div>
-
-<!-- Report Detail Modal -->
-<div class="modal fade" id="reportDetailModal" tabindex="-1" aria-labelledby="reportDetailModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
+      </div>
+      
+      {% if reports %}
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Schedule</th>
+              <th>Recipients</th>
+              <th>Format</th>
+              <th>Last Run</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for report in reports %}
+            <tr>
+              <td>{{ report.name }}</td>
+              <td>{{ report.report_type }}</td>
+              <td>
+                {% if report.schedule_type == 'daily' %}
+                  Daily at 06:00
+                {% elif report.schedule_type == 'weekly' %}
+                  Weekly on Monday at 06:00
+                {% elif report.schedule_type == 'monthly' %}
+                  Monthly on day 1 at 06:00
+                {% elif report.schedule_type == 'custom' %}
+                  Custom ({{ report.cron_expression }})
+                {% else %}
+                  {{ report.schedule_type }}
+                {% endif %}
+              </td>
+              <td>
+                {% if report.recipients_count == 1 %}
+                  {{ report.recipients_count }} recipient
+                {% else %}
+                  {{ report.recipients_count }} recipients
+                {% endif %}
+              </td>
+              <td>{{ report.format }}</td>
+              <td>
+                {% if report.last_run %}
+                  {{ report.last_run.strftime('%Y-%m-%d %H:%M') }}
+                {% else %}
+                  Never
+                {% endif %}
+              </td>
+              <td>
+                {% if report.is_active %}
+                  <span class="badge bg-success">Active</span>
+                {% else %}
+                  <span class="badge bg-secondary">Inactive</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="btn-group" role="group">
+                  <a href="{{ url_for('monitoring_reports_edit', report_id=report.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#runReportModal{{ report.id }}">
+                    <i class="bi bi-play"></i>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteReportModal{{ report.id }}">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Run Report Modals -->
+      {% for report in reports %}
+      <div class="modal fade" id="runReportModal{{ report.id }}" tabindex="-1" aria-labelledby="runReportModalLabel{{ report.id }}" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="reportDetailModalLabel">Report Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              <h5 class="modal-title" id="runReportModalLabel{{ report.id }}">Run Report Now</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <h6>Report Name</h6>
-                            <p id="report-name" class="mb-0">-</p>
-                        </div>
-                        <div class="mb-3">
-                            <h6>Description</h6>
-                            <p id="report-description" class="mb-0">-</p>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <h6>Type</h6>
-                            <p id="report-type" class="mb-0">-</p>
-                        </div>
-                        <div class="mb-3">
-                            <h6>Output Format</h6>
-                            <p id="report-format" class="mb-0">-</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <h6>Schedule</h6>
-                            <p id="report-schedule" class="mb-0">-</p>
-                        </div>
-                        <div class="mb-3">
-                            <h6>Last Run</h6>
-                            <p id="report-last-run" class="mb-0">-</p>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <h6>Status</h6>
-                            <p id="report-status" class="mb-0">-</p>
-                        </div>
-                        <div class="mb-3">
-                            <h6>Recipients</h6>
-                            <div id="report-recipients"></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <h6>Report Configuration</h6>
-                <div class="border rounded p-3 bg-light">
-                    <pre id="report-config" class="mb-0" style="max-height: 200px; overflow-y: auto;">-</pre>
-                </div>
+              <p>Are you sure you want to run the report "<strong>{{ report.name }}</strong>" now?</p>
+              <p>The report will be generated and sent to {{ report.recipients_count }} recipient(s).</p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-warning" id="edit-btn">Edit</button>
-                <button type="button" class="btn btn-primary" id="run-now-btn">Run Now</button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <form method="post" action="{{ url_for('monitoring_reports_run', report_id=report.id) }}">
+                <button type="submit" class="btn btn-primary">Run Now</button>
+              </form>
             </div>
+          </div>
         </div>
-    </div>
-</div>
-
-<!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
+      </div>
+      {% endfor %}
+      
+      <!-- Delete Report Modals -->
+      {% for report in reports %}
+      <div class="modal fade" id="deleteReportModal{{ report.id }}" tabindex="-1" aria-labelledby="deleteReportModalLabel{{ report.id }}" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="deleteConfirmModalLabel">Confirm Delete</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              <h5 class="modal-title" id="deleteReportModalLabel{{ report.id }}">Delete Report</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p>Are you sure you want to delete this report?</p>
-                <p class="text-danger">This action cannot be undone.</p>
+              <p>Are you sure you want to delete the report "<strong>{{ report.name }}</strong>"?</p>
+              <p class="text-danger">This action cannot be undone.</p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirm-delete-btn">Delete</button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <form method="post" action="{{ url_for('monitoring_reports_delete', report_id=report.id) }}">
+                <button type="submit" class="btn btn-danger">Delete</button>
+              </form>
             </div>
+          </div>
         </div>
+      </div>
+      {% endfor %}
+      
+      {% else %}
+      <div class="alert alert-info">
+        <h5 class="alert-heading">No reports configured</h5>
+        <p>You haven't set up any scheduled reports yet. Click the button above to create your first report.</p>
+      </div>
+      {% endif %}
+      
     </div>
+  </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        let currentReportId = null;
-        let currentFilters = {
-            type: 'all',
-            schedule: 'all'
-        };
-        const reportDetailModal = new bootstrap.Modal(document.getElementById('reportDetailModal'));
-        const deleteConfirmModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
-        
-        // Load scheduled reports
-        function loadScheduledReports() {
-            fetch('/api/reports')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        updateReportCounts(data.reports);
-                        displayReports(data.reports);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading reports:', error);
-                    showErrorMessage('Failed to load reports. Please try again later.');
-                });
-        }
-        
-        // Update report count badges
-        function updateReportCounts(reports) {
-            const totalCount = reports.length;
-            const dailyCount = reports.filter(report => report.schedule_type === 'daily').length;
-            const weeklyCount = reports.filter(report => report.schedule_type === 'weekly').length;
-            const monthlyCount = reports.filter(report => report.schedule_type === 'monthly').length;
-            
-            document.getElementById('total-reports-count').textContent = totalCount;
-            document.getElementById('daily-reports-count').textContent = dailyCount;
-            document.getElementById('weekly-reports-count').textContent = weeklyCount;
-            document.getElementById('monthly-reports-count').textContent = monthlyCount;
-        }
-        
-        // Display reports in the table
-        function displayReports(reports) {
-            const tableBody = document.getElementById('reports-table').querySelector('tbody');
-            const noReportsCard = document.getElementById('no-reports-card');
-            
-            // Apply filters
-            let filteredReports = reports;
-            if (currentFilters.type !== 'all') {
-                filteredReports = filteredReports.filter(report => report.report_type === currentFilters.type);
-            }
-            if (currentFilters.schedule !== 'all') {
-                filteredReports = filteredReports.filter(report => report.schedule_type === currentFilters.schedule);
-            }
-            
-            // Show no reports message if there are no reports
-            if (filteredReports.length === 0) {
-                noReportsCard.classList.remove('d-none');
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="8" class="text-center py-4">
-                            <i class="bi bi-file-earmark-x text-muted fs-4"></i>
-                            <p class="mt-2 mb-0">No scheduled reports match your filter criteria</p>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            // Hide no reports message if there are reports
-            noReportsCard.classList.add('d-none');
-            
-            // Sort reports by name
-            filteredReports.sort((a, b) => a.name.localeCompare(b.name));
-            
-            // Build table rows
-            let tableHtml = '';
-            
-            filteredReports.forEach(report => {
-                const lastRun = report.last_run ? new Date(report.last_run).toLocaleString() : 'Never';
-                
-                // Format schedule display
-                let scheduleDisplay = capitalizeFirstLetter(report.schedule_type);
-                
-                // Format output format with badge
-                let formatBadge;
-                switch (report.output_format) {
-                    case 'pdf':
-                        formatBadge = '<span class="badge bg-danger">PDF</span>';
-                        break;
-                    case 'csv':
-                        formatBadge = '<span class="badge bg-success">CSV</span>';
-                        break;
-                    case 'excel':
-                        formatBadge = '<span class="badge bg-primary">Excel</span>';
-                        break;
-                    case 'html':
-                        formatBadge = '<span class="badge bg-info">HTML</span>';
-                        break;
-                    default:
-                        formatBadge = `<span class="badge bg-secondary">${report.output_format.toUpperCase()}</span>`;
-                }
-                
-                // Format status
-                const statusBadge = report.is_active ? 
-                    '<span class="badge bg-success">Active</span>' : 
-                    '<span class="badge bg-secondary">Inactive</span>';
-                
-                tableHtml += `
-                    <tr data-report-id="${report.id}">
-                        <td>${report.name}</td>
-                        <td>${report.report_type}</td>
-                        <td>${scheduleDisplay}</td>
-                        <td>${formatBadge}</td>
-                        <td>${report.recipients_count} recipient(s)</td>
-                        <td>${lastRun}</td>
-                        <td>${statusBadge}</td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <button type="button" class="btn btn-outline-secondary view-btn" data-report-id="${report.id}">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                                <button type="button" class="btn btn-outline-primary run-btn" data-report-id="${report.id}">
-                                    <i class="bi bi-play-fill"></i>
-                                </button>
-                                <button type="button" class="btn btn-outline-warning edit-btn" data-report-id="${report.id}">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <button type="button" class="btn btn-outline-danger delete-btn" data-report-id="${report.id}">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-            
-            tableBody.innerHTML = tableHtml;
-            
-            // Add event listeners to buttons
-            document.querySelectorAll('.view-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    const reportId = this.getAttribute('data-report-id');
-                    viewReportDetails(reportId);
-                });
-            });
-            
-            document.querySelectorAll('.run-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    const reportId = this.getAttribute('data-report-id');
-                    runReport(reportId);
-                });
-            });
-            
-            document.querySelectorAll('.edit-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    const reportId = this.getAttribute('data-report-id');
-                    editReport(reportId);
-                });
-            });
-            
-            document.querySelectorAll('.delete-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    const reportId = this.getAttribute('data-report-id');
-                    confirmDeleteReport(reportId);
-                });
-            });
-        }
-        
-        // View report details
-        function viewReportDetails(reportId) {
-            fetch(`/api/reports/${reportId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        const report = data.report;
-                        currentReportId = report.id;
-                        
-                        // Update modal content
-                        document.getElementById('reportDetailModalLabel').textContent = `Report: ${report.name}`;
-                        document.getElementById('report-name').textContent = report.name;
-                        document.getElementById('report-description').textContent = report.description || 'No description';
-                        document.getElementById('report-type').textContent = report.report_type;
-                        document.getElementById('report-format').textContent = report.output_format.toUpperCase();
-                        document.getElementById('report-schedule').textContent = capitalizeFirstLetter(report.schedule_type);
-                        document.getElementById('report-last-run').textContent = report.last_run ? new Date(report.last_run).toLocaleString() : 'Never';
-                        document.getElementById('report-status').innerHTML = report.is_active ? 
-                            '<span class="badge bg-success">Active</span>' : 
-                            '<span class="badge bg-secondary">Inactive</span>';
-                        
-                        // Format recipients
-                        const recipientsContainer = document.getElementById('report-recipients');
-                        if (report.recipients && report.recipients.length > 0) {
-                            let recipientsHtml = '';
-                            report.recipients.forEach(recipient => {
-                                recipientsHtml += `<div class="badge bg-primary me-1 mb-1">${recipient}</div>`;
-                            });
-                            recipientsContainer.innerHTML = recipientsHtml;
-                        } else {
-                            recipientsContainer.innerHTML = '<span class="text-muted">No recipients</span>';
-                        }
-                        
-                        // Format config
-                        document.getElementById('report-config').textContent = JSON.stringify(report.config, null, 2);
-                        
-                        // Show the modal
-                        reportDetailModal.show();
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching report details:', error);
-                    showErrorMessage('Failed to load report details. Please try again later.');
-                });
-        }
-        
-        // Run report
-        function runReport(reportId) {
-            fetch(`/api/reports/${reportId}/execute`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        showSuccessMessage('Report execution started. Check report history for results.');
-                        
-                        // Reload reports
-                        loadScheduledReports();
-                    } else {
-                        showErrorMessage(data.message || 'Failed to run report.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error running report:', error);
-                    showErrorMessage('Failed to run report. Please try again later.');
-                });
-        }
-        
-        // Edit report
-        function editReport(reportId) {
-            window.location.href = `/monitoring/reports/edit/${reportId}`;
-        }
-        
-        // Confirm delete report
-        function confirmDeleteReport(reportId) {
-            currentReportId = reportId;
-            deleteConfirmModal.show();
-        }
-        
-        // Delete report
-        function deleteReport(reportId) {
-            fetch(`/api/reports/${reportId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        // Reload reports
-                        loadScheduledReports();
-                        
-                        // Close modal
-                        deleteConfirmModal.hide();
-                        
-                        showSuccessMessage('Report deleted successfully.');
-                    } else {
-                        showErrorMessage(data.message || 'Failed to delete report.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error deleting report:', error);
-                    showErrorMessage('Failed to delete report. Please try again later.');
-                });
-        }
-        
-        // Helper function to capitalize first letter
-        function capitalizeFirstLetter(string) {
-            return string.charAt(0).toUpperCase() + string.slice(1);
-        }
-        
-        // Show success message
-        function showSuccessMessage(message) {
-            alert(message); // Simple alert for now
-        }
-        
-        // Show error message
-        function showErrorMessage(message) {
-            alert(message); // Simple alert for now
-        }
-        
-        // Event listeners
-        document.getElementById('refresh-btn').addEventListener('click', loadScheduledReports);
-        
-        // Modal button event listeners
-        document.getElementById('run-now-btn').addEventListener('click', function() {
-            if (currentReportId) {
-                runReport(currentReportId);
-                reportDetailModal.hide();
-            }
-        });
-        
-        document.getElementById('edit-btn').addEventListener('click', function() {
-            if (currentReportId) {
-                editReport(currentReportId);
-                reportDetailModal.hide();
-            }
-        });
-        
-        document.getElementById('confirm-delete-btn').addEventListener('click', function() {
-            if (currentReportId) {
-                deleteReport(currentReportId);
-            }
-        });
-        
-        // Filter dropdown event listeners
-        document.querySelectorAll('[data-filter-type]').forEach(item => {
-            item.addEventListener('click', function(e) {
-                e.preventDefault();
-                currentFilters.type = this.getAttribute('data-filter-type');
-                loadScheduledReports();
-            });
-        });
-        
-        document.querySelectorAll('[data-filter-schedule]').forEach(item => {
-            item.addEventListener('click', function(e) {
-                e.preventDefault();
-                currentFilters.schedule = this.getAttribute('data-filter-schedule');
-                loadScheduledReports();
-            });
-        });
-        
-        // Initial load
-        loadScheduledReports();
-    });
-</script>
 {% endblock %}

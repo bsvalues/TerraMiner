@@ -362,12 +362,12 @@ class ScheduledReport(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)  # Report name
     description = db.Column(db.Text, nullable=True)  # Report description
-    report_type = db.Column(db.String(50), nullable=False)  # Type of report
-    config = db.Column(db.Text, nullable=False)  # JSON configuration for the report
-    schedule_type = db.Column(db.String(20), nullable=False)  # Schedule type (daily, weekly, monthly)
-    schedule_config = db.Column(db.Text, nullable=False)  # JSON configuration for the schedule
-    output_format = db.Column(db.String(20), nullable=False)  # Output format (pdf, html, csv, excel)
+    report_type = db.Column(db.String(50), nullable=False)  # Type of report (alerts, metrics, etc.)
+    schedule_type = db.Column(db.String(20), nullable=False)  # Schedule type (daily, weekly, monthly, custom)
+    cron_expression = db.Column(db.String(100), nullable=True)  # Cron expression for custom schedules
+    format = db.Column(db.String(20), nullable=False)  # Output format (pdf, html, csv, excel)
     recipients = db.Column(db.Text, nullable=False)  # JSON array of recipient email addresses
+    parameters = db.Column(db.Text, nullable=True)  # JSON blob of report parameters
     is_active = db.Column(db.Boolean, default=True)  # Whether this report is active
     last_run = db.Column(db.DateTime, nullable=True)  # When the report was last run
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
@@ -390,5 +390,21 @@ class ReportExecution(db.Model):
     # Relationship with report
     report = db.relationship('ScheduledReport', backref=db.backref('executions', lazy=True))
     
+class ReportExecutionLog(db.Model):
+    """Model for logging report execution history with more detailed information."""
+    id = db.Column(db.Integer, primary_key=True)
+    report_id = db.Column(db.Integer, db.ForeignKey('scheduled_report.id'), nullable=True)
+    report_type = db.Column(db.String(50), nullable=False)  # Type of report
+    execution_time = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    completion_time = db.Column(db.DateTime, nullable=True)
+    status = db.Column(db.String(20), nullable=False, default='processing')  # 'success', 'error', 'processing'
+    recipient_count = db.Column(db.Integer, default=0)  # Number of recipients
+    format = db.Column(db.String(20), nullable=True)  # Report format
+    error_message = db.Column(db.Text, nullable=True)  # Error message if status is 'error'
+    parameters = db.Column(db.Text, nullable=True)  # JSON of parameters used for the report
+    
+    # Relationship with report (if associated with a scheduled report)
+    report = db.relationship('ScheduledReport', backref=db.backref('execution_logs', lazy=True))
+    
     def __repr__(self):
-        return f"<ReportExecution id={self.id} report_id={self.report_id} status={self.status}>"
+        return f"<ReportExecutionLog id={self.id} report_type={self.report_type} status={self.status}>"

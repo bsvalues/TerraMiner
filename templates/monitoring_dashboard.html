@@ -1,774 +1,423 @@
-{% extends "base_monitoring.html" %}
+{% extends "base.html" %}
 
-{% block title %}Dashboard{% endblock %}
-{% block page_title %}Monitoring Dashboard{% endblock %}
+{% block title %}Monitoring Dashboard{% endblock %}
 
 {% block content %}
-<div class="row">
-    <!-- System Status Cards -->
-    <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-shield-check"></i> System Status</h5>
+<div class="container-fluid mt-4">
+  <!-- Health Overview Card -->
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-md-6">
+              <h2 class="card-title">System Health</h2>
+              <p class="text-muted">Real-time health status and metrics</p>
             </div>
-            <div class="card-body">
-                <div class="row" id="system-status-cards">
-                    <div class="col-md-3 mb-3">
-                        <div class="card bg-success text-white h-100">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div>
-                                        <h6 class="mb-0">Overall Status</h6>
-                                        <h4 class="mb-0" id="overall-status-text">Operational</h4>
-                                    </div>
-                                    <i class="bi bi-check-circle-fill fs-1"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div>
-                                        <h6 class="mb-0">Database</h6>
-                                        <h4 class="mb-0" id="database-status">Healthy</h4>
-                                    </div>
-                                    <i class="bi bi-database-check fs-1 text-success"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div>
-                                        <h6 class="mb-0">API</h6>
-                                        <h4 class="mb-0" id="api-status">Operational</h4>
-                                    </div>
-                                    <i class="bi bi-hdd-network fs-1 text-success"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div>
-                                        <h6 class="mb-0">Active Alerts</h6>
-                                        <h4 class="mb-0" id="active-alerts">0</h4>
-                                    </div>
-                                    <i class="bi bi-exclamation-circle fs-1 text-warning"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="col-md-6 text-end">
+              <h3 class="mb-0">
+                {% if health_status == 'excellent' %}
+                <span class="badge bg-success">Excellent ({{ health_score }}%)</span>
+                {% elif health_status == 'good' %}
+                <span class="badge bg-info">Good ({{ health_score }}%)</span>
+                {% elif health_status == 'fair' %}
+                <span class="badge bg-warning">Fair ({{ health_score }}%)</span>
+                {% elif health_status == 'poor' %}
+                <span class="badge bg-danger">Poor ({{ health_score }}%)</span>
+                {% else %}
+                <span class="badge bg-danger">Critical ({{ health_score }}%)</span>
+                {% endif %}
+              </h3>
+              <p class="text-muted mt-2">Last updated: {{ current_time }}</p>
             </div>
+          </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metrics and Stats Row -->
+  <div class="row mb-4">
+    <!-- Active Alerts Card -->
+    <div class="col-md-4 mb-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0">
+          <h4 class="card-title">Active Alerts</h4>
+        </div>
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div class="alert-stats">
+              <div class="alert-count mb-3">
+                <h5>Total Active: {{ alerts_summary.active.total }}</h5>
+              </div>
+              <div class="alert-breakdown">
+                <div class="mb-2 d-flex justify-content-between">
+                  <span class="text-danger">Critical:</span> 
+                  <span class="badge bg-danger">{{ alerts_summary.active.critical }}</span>
+                </div>
+                <div class="mb-2 d-flex justify-content-between">
+                  <span class="text-danger">Error:</span> 
+                  <span class="badge bg-danger">{{ alerts_summary.active.error }}</span>
+                </div>
+                <div class="mb-2 d-flex justify-content-between">
+                  <span class="text-warning">Warning:</span> 
+                  <span class="badge bg-warning">{{ alerts_summary.active.warning }}</span>
+                </div>
+                <div class="mb-2 d-flex justify-content-between">
+                  <span class="text-info">Info:</span> 
+                  <span class="badge bg-info">{{ alerts_summary.active.info }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="stats-period">
+              <p class="text-muted">Last 24h: {{ alerts_summary.last_24h }}</p>
+              <p class="text-muted">Last 7d: {{ alerts_summary.last_7d }}</p>
+            </div>
+          </div>
+          <hr>
+          {% if alerts_summary.latest %}
+          <h6>Latest Alerts</h6>
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Severity</th>
+                  <th>Message</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for alert in alerts_summary.latest %}
+                <tr>
+                  <td>
+                    {% if alert.severity == 'critical' %}
+                    <span class="badge bg-danger">Critical</span>
+                    {% elif alert.severity == 'error' %}
+                    <span class="badge bg-danger">Error</span>
+                    {% elif alert.severity == 'warning' %}
+                    <span class="badge bg-warning">Warning</span>
+                    {% else %}
+                    <span class="badge bg-info">Info</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ alert.message }}</td>
+                  <td>{{ alert.created_at.strftime('%H:%M:%S') }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="text-muted">No recent alerts</p>
+          {% endif %}
+          <div class="mt-3">
+            <a href="{{ url_for('monitoring_alerts_active') }}" class="btn btn-outline-primary btn-sm">View All Alerts</a>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- System Metrics -->
-    <div class="col-md-8">
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-cpu"></i> System Performance</h5>
-                <button class="btn btn-sm btn-outline-secondary" id="system-detail-btn">View Details</button>
-            </div>
-            <div class="card-body">
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <div class="metric-card p-3 border">
-                            <div class="metric-label">CPU Usage</div>
-                            <div class="metric-value text-primary" id="cpu-usage">0%</div>
-                            <div class="progress" style="height: 5px;">
-                                <div class="progress-bar" id="cpu-progress" role="progressbar" style="width: 0%"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="metric-card p-3 border">
-                            <div class="metric-label">Memory Usage</div>
-                            <div class="metric-value text-warning" id="memory-usage">0%</div>
-                            <div class="progress" style="height: 5px;">
-                                <div class="progress-bar bg-warning" id="memory-progress" role="progressbar" style="width: 0%"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="metric-card p-3 border">
-                            <div class="metric-label">Disk Usage</div>
-                            <div class="metric-value text-success" id="disk-usage">0%</div>
-                            <div class="progress" style="height: 5px;">
-                                <div class="progress-bar bg-success" id="disk-progress" role="progressbar" style="width: 0%"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="system-metrics-chart"></canvas>
-                </div>
-            </div>
+    <!-- System Performance Card -->
+    <div class="col-md-4 mb-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0">
+          <h4 class="card-title">System Performance</h4>
         </div>
-
-        <!-- API Performance -->
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-graph-up"></i> API Performance</h5>
-                <button class="btn btn-sm btn-outline-secondary" id="api-detail-btn">View Details</button>
-            </div>
-            <div class="card-body">
-                <div class="chart-container">
-                    <canvas id="api-requests-chart"></canvas>
+        <div class="card-body">
+          <div class="performance-metrics">
+            <!-- CPU Usage -->
+            <div class="mb-3">
+              <div class="d-flex justify-content-between mb-1">
+                <span>CPU Usage</span>
+                <span class="
+                  {% if system_metrics.performance.cpu and system_metrics.performance.cpu.metric_value > 90 %}text-danger
+                  {% elif system_metrics.performance.cpu and system_metrics.performance.cpu.metric_value > 70 %}text-warning
+                  {% else %}text-success{% endif %}
+                ">
+                  {{ system_metrics.performance.cpu.metric_value|round(1) if system_metrics.performance.cpu else 'N/A' }}%
+                </span>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar 
+                  {% if system_metrics.performance.cpu and system_metrics.performance.cpu.metric_value > 90 %}bg-danger
+                  {% elif system_metrics.performance.cpu and system_metrics.performance.cpu.metric_value > 70 %}bg-warning
+                  {% else %}bg-success{% endif %}" 
+                  role="progressbar" 
+                  style="width: {{ system_metrics.performance.cpu.metric_value if system_metrics.performance.cpu else 0 }}%;" 
+                  aria-valuenow="{{ system_metrics.performance.cpu.metric_value if system_metrics.performance.cpu else 0 }}" 
+                  aria-valuemin="0" 
+                  aria-valuemax="100">
                 </div>
-                <div class="row mt-3">
-                    <div class="col-md-4">
-                        <div class="stat-card border">
-                            <div class="stat-icon text-primary">
-                                <i class="bi bi-arrow-repeat"></i>
-                            </div>
-                            <div class="stat-value" id="total-requests">0</div>
-                            <div class="stat-label">Total Requests</div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="stat-card border">
-                            <div class="stat-icon text-success">
-                                <i class="bi bi-check-circle"></i>
-                            </div>
-                            <div class="stat-value" id="success-rate">0%</div>
-                            <div class="stat-label">Success Rate</div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="stat-card border">
-                            <div class="stat-icon text-info">
-                                <i class="bi bi-stopwatch"></i>
-                            </div>
-                            <div class="stat-value" id="avg-response-time">0 ms</div>
-                            <div class="stat-label">Avg. Response Time</div>
-                        </div>
-                    </div>
-                </div>
+              </div>
             </div>
+            
+            <!-- Memory Usage -->
+            <div class="mb-3">
+              <div class="d-flex justify-content-between mb-1">
+                <span>Memory Usage</span>
+                <span class="
+                  {% if system_metrics.performance.memory and system_metrics.performance.memory.metric_value > 90 %}text-danger
+                  {% elif system_metrics.performance.memory and system_metrics.performance.memory.metric_value > 70 %}text-warning
+                  {% else %}text-success{% endif %}
+                ">
+                  {{ system_metrics.performance.memory.metric_value|round(1) if system_metrics.performance.memory else 'N/A' }}%
+                </span>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar 
+                  {% if system_metrics.performance.memory and system_metrics.performance.memory.metric_value > 90 %}bg-danger
+                  {% elif system_metrics.performance.memory and system_metrics.performance.memory.metric_value > 70 %}bg-warning
+                  {% else %}bg-success{% endif %}" 
+                  role="progressbar" 
+                  style="width: {{ system_metrics.performance.memory.metric_value if system_metrics.performance.memory else 0 }}%;" 
+                  aria-valuenow="{{ system_metrics.performance.memory.metric_value if system_metrics.performance.memory else 0 }}" 
+                  aria-valuemin="0" 
+                  aria-valuemax="100">
+                </div>
+              </div>
+            </div>
+            
+            <!-- Disk Usage -->
+            <div class="mb-3">
+              <div class="d-flex justify-content-between mb-1">
+                <span>Disk Usage</span>
+                <span class="
+                  {% if system_metrics.performance.disk and system_metrics.performance.disk.metric_value > 90 %}text-danger
+                  {% elif system_metrics.performance.disk and system_metrics.performance.disk.metric_value > 70 %}text-warning
+                  {% else %}text-success{% endif %}
+                ">
+                  {{ system_metrics.performance.disk.metric_value|round(1) if system_metrics.performance.disk else 'N/A' }}%
+                </span>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar 
+                  {% if system_metrics.performance.disk and system_metrics.performance.disk.metric_value > 90 %}bg-danger
+                  {% elif system_metrics.performance.disk and system_metrics.performance.disk.metric_value > 70 %}bg-warning
+                  {% else %}bg-success{% endif %}" 
+                  role="progressbar" 
+                  style="width: {{ system_metrics.performance.disk.metric_value if system_metrics.performance.disk else 0 }}%;" 
+                  aria-valuenow="{{ system_metrics.performance.disk.metric_value if system_metrics.performance.disk else 0 }}" 
+                  aria-valuemin="0" 
+                  aria-valuemax="100">
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <hr>
+          
+          <!-- Database Metrics -->
+          <h6>Database Metrics</h6>
+          <div class="db-metrics">
+            <div class="mb-2 d-flex justify-content-between">
+              <span>Connections:</span> 
+              <span>{{ database_metrics.connection_count.metric_value|int if database_metrics.connection_count else 'N/A' }}</span>
+            </div>
+            <div class="mb-2 d-flex justify-content-between">
+              <span>Avg Query Time:</span> 
+              <span>{{ database_metrics.query_time_avg.metric_value|round(3) if database_metrics.query_time_avg else 'N/A' }} s</span>
+            </div>
+          </div>
+          
+          <div class="mt-3">
+            <a href="{{ url_for('monitoring_system') }}" class="btn btn-outline-primary btn-sm">View System Details</a>
+          </div>
         </div>
+      </div>
     </div>
 
-    <!-- Right Column -->
-    <div class="col-md-4">
-        <!-- AI Performance -->
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-robot"></i> AI Performance</h5>
-                <button class="btn btn-sm btn-outline-secondary" id="ai-detail-btn">View Details</button>
-            </div>
-            <div class="card-body">
-                <div class="row mb-3">
-                    <div class="col-6">
-                        <div class="metric-card p-3 border">
-                            <div class="metric-label">Avg. Rating</div>
-                            <div class="metric-value text-warning" id="ai-avg-rating">0.0</div>
-                            <div class="small text-muted">out of 5.0</div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="metric-card p-3 border">
-                            <div class="metric-label">Error Rate</div>
-                            <div class="metric-value text-danger" id="ai-error-rate">0%</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="ai-usage-chart"></canvas>
-                </div>
-                <div class="mt-3">
-                    <h6>Agent Performance</h6>
-                    <table class="table table-sm" id="ai-agents-table">
-                        <thead>
-                            <tr>
-                                <th>Agent</th>
-                                <th>Requests</th>
-                                <th>Rating</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td colspan="3" class="text-center">Loading...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+    <!-- API Performance Card -->
+    <div class="col-md-4 mb-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0">
+          <h4 class="card-title">API Performance</h4>
         </div>
-
-        <!-- Recent Alerts -->
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Recent Alerts</h5>
-                <button class="btn btn-sm btn-outline-secondary" id="alerts-detail-btn">View All</button>
-            </div>
-            <div class="card-body p-0">
-                <div class="list-group list-group-flush" id="recent-alerts-list">
-                    <div class="list-group-item text-center py-4">
-                        <i class="bi bi-check-circle text-success fs-4"></i>
-                        <p class="mb-0 mt-2">No active alerts</p>
-                    </div>
+        <div class="card-body">
+          <div class="api-stats">
+            <div class="mb-3">
+              <h5>Last 24 Hours</h5>
+              <div class="row">
+                <div class="col-6">
+                  <div class="api-stat-item mb-3">
+                    <h6 class="text-muted">Total Requests</h6>
+                    <h3>{{ api_metrics.total_requests_24h|int }}</h3>
+                  </div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Recent Reports -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Recent Reports</h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="list-group list-group-flush" id="recent-reports-list">
-                    <div class="list-group-item text-center py-4">
-                        <i class="bi bi-file-earmark text-muted fs-4"></i>
-                        <p class="mb-0 mt-2">No recent reports</p>
-                    </div>
+                <div class="col-6">
+                  <div class="api-stat-item mb-3">
+                    <h6 class="text-muted">Avg Response Time</h6>
+                    <h3>{{ api_metrics.avg_response_time|round(3) }} s</h3>
+                  </div>
                 </div>
+              </div>
             </div>
+            
+            <!-- Error Rate -->
+            <div class="mb-4">
+              <div class="d-flex justify-content-between mb-1">
+                <span>Error Rate (24h)</span>
+                <span class="
+                  {% if api_metrics.error_rate_24h > 5 %}text-danger
+                  {% elif api_metrics.error_rate_24h > 2 %}text-warning
+                  {% else %}text-success{% endif %}
+                ">
+                  {{ api_metrics.error_rate_24h|round(2) }}%
+                </span>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar 
+                  {% if api_metrics.error_rate_24h > 5 %}bg-danger
+                  {% elif api_metrics.error_rate_24h > 2 %}bg-warning
+                  {% else %}bg-success{% endif %}" 
+                  role="progressbar" 
+                  style="width: {{ api_metrics.error_rate_24h }}%;" 
+                  aria-valuenow="{{ api_metrics.error_rate_24h }}" 
+                  aria-valuemin="0" 
+                  aria-valuemax="100">
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <hr>
+          
+          <!-- AI Performance -->
+          <h6>AI Performance</h6>
+          <div class="ai-metrics">
+            <div class="mb-2 d-flex justify-content-between">
+              <span>Requests (24h):</span> 
+              <span>{{ ai_metrics.total_requests_24h|int }}</span>
+            </div>
+            <div class="mb-2 d-flex justify-content-between">
+              <span>Avg Rating:</span> 
+              <span>
+                {{ ai_metrics.avg_rating|round(2) if ai_metrics.avg_rating else 'N/A' }}
+                {% if ai_metrics.avg_rating %}
+                  <small class="text-muted">(out of 5)</small>
+                {% endif %}
+              </span>
+            </div>
+          </div>
+          
+          <div class="mt-3">
+            <a href="{{ url_for('monitoring_api') }}" class="btn btn-outline-primary btn-sm me-2">View API Details</a>
+            <a href="{{ url_for('monitoring_ai') }}" class="btn btn-outline-primary btn-sm">View AI Details</a>
+          </div>
         </div>
+      </div>
     </div>
+  </div>
+
+  <!-- Jobs and Reports Row -->
+  <div class="row mb-4">
+    <!-- Job Stats Card -->
+    <div class="col-md-6 mb-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0">
+          <h4 class="card-title">Job Statistics</h4>
+        </div>
+        <div class="card-body">
+          <div class="row mb-4">
+            <div class="col-6">
+              <div class="job-stat-item mb-3">
+                <h6 class="text-muted">Total Jobs (30d)</h6>
+                <h3>{{ job_metrics.total_jobs_30d|int }}</h3>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="job-stat-item mb-3">
+                <h6 class="text-muted">Success Rate</h6>
+                <h3 class="{% if job_metrics.success_rate_30d < 70 %}text-danger{% elif job_metrics.success_rate_30d < 90 %}text-warning{% else %}text-success{% endif %}">
+                  {{ job_metrics.success_rate_30d|round(1) }}%
+                </h3>
+              </div>
+            </div>
+          </div>
+          
+          {% if job_metrics.latest_jobs %}
+          <h6>Latest Jobs</h6>
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Job</th>
+                  <th>Status</th>
+                  <th>Start Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for job in job_metrics.latest_jobs %}
+                <tr>
+                  <td>{{ job.job_name }}</td>
+                  <td>
+                    {% if job.status == 'completed' %}
+                    <span class="badge bg-success">Completed</span>
+                    {% elif job.status == 'failed' %}
+                    <span class="badge bg-danger">Failed</span>
+                    {% else %}
+                    <span class="badge bg-secondary">{{ job.status|title }}</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ job.start_time.strftime('%m-%d %H:%M') }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="text-muted">No job data available</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Reports Card -->
+    <div class="col-md-6 mb-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0">
+          <h4 class="card-title">Scheduled Reports</h4>
+        </div>
+        <div class="card-body">
+          <div class="mb-4">
+            <div class="d-flex justify-content-between">
+              <h5>Active Reports</h5>
+              <span class="badge bg-primary">{{ report_metrics.total_scheduled }}</span>
+            </div>
+          </div>
+          
+          {% if report_metrics.upcoming %}
+          <h6>Upcoming Reports</h6>
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Report</th>
+                  <th>Type</th>
+                  <th>Schedule</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for report in report_metrics.upcoming %}
+                <tr>
+                  <td>{{ report.name }}</td>
+                  <td>{{ report.report_type }}</td>
+                  <td>{{ report.schedule_type }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="text-muted">No scheduled reports</p>
+          {% endif %}
+          
+          <div class="mt-3">
+            <a href="{{ url_for('monitoring_reports_scheduled') }}" class="btn btn-outline-primary btn-sm me-2">Manage Reports</a>
+            <a href="{{ url_for('monitoring_reports_create') }}" class="btn btn-primary btn-sm">Create Report</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-    // Dashboard-specific functionality
-    document.addEventListener('DOMContentLoaded', function() {
-        let systemMetricsChart = null;
-        let apiRequestsChart = null;
-        let aiUsageChart = null;
-        
-        // Initialize charts
-        function initCharts() {
-            // System metrics chart
-            const systemCtx = document.getElementById('system-metrics-chart').getContext('2d');
-            systemMetricsChart = new Chart(systemCtx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [
-                        {
-                            label: 'CPU Usage (%)',
-                            data: [],
-                            borderColor: 'rgba(13, 110, 253, 1)',
-                            backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                            tension: 0.4,
-                            fill: true
-                        },
-                        {
-                            label: 'Memory Usage (%)',
-                            data: [],
-                            borderColor: 'rgba(255, 193, 7, 1)',
-                            backgroundColor: 'rgba(255, 193, 7, 0.1)',
-                            tension: 0.4,
-                            fill: true
-                        },
-                        {
-                            label: 'Disk Usage (%)',
-                            data: [],
-                            borderColor: 'rgba(25, 135, 84, 1)',
-                            backgroundColor: 'rgba(25, 135, 84, 0.1)',
-                            tension: 0.4,
-                            fill: true
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            min: 0,
-                            max: 100,
-                            title: {
-                                display: true,
-                                text: 'Usage (%)'
-                            }
-                        }
-                    }
-                }
-            });
-            
-            // API requests chart
-            const apiCtx = document.getElementById('api-requests-chart').getContext('2d');
-            apiRequestsChart = new Chart(apiCtx, {
-                type: 'bar',
-                data: {
-                    labels: [],
-                    datasets: [
-                        {
-                            label: 'Successful Requests',
-                            data: [],
-                            backgroundColor: 'rgba(25, 135, 84, 0.8)'
-                        },
-                        {
-                            label: 'Failed Requests',
-                            data: [],
-                            backgroundColor: 'rgba(220, 53, 69, 0.8)'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false
-                        }
-                    },
-                    scales: {
-                        x: {
-                            stacked: true,
-                        },
-                        y: {
-                            stacked: true,
-                            title: {
-                                display: true,
-                                text: 'Number of Requests'
-                            }
-                        }
-                    }
-                }
-            });
-            
-            // AI usage chart
-            const aiCtx = document.getElementById('ai-usage-chart').getContext('2d');
-            aiUsageChart = new Chart(aiCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        data: [],
-                        backgroundColor: [
-                            'rgba(13, 110, 253, 0.8)',
-                            'rgba(255, 193, 7, 0.8)',
-                            'rgba(25, 135, 84, 0.8)',
-                            'rgba(220, 53, 69, 0.8)'
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                        }
-                    }
-                }
-            });
-        }
-        
-        // Update dashboard with data from API
-        function updateDashboardData(days = 7) {
-            // Fetch dashboard data from API
-            fetch(`/api/monitoring/dashboard-data?days=${days}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        updateSystemStatus(data.dashboard_data.system_overview);
-                        updateSystemMetrics(data.dashboard_data.system_overview);
-                        updateApiPerformance(data.dashboard_data.api_usage);
-                        updateAiPerformance(data.dashboard_data.ai_performance);
-                        updateAlerts(data.dashboard_data.alerts);
-                        updateReports(data.dashboard_data.reports);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching dashboard data:', error);
-                });
-                
-            // Also fetch system status
-            fetch('/api/monitoring/system-status')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        updateSystemStatusCards(data.system_status);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching system status:', error);
-                });
-        }
-        
-        // Update system status cards
-        function updateSystemStatusCards(status) {
-            // Update overall status card
-            const overallStatusCard = document.querySelector('#system-status-cards .col-md-3:nth-child(1) .card');
-            const overallStatusText = document.getElementById('overall-status-text');
-            const overallStatusIcon = overallStatusCard.querySelector('.bi');
-            
-            if (status.overall_status === 'operational') {
-                overallStatusCard.className = 'card bg-success text-white h-100';
-                overallStatusText.textContent = 'Operational';
-                overallStatusIcon.className = 'bi bi-check-circle-fill fs-1';
-            } else if (status.overall_status === 'degraded') {
-                overallStatusCard.className = 'card bg-warning text-white h-100';
-                overallStatusText.textContent = 'Degraded';
-                overallStatusIcon.className = 'bi bi-exclamation-triangle-fill fs-1';
-            } else {
-                overallStatusCard.className = 'card bg-danger text-white h-100';
-                overallStatusText.textContent = 'Offline';
-                overallStatusIcon.className = 'bi bi-x-circle-fill fs-1';
-            }
-            
-            // Update database status
-            const dbStatus = document.getElementById('database-status');
-            const dbIcon = dbStatus.parentNode.parentNode.querySelector('.bi');
-            
-            if (status.database.status === 'operational') {
-                dbStatus.textContent = 'Healthy';
-                dbStatus.className = 'mb-0 text-success';
-                dbIcon.className = 'bi bi-database-check fs-1 text-success';
-            } else {
-                dbStatus.textContent = 'Error';
-                dbStatus.className = 'mb-0 text-danger';
-                dbIcon.className = 'bi bi-database-x fs-1 text-danger';
-            }
-            
-            // Update API status
-            const apiStatus = document.getElementById('api-status');
-            const apiIcon = apiStatus.parentNode.parentNode.querySelector('.bi');
-            
-            if (status.api.status === 'operational') {
-                apiStatus.textContent = 'Operational';
-                apiStatus.className = 'mb-0 text-success';
-                apiIcon.className = 'bi bi-hdd-network fs-1 text-success';
-            } else {
-                apiStatus.textContent = 'Degraded';
-                apiStatus.className = 'mb-0 text-warning';
-                apiIcon.className = 'bi bi-hdd-network fs-1 text-warning';
-            }
-            
-            // Update active alerts
-            document.getElementById('active-alerts').textContent = status.critical_alerts;
-        }
-        
-        // Update system metrics section
-        function updateSystemMetrics(systemOverview) {
-            // Find latest metrics
-            const cpuMetric = systemOverview.latest_metrics.find(m => m.name === 'cpu_usage');
-            const memoryMetric = systemOverview.latest_metrics.find(m => m.name === 'memory_usage');
-            const diskMetric = systemOverview.latest_metrics.find(m => m.name === 'disk_usage');
-            
-            // Update metric cards
-            if (cpuMetric) {
-                document.getElementById('cpu-usage').textContent = `${cpuMetric.value.toFixed(1)}%`;
-                document.getElementById('cpu-progress').style.width = `${cpuMetric.value}%`;
-                
-                // Change color based on value
-                if (cpuMetric.value > 90) {
-                    document.getElementById('cpu-usage').className = 'metric-value text-danger';
-                    document.getElementById('cpu-progress').className = 'progress-bar bg-danger';
-                } else if (cpuMetric.value > 75) {
-                    document.getElementById('cpu-usage').className = 'metric-value text-warning';
-                    document.getElementById('cpu-progress').className = 'progress-bar bg-warning';
-                } else {
-                    document.getElementById('cpu-usage').className = 'metric-value text-primary';
-                    document.getElementById('cpu-progress').className = 'progress-bar bg-primary';
-                }
-            }
-            
-            if (memoryMetric) {
-                document.getElementById('memory-usage').textContent = `${memoryMetric.value.toFixed(1)}%`;
-                document.getElementById('memory-progress').style.width = `${memoryMetric.value}%`;
-                
-                // Change color based on value
-                if (memoryMetric.value > 90) {
-                    document.getElementById('memory-usage').className = 'metric-value text-danger';
-                    document.getElementById('memory-progress').className = 'progress-bar bg-danger';
-                } else if (memoryMetric.value > 75) {
-                    document.getElementById('memory-usage').className = 'metric-value text-warning';
-                    document.getElementById('memory-progress').className = 'progress-bar bg-warning';
-                } else {
-                    document.getElementById('memory-usage').className = 'metric-value text-primary';
-                    document.getElementById('memory-progress').className = 'progress-bar bg-primary';
-                }
-            }
-            
-            if (diskMetric) {
-                document.getElementById('disk-usage').textContent = `${diskMetric.value.toFixed(1)}%`;
-                document.getElementById('disk-progress').style.width = `${diskMetric.value}%`;
-                
-                // Change color based on value
-                if (diskMetric.value > 90) {
-                    document.getElementById('disk-usage').className = 'metric-value text-danger';
-                    document.getElementById('disk-progress').className = 'progress-bar bg-danger';
-                } else if (diskMetric.value > 75) {
-                    document.getElementById('disk-usage').className = 'metric-value text-warning';
-                    document.getElementById('disk-progress').className = 'progress-bar bg-warning';
-                } else {
-                    document.getElementById('disk-usage').className = 'metric-value text-success';
-                    document.getElementById('disk-progress').className = 'progress-bar bg-success';
-                }
-            }
-            
-            // For the chart, we'd use real trend data in a real implementation
-            // This is a placeholder for demonstration
-            if (systemMetricsChart) {
-                // Clear existing data
-                systemMetricsChart.data.labels = [];
-                systemMetricsChart.data.datasets[0].data = [];
-                systemMetricsChart.data.datasets[1].data = [];
-                systemMetricsChart.data.datasets[2].data = [];
-                
-                // Add demo data
-                const now = new Date();
-                for (let i = 6; i >= 0; i--) {
-                    const date = new Date(now);
-                    date.setDate(date.getDate() - i);
-                    systemMetricsChart.data.labels.push(date.toLocaleDateString());
-                    
-                    // Random values for demo
-                    systemMetricsChart.data.datasets[0].data.push(20 + Math.random() * 40);
-                    systemMetricsChart.data.datasets[1].data.push(40 + Math.random() * 40);
-                    systemMetricsChart.data.datasets[2].data.push(30 + Math.random() * 30);
-                }
-                
-                systemMetricsChart.update();
-            }
-        }
-        
-        // Update API performance section
-        function updateApiPerformance(apiUsage) {
-            // Update stats
-            document.getElementById('total-requests').textContent = apiUsage.total_requests.toLocaleString();
-            document.getElementById('success-rate').textContent = apiUsage.success_rate.toFixed(1) + '%';
-            
-            // For demo purposes, calculate a random average response time
-            const avgResponseTime = Math.floor(50 + Math.random() * 300);
-            document.getElementById('avg-response-time').textContent = avgResponseTime + ' ms';
-            
-            // Update chart
-            if (apiRequestsChart) {
-                // Clear existing data
-                apiRequestsChart.data.labels = [];
-                apiRequestsChart.data.datasets[0].data = [];
-                apiRequestsChart.data.datasets[1].data = [];
-                
-                // Use actual daily trend data if available
-                if (apiUsage.daily_trend && apiUsage.daily_trend.length > 0) {
-                    apiUsage.daily_trend.forEach(day => {
-                        apiRequestsChart.data.labels.push(day.date);
-                        apiRequestsChart.data.datasets[0].data.push(day.successful);
-                        apiRequestsChart.data.datasets[1].data.push(day.error);
-                    });
-                } else {
-                    // Otherwise use demo data
-                    const now = new Date();
-                    for (let i = 6; i >= 0; i--) {
-                        const date = new Date(now);
-                        date.setDate(date.getDate() - i);
-                        apiRequestsChart.data.labels.push(date.toLocaleDateString());
-                        
-                        // Random values for demo
-                        const total = Math.floor(Math.random() * 1000);
-                        const errors = Math.floor(Math.random() * 50);
-                        apiRequestsChart.data.datasets[0].data.push(total - errors);
-                        apiRequestsChart.data.datasets[1].data.push(errors);
-                    }
-                }
-                
-                apiRequestsChart.update();
-            }
-        }
-        
-        // Update AI performance section
-        function updateAiPerformance(aiPerformance) {
-            // Update stats
-            document.getElementById('ai-avg-rating').textContent = aiPerformance.avg_rating.toFixed(1);
-            document.getElementById('ai-error-rate').textContent = aiPerformance.error_rate.toFixed(1) + '%';
-            
-            // Update agents table
-            const agentsTable = document.getElementById('ai-agents-table').querySelector('tbody');
-            
-            if (aiPerformance.agent_stats && aiPerformance.agent_stats.length > 0) {
-                let tableHtml = '';
-                
-                aiPerformance.agent_stats.forEach(agent => {
-                    tableHtml += `
-                        <tr>
-                            <td>${agent.agent_type}</td>
-                            <td>${agent.request_count.toLocaleString()}</td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <span class="me-2">${agent.avg_rating.toFixed(1)}</span>
-                                    <div class="progress flex-grow-1" style="height: 6px;">
-                                        <div class="progress-bar bg-warning" style="width: ${agent.avg_rating / 5 * 100}%"></div>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                });
-                
-                agentsTable.innerHTML = tableHtml;
-                
-                // Update chart
-                if (aiUsageChart) {
-                    aiUsageChart.data.labels = aiPerformance.agent_stats.map(a => a.agent_type);
-                    aiUsageChart.data.datasets[0].data = aiPerformance.agent_stats.map(a => a.request_count);
-                    aiUsageChart.update();
-                }
-            } else {
-                agentsTable.innerHTML = '<tr><td colspan="3" class="text-center">No data available</td></tr>';
-                
-                // Add demo data to chart
-                if (aiUsageChart) {
-                    aiUsageChart.data.labels = ['Text Summarizer', 'Market Analyzer', 'Recommendation Agent', 'NL Search'];
-                    aiUsageChart.data.datasets[0].data = [250, 350, 200, 300];
-                    aiUsageChart.update();
-                }
-            }
-        }
-        
-        // Update alerts section
-        function updateAlerts(alerts) {
-            const alertsList = document.getElementById('recent-alerts-list');
-            
-            if (alerts.total_alerts > 0) {
-                let alertsHtml = '';
-                
-                // Find active alerts in the by_component array
-                let activeAlerts = [];
-                alerts.by_component.forEach(component => {
-                    if (component.active > 0) {
-                        activeAlerts.push({
-                            component: component.component,
-                            count: component.active
-                        });
-                    }
-                });
-                
-                if (activeAlerts.length > 0) {
-                    activeAlerts.forEach(alert => {
-                        alertsHtml += `
-                            <div class="list-group-item alert-high">
-                                <div class="d-flex align-items-center">
-                                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
-                                    <div>
-                                        <h6 class="mb-0">${alert.component} Alert</h6>
-                                        <small class="text-muted">${alert.count} active alerts</small>
-                                    </div>
-                                    <div class="ms-auto">
-                                        <span class="badge bg-danger">Active</span>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    
-                    alertsList.innerHTML = alertsHtml;
-                } else {
-                    alertsList.innerHTML = `
-                        <div class="list-group-item text-center py-4">
-                            <i class="bi bi-check-circle text-success fs-4"></i>
-                            <p class="mb-0 mt-2">No active alerts</p>
-                        </div>
-                    `;
-                }
-            } else {
-                alertsList.innerHTML = `
-                    <div class="list-group-item text-center py-4">
-                        <i class="bi bi-check-circle text-success fs-4"></i>
-                        <p class="mb-0 mt-2">No active alerts</p>
-                    </div>
-                `;
-            }
-            
-            // Update alert count in system status card
-            document.getElementById('active-alerts').textContent = alerts.active_alerts;
-        }
-        
-        // Update reports section
-        function updateReports(reports) {
-            const reportsList = document.getElementById('recent-reports-list');
-            
-            if (reports.total_executions > 0) {
-                let reportsHtml = '';
-                
-                // Demo reports data
-                const reportTypes = ['System Performance', 'API Usage', 'AI Performance', 'Daily Summary'];
-                const now = new Date();
-                
-                for (let i = 0; i < Math.min(4, reports.total_executions); i++) {
-                    const date = new Date(now);
-                    date.setDate(date.getDate() - i);
-                    
-                    reportsHtml += `
-                        <div class="list-group-item">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-file-earmark-text text-primary me-2"></i>
-                                <div>
-                                    <h6 class="mb-0">${reportTypes[i % reportTypes.length]}</h6>
-                                    <small class="text-muted">${date.toLocaleDateString()}</small>
-                                </div>
-                                <a href="#" class="btn btn-sm btn-outline-secondary ms-auto">View</a>
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                reportsList.innerHTML = reportsHtml;
-            } else {
-                reportsList.innerHTML = `
-                    <div class="list-group-item text-center py-4">
-                        <i class="bi bi-file-earmark text-muted fs-4"></i>
-                        <p class="mb-0 mt-2">No recent reports</p>
-                    </div>
-                `;
-            }
-        }
-        
-        // Button navigation
-        document.getElementById('system-detail-btn').addEventListener('click', function() {
-            window.location.href = '/monitoring/system';
-        });
-        
-        document.getElementById('api-detail-btn').addEventListener('click', function() {
-            window.location.href = '/monitoring/api';
-        });
-        
-        document.getElementById('ai-detail-btn').addEventListener('click', function() {
-            window.location.href = '/monitoring/ai';
-        });
-        
-        document.getElementById('alerts-detail-btn').addEventListener('click', function() {
-            window.location.href = '/monitoring/alerts/active';
-        });
-        
-        // Initialize charts and load initial data
-        initCharts();
-        updateDashboardData();
-        
-        // Make updateDashboardData available globally
-        window.updateDashboardData = updateDashboardData;
-        
-        // Auto-refresh every 60 seconds
-        setInterval(function() {
-            updateDashboardData();
-        }, 60000);
-    });
-</script>
 {% endblock %}

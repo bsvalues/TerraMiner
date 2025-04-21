@@ -671,6 +671,10 @@ def monitoring_dashboard():
     else:
         health_status = 'critical'
     
+    # Get current time
+    from datetime import datetime
+    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
     return render_template(
         'monitoring_dashboard.html',
         alerts_summary=alerts_summary,
@@ -681,7 +685,8 @@ def monitoring_dashboard():
         job_metrics=job_metrics,
         report_metrics=report_metrics,
         health_score=health_score,
-        health_status=health_status
+        health_status=health_status,
+        current_time=current_time
     )
     
 @app.route('/monitoring/system', methods=['GET'])
@@ -785,20 +790,279 @@ def monitoring_alerts_history():
 @app.route('/monitoring/reports/scheduled', methods=['GET'])
 def monitoring_reports_scheduled():
     """Scheduled reports page"""
-    return render_template('monitoring_reports_scheduled.html')
+    from models import ScheduledReport
+    import json
+    
+    reports = ScheduledReport.query.order_by(ScheduledReport.is_active.desc(), ScheduledReport.name).all()
+    
+    # Calculate recipients count for each report
+    for report in reports:
+        if report.recipients:
+            try:
+                recipients = json.loads(report.recipients)
+                report.recipients_count = len(recipients) if isinstance(recipients, list) else 0
+            except:
+                report.recipients_count = 0
+        else:
+            report.recipients_count = 0
+    
+    return render_template('monitoring_reports_scheduled.html', reports=reports)
     
 @app.route('/monitoring/reports/create', methods=['GET', 'POST'])
 def monitoring_reports_create():
     """Create report page"""
+    from models import ScheduledReport
+    import json
+    
     if request.method == 'POST':
-        # Handle report creation
+        # Get form data
+        name = request.form.get('name')
+        report_type = request.form.get('report_type')
+        schedule_type = request.form.get('schedule_type')
+        cron_expression = request.form.get('cron_expression')
+        format_type = request.form.get('format')
+        is_active = 'is_active' in request.form
+        
+        # Process recipients
+        recipients_text = request.form.get('recipients', '')
+        recipients = [email.strip() for email in recipients_text.split('\n') if email.strip()]
+        
+        # Process parameters
+        parameters = {}
+        days = request.form.get('days')
+        if days:
+            try:
+                parameters['days'] = int(days)
+            except ValueError:
+                pass
+                
+        component = request.form.get('component')
+        if component:
+            parameters['component'] = component
+            
+        severity = request.form.get('severity')
+        if severity:
+            parameters['severity'] = severity
+            
+        status = request.form.get('status')
+        if status:
+            parameters['status'] = status
+        
+        # Create report
+        report = ScheduledReport(
+            name=name,
+            report_type=report_type,
+            schedule_type=schedule_type,
+            cron_expression=cron_expression if schedule_type == 'custom' else None,
+            format=format_type,
+            recipients=json.dumps(recipients),
+            parameters=json.dumps(parameters) if parameters else None,
+            is_active=is_active
+        )
+        
+        db.session.add(report)
+        db.session.commit()
+        
+        flash('Report created successfully', 'success')
         return redirect(url_for('monitoring_reports_scheduled'))
-    return render_template('monitoring_reports_create.html')
+        
+    # Get components for filter selection
+    from models import MonitoringAlert
+    all_components = db.session.query(MonitoringAlert.component).distinct().all()
+    components = [c[0] for c in all_components if c[0]]
+    
+    return render_template(
+        'monitoring_reports_create.html',
+        components=components
+    )
+    
+@app.route('/monitoring/reports/run/<int:report_id>', methods=['POST'])
+def monitoring_reports_run(report_id):
+    """Run a scheduled report immediately"""
+    from models import ScheduledReport
+    from utils.report_generator import ReportGenerator
+    from datetime import datetime
+    
+    report = ScheduledReport.query.get_or_404(report_id)
+    
+    try:
+        # Process the report
+        success = ReportGenerator.process_scheduled_report(report.id)
+        
+        if success:
+            # Update last_run timestamp
+            report.last_run = datetime.now()
+            db.session.commit()
+            
+            flash('Report generated and sent successfully', 'success')
+        else:
+            flash('Error generating report', 'danger')
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error running report {report.id}: {str(e)}")
+        flash(f'Error running report: {str(e)}', 'danger')
+    
+    return redirect(url_for('monitoring_reports_scheduled'))
+    
+@app.route('/monitoring/reports/edit/<int:report_id>', methods=['GET', 'POST'])
+def monitoring_reports_edit(report_id):
+    """Edit a scheduled report"""
+    from models import ScheduledReport
+    import json
+    
+    report = ScheduledReport.query.get_or_404(report_id)
+    
+    if request.method == 'POST':
+        # Update report
+        report.name = request.form.get('name')
+        report.report_type = request.form.get('report_type')
+        report.schedule_type = request.form.get('schedule_type')
+        report.cron_expression = request.form.get('cron_expression') if request.form.get('schedule_type') == 'custom' else None
+        report.format = request.form.get('format')
+        report.is_active = 'is_active' in request.form
+        
+        # Process recipients
+        recipients_text = request.form.get('recipients', '')
+        recipients = [email.strip() for email in recipients_text.split('\n') if email.strip()]
+        report.recipients = json.dumps(recipients)
+        
+        # Process parameters
+        parameters = {}
+        days = request.form.get('days')
+        if days:
+            try:
+                parameters['days'] = int(days)
+            except ValueError:
+                pass
+                
+        component = request.form.get('component')
+        if component:
+            parameters['component'] = component
+            
+        severity = request.form.get('severity')
+        if severity:
+            parameters['severity'] = severity
+            
+        status = request.form.get('status')
+        if status:
+            parameters['status'] = status
+            
+        report.parameters = json.dumps(parameters) if parameters else None
+        
+        db.session.commit()
+        
+        # Update scheduler if needed
+        from utils.scheduled_tasks import schedule_reports, check_scheduler_status
+        if check_scheduler_status():
+            schedule_reports()
+        
+        flash('Report updated successfully', 'success')
+        return redirect(url_for('monitoring_reports_scheduled'))
+    
+    # Format recipients for display
+    recipients_text = ''
+    if report.recipients:
+        try:
+            recipients = json.loads(report.recipients)
+            if isinstance(recipients, list):
+                recipients_text = '\n'.join(recipients)
+        except:
+            pass
+    
+    # Parse parameters
+    parameters = {}
+    if report.parameters:
+        try:
+            parameters = json.loads(report.parameters)
+        except:
+            pass
+    
+    # Get components for filter selection
+    from models import MonitoringAlert
+    all_components = db.session.query(MonitoringAlert.component).distinct().all()
+    components = [c[0] for c in all_components if c[0]]
+    
+    return render_template(
+        'monitoring_reports_edit.html',
+        report=report,
+        recipients=recipients_text,
+        parameters=parameters,
+        components=components
+    )
+    
+@app.route('/monitoring/reports/delete/<int:report_id>', methods=['POST'])
+def monitoring_reports_delete(report_id):
+    """Delete a scheduled report"""
+    from models import ScheduledReport
+    
+    report = ScheduledReport.query.get_or_404(report_id)
+    
+    db.session.delete(report)
+    db.session.commit()
+    
+    flash('Report deleted successfully', 'success')
+    return redirect(url_for('monitoring_reports_scheduled'))
     
 @app.route('/monitoring/reports/history', methods=['GET'])
 def monitoring_reports_history():
     """Report execution history page"""
-    return render_template('monitoring_reports_history.html')
+    from models import ReportExecutionLog
+    from datetime import datetime, timedelta
+    
+    # Get query parameters
+    days = request.args.get('days', default=30, type=int)
+    report_type = request.args.get('report_type', default=None)
+    status = request.args.get('status', default=None)
+    
+    # Build query
+    query = ReportExecutionLog.query
+    
+    # Apply filters
+    if days > 0:
+        cutoff_date = datetime.now() - timedelta(days=days)
+        query = query.filter(ReportExecutionLog.execution_time >= cutoff_date)
+        
+    if report_type:
+        query = query.filter(ReportExecutionLog.report_type == report_type)
+        
+    if status:
+        query = query.filter(ReportExecutionLog.status == status)
+    
+    # Execute query with sorting
+    logs = query.order_by(ReportExecutionLog.execution_time.desc()).all()
+    
+    # Get unique values for filter dropdowns
+    all_report_types = db.session.query(ReportExecutionLog.report_type).distinct().all()
+    report_types = [rt[0] for rt in all_report_types if rt[0]]
+    
+    statuses = ['success', 'error']
+    
+    # Calculate success rate
+    total_count = len(logs)
+    success_count = sum(1 for log in logs if log.status == 'success')
+    success_rate = (success_count / total_count * 100) if total_count > 0 else 0
+    
+    # Calculate average execution time for successful reports
+    successful_logs = [log for log in logs if log.status == 'success']
+    avg_execution_time = None
+    if successful_logs:
+        total_seconds = sum((log.completion_time - log.execution_time).total_seconds() for log in successful_logs if log.completion_time)
+        avg_execution_time = total_seconds / len(successful_logs) if successful_logs else None
+    
+    return render_template(
+        'monitoring_reports_history.html', 
+        logs=logs,
+        report_types=report_types,
+        statuses=statuses,
+        current_days=days,
+        current_report_type=report_type,
+        current_status=status,
+        total_count=total_count,
+        success_count=success_count,
+        success_rate=success_rate,
+        avg_execution_time=avg_execution_time
+    )
 
 @app.route('/ai/reports/settings', methods=['GET', 'POST'])
 def ai_report_settings():
