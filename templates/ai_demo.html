@@ -205,6 +205,25 @@
                         <div class="border rounded p-3 bg-light" id="recommendationResult">
                             <em>Recommendations will appear here...</em>
                         </div>
+                        <div class="feedback-container mt-2 d-none" id="recommendationFeedback">
+                            <div class="d-flex align-items-center">
+                                <div class="me-2">Rate these recommendations:</div>
+                                <div class="rating">
+                                    <i class="bi bi-star feedback-star" data-rating="1"></i>
+                                    <i class="bi bi-star feedback-star" data-rating="2"></i>
+                                    <i class="bi bi-star feedback-star" data-rating="3"></i>
+                                    <i class="bi bi-star feedback-star" data-rating="4"></i>
+                                    <i class="bi bi-star feedback-star" data-rating="5"></i>
+                                </div>
+                                <div class="ms-3 text-muted small feedback-status"></div>
+                            </div>
+                            <div class="mt-2 d-none feedback-comment-container">
+                                <textarea class="form-control feedback-comment" rows="2" placeholder="Additional comments (optional)"></textarea>
+                                <div class="d-flex justify-content-end mt-1">
+                                    <button type="button" class="btn btn-sm btn-primary submit-feedback" data-agent="recommender">Submit Feedback</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -668,6 +687,271 @@
     function formatPrice(price) {
         if (!price) return 'N/A';
         return new Intl.NumberFormat('en-US').format(price);
+    }
+    
+    // Feedback system
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize feedback UI handlers
+        initializeRatingStars();
+        initializeFeedbackSubmit();
+        
+        // Show feedback UI after successful API calls
+        initializeFeedbackContainers();
+    });
+    
+    function initializeRatingStars() {
+        // Handle star rating clicks
+        document.querySelectorAll('.feedback-star').forEach(star => {
+            star.addEventListener('click', function() {
+                const rating = parseInt(this.getAttribute('data-rating'));
+                const starsContainer = this.parentElement;
+                const feedbackContainer = starsContainer.closest('.feedback-container');
+                const commentContainer = feedbackContainer.querySelector('.feedback-comment-container');
+                
+                // Update UI
+                updateStarRatings(starsContainer, rating);
+                
+                // Show comment container
+                commentContainer.classList.remove('d-none');
+                
+                // Store rating value
+                feedbackContainer.setAttribute('data-rating', rating);
+            });
+            
+            // Hover effects
+            star.addEventListener('mouseenter', function() {
+                const rating = parseInt(this.getAttribute('data-rating'));
+                const starsContainer = this.parentElement;
+                
+                // Preview rating on hover
+                previewStarRating(starsContainer, rating);
+            });
+            
+            star.addEventListener('mouseleave', function() {
+                const starsContainer = this.parentElement;
+                const feedbackContainer = starsContainer.closest('.feedback-container');
+                const currentRating = parseInt(feedbackContainer.getAttribute('data-rating') || 0);
+                
+                // Restore current rating when mouse leaves
+                updateStarRatings(starsContainer, currentRating);
+            });
+        });
+    }
+    
+    function previewStarRating(starsContainer, rating) {
+        const stars = starsContainer.querySelectorAll('.feedback-star');
+        
+        stars.forEach((star, index) => {
+            if (index < rating) {
+                star.classList.remove('bi-star');
+                star.classList.add('bi-star-fill', 'text-warning');
+            } else {
+                star.classList.remove('bi-star-fill', 'text-warning');
+                star.classList.add('bi-star');
+            }
+        });
+    }
+    
+    function updateStarRatings(starsContainer, rating) {
+        const stars = starsContainer.querySelectorAll('.feedback-star');
+        
+        stars.forEach((star, index) => {
+            if (index < rating) {
+                star.classList.remove('bi-star');
+                star.classList.add('bi-star-fill', 'text-warning');
+            } else {
+                star.classList.remove('bi-star-fill', 'text-warning');
+                star.classList.add('bi-star');
+            }
+        });
+    }
+    
+    function initializeFeedbackSubmit() {
+        // Handle feedback submission
+        document.querySelectorAll('.submit-feedback').forEach(button => {
+            button.addEventListener('click', function() {
+                const agentType = this.getAttribute('data-agent');
+                const feedbackContainer = this.closest('.feedback-container');
+                const rating = parseInt(feedbackContainer.getAttribute('data-rating') || 0);
+                const comments = feedbackContainer.querySelector('.feedback-comment').value;
+                const statusElement = feedbackContainer.querySelector('.feedback-status');
+                
+                // Validate rating
+                if (!rating || rating < 1) {
+                    statusElement.textContent = 'Please select a rating';
+                    statusElement.classList.add('text-danger');
+                    return;
+                }
+                
+                // Get query and response data
+                const queryData = getQueryDataForAgent(agentType);
+                const responseData = getResponseDataForAgent(agentType);
+                
+                // Submit feedback
+                submitFeedback(agentType, rating, comments, queryData, responseData, statusElement, feedbackContainer);
+            });
+        });
+    }
+    
+    function submitFeedback(agentType, rating, comments, queryData, responseData, statusElement, feedbackContainer) {
+        // Update UI during submission
+        const submitButton = feedbackContainer.querySelector('.submit-feedback');
+        submitButton.disabled = true;
+        statusElement.textContent = 'Submitting...';
+        statusElement.classList.remove('text-danger', 'text-success');
+        
+        // Create sessionId if not exists
+        if (!window.sessionId) {
+            window.sessionId = generateSessionId();
+        }
+        
+        // Prepare data
+        const feedbackData = {
+            agent_type: agentType,
+            rating: rating,
+            comments: comments,
+            query_data: JSON.stringify(queryData),
+            response_data: JSON.stringify(responseData),
+            session_id: window.sessionId
+        };
+        
+        // Send to server
+        fetch('/api/ai/feedback', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(feedbackData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                statusElement.textContent = 'Thank you for your feedback!';
+                statusElement.classList.add('text-success');
+                
+                // Disable further feedback
+                feedbackContainer.querySelectorAll('.feedback-star').forEach(star => {
+                    star.style.pointerEvents = 'none';
+                });
+                feedbackContainer.querySelector('.feedback-comment').disabled = true;
+                submitButton.disabled = true;
+            } else {
+                statusElement.textContent = 'Error: ' + (data.message || 'Unknown error');
+                statusElement.classList.add('text-danger');
+                submitButton.disabled = false;
+            }
+        })
+        .catch(error => {
+            statusElement.textContent = 'Error: ' + error.message;
+            statusElement.classList.add('text-danger');
+            submitButton.disabled = false;
+        });
+    }
+    
+    function getQueryDataForAgent(agentType) {
+        let queryData = {};
+        
+        switch (agentType) {
+            case 'summarizer':
+                queryData = {
+                    text: document.getElementById('propertyDescription').value,
+                    max_length: parseInt(document.getElementById('summaryLength').value)
+                };
+                break;
+            case 'nl_search':
+                queryData = {
+                    query: document.getElementById('searchQuery').value,
+                    limit: parseInt(document.getElementById('searchLimit').value)
+                };
+                break;
+            case 'market_analyzer':
+                queryData = {
+                    location: document.getElementById('marketLocation').value,
+                    days_back: parseInt(document.getElementById('daysBack').value)
+                };
+                break;
+            case 'recommender':
+                queryData = {
+                    query: document.getElementById('preferenceQuery').value,
+                    limit: parseInt(document.getElementById('recommendationLimit').value)
+                };
+                break;
+        }
+        
+        return queryData;
+    }
+    
+    function getResponseDataForAgent(agentType) {
+        let resultElement;
+        
+        switch (agentType) {
+            case 'summarizer':
+                resultElement = document.getElementById('summaryResult');
+                break;
+            case 'nl_search':
+                resultElement = document.getElementById('searchResult');
+                break;
+            case 'market_analyzer':
+                resultElement = document.getElementById('marketResult');
+                break;
+            case 'recommender':
+                resultElement = document.getElementById('recommendationResult');
+                break;
+        }
+        
+        return { html_content: resultElement.innerHTML };
+    }
+    
+    function generateSessionId() {
+        return 'session_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    }
+    
+    function initializeFeedbackContainers() {
+        // Show feedback containers after successful API calls
+        
+        // For summarizer
+        const summaryResultObserver = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'childList' && !mutation.target.textContent.includes('will appear here...') && !mutation.target.textContent.includes('Error:')) {
+                    document.getElementById('summaryFeedback').classList.remove('d-none');
+                }
+            });
+        });
+        
+        summaryResultObserver.observe(document.getElementById('summaryResult'), { childList: true, subtree: true });
+        
+        // For search
+        const searchResultObserver = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'childList' && !mutation.target.textContent.includes('will appear here...') && !mutation.target.textContent.includes('Error:')) {
+                    document.getElementById('searchFeedback').classList.remove('d-none');
+                }
+            });
+        });
+        
+        searchResultObserver.observe(document.getElementById('searchResult'), { childList: true, subtree: true });
+        
+        // For market analysis
+        const marketResultObserver = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'childList' && !mutation.target.textContent.includes('will appear here...') && !mutation.target.textContent.includes('Error:')) {
+                    document.getElementById('marketFeedback').classList.remove('d-none');
+                }
+            });
+        });
+        
+        marketResultObserver.observe(document.getElementById('marketResult'), { childList: true, subtree: true });
+        
+        // For recommendations
+        const recommendationResultObserver = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'childList' && !mutation.target.textContent.includes('will appear here...') && !mutation.target.textContent.includes('Error:')) {
+                    document.getElementById('recommendationFeedback').classList.remove('d-none');
+                }
+            });
+        });
+        
+        recommendationResultObserver.observe(document.getElementById('recommendationResult'), { childList: true, subtree: true });
     }
 </script>
 {% endblock %}

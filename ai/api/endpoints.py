@@ -417,6 +417,15 @@ def get_feedback_stats():
             func.count(AIFeedback.id).label('count')
         ).group_by(AIFeedback.agent_type).all()
         
+        # Get rating distribution
+        rating_distribution = db.session.query(
+            AIFeedback.rating,
+            func.count(AIFeedback.id).label('count')
+        ).group_by(AIFeedback.rating).all()
+        
+        # Format rating distribution
+        rating_dist_dict = {rating.rating: rating.count for rating in rating_distribution}
+        
         # Format results
         stats = {
             "overall": {
@@ -433,11 +442,47 @@ def get_feedback_stats():
         
         return jsonify({
             "status": "success",
-            "stats": stats
+            "stats": stats,
+            "rating_distribution": rating_dist_dict
         })
         
     except Exception as e:
         logger.error(f"Error retrieving feedback stats: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+        
+@ai_api.route('/feedback/recent', methods=['GET'])
+def get_recent_feedback():
+    """Get recent feedback entries"""
+    try:
+        from models import AIFeedback
+        from app import db
+        
+        # Get recent feedback, limit to 25 entries
+        recent_feedback = db.session.query(AIFeedback).order_by(
+            AIFeedback.created_at.desc()
+        ).limit(25).all()
+        
+        # Format feedback data
+        feedback_data = []
+        for feedback in recent_feedback:
+            feedback_data.append({
+                "id": feedback.id,
+                "agent_type": feedback.agent_type,
+                "rating": feedback.rating,
+                "comments": feedback.comments,
+                "created_at": feedback.created_at.isoformat()
+            })
+        
+        return jsonify({
+            "status": "success",
+            "feedback": feedback_data
+        })
+        
+    except Exception as e:
+        logger.error(f"Error retrieving recent feedback: {str(e)}")
         return jsonify({
             "status": "error",
             "message": str(e)
