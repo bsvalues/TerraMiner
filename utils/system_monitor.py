@@ -64,8 +64,11 @@ class SystemMonitor:
     def _monitor_loop(self):
         """Main monitoring loop that collects metrics periodically."""
         try:
-            # Collect metrics immediately on start
-            self._collect_metrics()
+            from app import app
+            
+            # Collect metrics immediately on start with app context
+            with app.app_context():
+                self._collect_metrics()
             
             # Then collect at regular intervals
             while self.running and not self.stop_event.is_set():
@@ -73,8 +76,9 @@ class SystemMonitor:
                 if self.stop_event.wait(self.interval):
                     break
                 
-                # Collect metrics
-                self._collect_metrics()
+                # Collect metrics with proper app context
+                with app.app_context():
+                    self._collect_metrics()
                 
         except Exception as e:
             logger.error(f"Error in system monitoring loop: {str(e)}")
