@@ -424,7 +424,7 @@ def server_error(e):
     return render_template('error.html', error_code=500, error_message="Internal server error"), 500
 
 # Import models
-from models import ActivityLog, JobRun, NarrprCredential
+from models import ActivityLog, JobRun, NarrprCredential, AIFeedback
 
 # Import AI API endpoints
 try:
@@ -470,6 +470,11 @@ def ai_status():
 def ai_demo():
     """AI capabilities demonstration page"""
     return render_template('ai_demo.html')
+
+@app.route('/ai-feedback-analytics')
+def ai_feedback_analytics():
+    """AI feedback analytics dashboard"""
+    return render_template('ai_feedback_analytics.html')
 
 # Initialize database tables
 with app.app_context():
