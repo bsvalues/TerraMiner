@@ -23,8 +23,14 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/"><i data-feather="home"></i> Home</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/run-scraper"><i data-feather="play"></i> Run Scraper</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="scraperDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i data-feather="play"></i> Scraper
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="scraperDropdown">
+                            <li><a class="dropdown-item" href="/run-scraper"><i data-feather="play-circle"></i> Basic Scraper</a></li>
+                            <li><a class="dropdown-item" href="/advanced-scraper"><i data-feather="sliders"></i> Advanced Scraper</a></li>
+                        </ul>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/reports"><i data-feather="file-text"></i> Reports</a>

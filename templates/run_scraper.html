@@ -6,11 +6,18 @@
 <div class="row mb-4">
     <div class="col-12">
         <div class="card">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h3 class="mb-0">Run NARRPR Scraper</h3>
+                <a href="{{ url_for('advanced_scraper') }}" class="btn btn-outline-primary btn-sm">
+                    <i data-feather="sliders"></i> Advanced Options
+                </a>
             </div>
             <div class="card-body">
                 <p class="card-text">Enter your NARRPR credentials to run the scraper. This will login to the NARRPR website, navigate to the reports section, and extract available data.</p>
+                <div class="alert alert-info">
+                    <i data-feather="info" class="me-2"></i>
+                    Need to scrape more than just reports? Use the <a href="{{ url_for('advanced_scraper') }}">Advanced Scraper</a> to access property details, market activity, neighborhood data, and more.
+                </div>
                 
                 <form method="POST" action="{{ url_for('run_scraper') }}" id="scraper-form">
                     <div class="mb-3">
@@ -34,7 +41,7 @@
                     </div>
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary">
-                            <i data-feather="play"></i> Run Scraper
+                            <i data-feather="play"></i> Run Basic Scraper
                         </button>
                     </div>
                 </form>

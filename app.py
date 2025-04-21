@@ -155,6 +155,87 @@ def run_scraper():
     
     return render_template('run_scraper.html')
 
+@app.route('/advanced-scraper', methods=['GET', 'POST'])
+def advanced_scraper():
+    """Run the NARRPR scraper with advanced options for multiple sections."""
+    if request.method == 'POST':
+        try:
+            # Load credentials from form or environment variables
+            username = request.form.get('username') or os.getenv("NARRPR_USERNAME")
+            password = request.form.get('password') or os.getenv("NARRPR_PASSWORD")
+            
+            if not username or not password:
+                flash("Missing credentials. Please provide username and password.", "danger")
+                return redirect(url_for('advanced_scraper'))
+            
+            # Build scrape options from form data
+            scrape_options = {
+                'scrape_reports': 'scrape_reports' in request.form,
+                'property_ids': [id.strip() for id in request.form.get('property_ids', '').split(',') if id.strip()],
+                'location_ids': [id.strip() for id in request.form.get('location_ids', '').split(',') if id.strip()],
+                'zip_codes': [zip.strip() for zip in request.form.get('zip_codes', '').split(',') if zip.strip()],
+                'neighborhood_ids': [id.strip() for id in request.form.get('neighborhood_ids', '').split(',') if id.strip()],
+                'scrape_valuations': 'scrape_valuations' in request.form,
+                'scrape_comparables': 'scrape_comparables' in request.form
+            }
+            
+            # Check if any scraping option is selected
+            if not (scrape_options['scrape_reports'] or 
+                    scrape_options['property_ids'] or 
+                    scrape_options['location_ids'] or 
+                    scrape_options['zip_codes'] or 
+                    scrape_options['neighborhood_ids']):
+                flash("No scraping options selected. Please select at least one section to scrape.", "warning")
+                return redirect(url_for('advanced_scraper'))
+            
+            # Store the scrape options for the workflow to use
+            session['scrape_options'] = scrape_options
+            
+            # Import here to avoid circular import
+            from main import run_etl_workflow
+            
+            # Run the ETL workflow with the advanced options
+            with app.app_context():
+                result = run_etl_workflow(scrape_options)
+            
+            if result:
+                # Build success message based on data scraped
+                success_parts = []
+                
+                if scrape_options['scrape_reports']:
+                    success_parts.append("Reports")
+                    
+                if scrape_options['property_ids']:
+                    success_parts.append(f"Property details ({len(scrape_options['property_ids'])} properties)")
+                    
+                    if scrape_options['scrape_valuations']:
+                        success_parts.append("Property valuations")
+                        
+                    if scrape_options['scrape_comparables']:
+                        success_parts.append("Comparable properties")
+                
+                if scrape_options['location_ids'] or scrape_options['zip_codes']:
+                    area_count = len(scrape_options['location_ids']) + len(scrape_options['zip_codes'])
+                    success_parts.append(f"Market activity ({area_count} areas)")
+                
+                if scrape_options['neighborhood_ids']:
+                    success_parts.append(f"Neighborhood data ({len(scrape_options['neighborhood_ids'])} neighborhoods)")
+                
+                success_message = "Successfully scraped: " + ", ".join(success_parts)
+                flash(f"{success_message}. Data saved to CSV and database.", "success")
+                
+                return redirect(url_for('reports'))
+            else:
+                flash("Scraping process completed but no data was retrieved.", "warning")
+                return redirect(url_for('advanced_scraper'))
+            
+        except Exception as e:
+            flash(f"Error running advanced scraper: {str(e)}", "danger")
+            logger.exception("Error in advanced_scraper route")
+            return redirect(url_for('advanced_scraper'))
+    
+    return render_template('advanced_scraper.html')
+
 @app.route('/reports')
 def reports():
     """Display scraped reports."""
