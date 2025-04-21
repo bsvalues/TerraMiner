@@ -42,6 +42,11 @@ config = load_config()
 # Routes
 @app.route('/')
 def index():
+    """Redirect to the monitoring dashboard as the main entry point."""
+    return redirect(url_for('monitoring_dashboard'))
+
+@app.route('/dashboard')
+def old_index():
     """Render the home page with recent activity and stats."""
     # Placeholder data - in a real app, this would come from the database
     recent_activity = []
