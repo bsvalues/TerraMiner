@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 # Create blueprint
 ai_api = Blueprint('ai_api', __name__, url_prefix='/api/ai')
 
-@ai_bp.route('/health')
+@ai_api.route('/health')
 def health_check():
     """Health check endpoint for AI services"""
     try:
@@ -38,7 +38,7 @@ def health_check():
             "message": str(e)
         }), 500
 
-@ai_bp.route('/summarize', methods=['POST'])
+@ai_api.route('/summarize', methods=['POST'])
 def summarize_text():
     """Summarize property text"""
     try:
@@ -74,7 +74,7 @@ def summarize_text():
             "message": str(e)
         }), 500
 
-@ai_bp.route('/search', methods=['POST'])
+@ai_api.route('/search', methods=['POST'])
 def search_properties():
     """Search properties using natural language"""
     try:
@@ -149,7 +149,7 @@ def search_properties():
             "message": str(e)
         }), 500
 
-@ai_bp.route('/analyze/market', methods=['POST'])
+@ai_api.route('/analyze/market', methods=['POST'])
 def analyze_market():
     """Analyze market trends"""
     try:
@@ -210,7 +210,7 @@ def analyze_market():
             "message": str(e)
         }), 500
 
-@ai_bp.route('/recommend', methods=['POST'])
+@ai_api.route('/recommend', methods=['POST'])
 def get_recommendations():
     """Get property recommendations"""
     try:
@@ -337,4 +337,4 @@ def get_recommendations():
 
 def register_endpoints(app):
     """Register all API endpoints with the Flask app"""
-    app.register_blueprint(ai_bp, url_prefix='/api/ai')
+    app.register_blueprint(ai_api)
