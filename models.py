@@ -191,3 +191,152 @@ class AgentOptimizationResult(db.Model):
     
     def __repr__(self):
         return f"<AgentOptimizationResult id={self.id} agent={self.agent_type} improvement={self.improvement_percentage}%>"
+        
+class AIIntegration(db.Model):
+    """Model for storing AI integration configurations with external systems."""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)  # Descriptive name for the integration
+    integration_type = db.Column(db.String(50), nullable=False)  # Type of integration (e.g., webhook, api, email)
+    agent_type = db.Column(db.String(50), nullable=False)  # Agent type this integration applies to
+    config = db.Column(db.Text, nullable=False)  # JSON configuration for the integration
+    is_active = db.Column(db.Boolean, default=True)  # Whether this integration is currently active
+    last_executed = db.Column(db.DateTime, nullable=True)  # When this integration was last executed
+    execution_count = db.Column(db.Integer, default=0)  # Number of times this integration has been executed
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    def __repr__(self):
+        return f"<AIIntegration id={self.id} name={self.name} type={self.integration_type} active={self.is_active}>"
+        
+class AIAutomation(db.Model):
+    """Model for storing automated AI tasks and workflows."""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)  # Descriptive name for the automation
+    description = db.Column(db.Text, nullable=True)  # Detailed description of what this automation does
+    trigger_type = db.Column(db.String(50), nullable=False)  # Type of trigger (e.g., schedule, event, threshold)
+    trigger_config = db.Column(db.Text, nullable=False)  # JSON configuration for the trigger
+    action_type = db.Column(db.String(50), nullable=False)  # Type of action (e.g., notification, integration, api_call)
+    action_config = db.Column(db.Text, nullable=False)  # JSON configuration for the action
+    is_active = db.Column(db.Boolean, default=True)  # Whether this automation is currently active
+    last_triggered = db.Column(db.DateTime, nullable=True)  # When this automation was last triggered
+    execution_count = db.Column(db.Integer, default=0)  # Number of times this automation has been executed
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    def __repr__(self):
+        return f"<AIAutomation id={self.id} name={self.name} trigger={self.trigger_type} active={self.is_active}>"
+        
+class AutomationLog(db.Model):
+    """Model for tracking automation execution history."""
+    id = db.Column(db.Integer, primary_key=True)
+    automation_id = db.Column(db.Integer, db.ForeignKey('ai_automation.id'), nullable=False)
+    status = db.Column(db.String(20), nullable=False)  # Status of execution (success, failure, partial)
+    execution_start = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    execution_end = db.Column(db.DateTime, nullable=True)
+    result = db.Column(db.Text, nullable=True)  # JSON result of the execution
+    error = db.Column(db.Text, nullable=True)  # Error message if status is failure
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    # Relationship with automation
+    automation = db.relationship('AIAutomation', backref=db.backref('logs', lazy=True))
+    
+    def __repr__(self):
+        return f"<AutomationLog id={self.id} automation_id={self.automation_id} status={self.status}>"
+        
+class SystemMetric(db.Model):
+    """Model for storing system performance metrics."""
+    id = db.Column(db.Integer, primary_key=True)
+    metric_name = db.Column(db.String(100), nullable=False)  # Name of the metric
+    metric_value = db.Column(db.Float, nullable=False)  # Numerical value
+    metric_unit = db.Column(db.String(50), nullable=True)  # Unit of measurement
+    category = db.Column(db.String(50), nullable=False)  # Category (performance, usage, etc.)
+    component = db.Column(db.String(50), nullable=False)  # Component (database, api, ai, etc.)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.now)  # When the metric was recorded
+    
+    def __repr__(self):
+        return f"<SystemMetric id={self.id} name={self.metric_name} value={self.metric_value} component={self.component}>"
+        
+class APIUsageLog(db.Model):
+    """Model for tracking API usage."""
+    id = db.Column(db.Integer, primary_key=True)
+    endpoint = db.Column(db.String(255), nullable=False)  # API endpoint
+    method = db.Column(db.String(10), nullable=False)  # HTTP method
+    status_code = db.Column(db.Integer, nullable=False)  # HTTP status code
+    response_time = db.Column(db.Float, nullable=False)  # Response time in seconds
+    user_agent = db.Column(db.String(255), nullable=True)  # User agent
+    ip_address = db.Column(db.String(50), nullable=True)  # IP address
+    request_payload = db.Column(db.Text, nullable=True)  # Request payload
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.now)  # When the request was made
+    
+    def __repr__(self):
+        return f"<APIUsageLog id={self.id} endpoint={self.endpoint} status={self.status_code}>"
+        
+class AIAgentMetrics(db.Model):
+    """Model for tracking AI agent performance metrics."""
+    id = db.Column(db.Integer, primary_key=True)
+    agent_type = db.Column(db.String(50), nullable=False)  # Type of agent
+    prompt_version_id = db.Column(db.Integer, db.ForeignKey('prompt_version.id'), nullable=True)  # Related prompt version
+    request_count = db.Column(db.Integer, default=0)  # Number of requests
+    average_response_time = db.Column(db.Float, default=0.0)  # Average response time in seconds
+    average_rating = db.Column(db.Float, default=0.0)  # Average rating (1-5)
+    token_usage = db.Column(db.Integer, default=0)  # Total tokens used
+    error_count = db.Column(db.Integer, default=0)  # Number of errors
+    date = db.Column(db.Date, nullable=False)  # Date of metrics collection
+    
+    # Relationship with prompt version
+    prompt_version = db.relationship('PromptVersion', backref=db.backref('metrics', lazy=True))
+    
+    def __repr__(self):
+        return f"<AIAgentMetrics id={self.id} agent={self.agent_type} date={self.date}>"
+        
+class MonitoringAlert(db.Model):
+    """Model for storing monitoring alerts."""
+    id = db.Column(db.Integer, primary_key=True)
+    alert_type = db.Column(db.String(50), nullable=False)  # Type of alert (error, warning, etc.)
+    severity = db.Column(db.String(20), nullable=False)  # Severity level (high, medium, low)
+    component = db.Column(db.String(50), nullable=False)  # Component generating the alert
+    message = db.Column(db.Text, nullable=False)  # Alert message
+    details = db.Column(db.Text, nullable=True)  # Additional details
+    status = db.Column(db.String(20), nullable=False, default='active')  # Status (active, acknowledged, resolved)
+    acknowledged_at = db.Column(db.DateTime, nullable=True)  # When the alert was acknowledged
+    resolved_at = db.Column(db.DateTime, nullable=True)  # When the alert was resolved
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)  # When the alert was created
+    
+    def __repr__(self):
+        return f"<MonitoringAlert id={self.id} type={self.alert_type} status={self.status}>"
+        
+class ScheduledReport(db.Model):
+    """Model for configuring scheduled reports."""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)  # Report name
+    description = db.Column(db.Text, nullable=True)  # Report description
+    report_type = db.Column(db.String(50), nullable=False)  # Type of report
+    config = db.Column(db.Text, nullable=False)  # JSON configuration for the report
+    schedule_type = db.Column(db.String(20), nullable=False)  # Schedule type (daily, weekly, monthly)
+    schedule_config = db.Column(db.Text, nullable=False)  # JSON configuration for the schedule
+    output_format = db.Column(db.String(20), nullable=False)  # Output format (pdf, html, csv, excel)
+    recipients = db.Column(db.Text, nullable=False)  # JSON array of recipient email addresses
+    is_active = db.Column(db.Boolean, default=True)  # Whether this report is active
+    last_run = db.Column(db.DateTime, nullable=True)  # When the report was last run
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
+    
+    def __repr__(self):
+        return f"<ScheduledReport id={self.id} name={self.name} type={self.report_type}>"
+        
+class ReportExecution(db.Model):
+    """Model for tracking report execution history."""
+    id = db.Column(db.Integer, primary_key=True)
+    report_id = db.Column(db.Integer, db.ForeignKey('scheduled_report.id'), nullable=False)
+    status = db.Column(db.String(20), nullable=False)  # Status of execution (success, failure, partial)
+    execution_start = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    execution_end = db.Column(db.DateTime, nullable=True)
+    output_file_path = db.Column(db.String(255), nullable=True)  # Path to the generated report file
+    delivery_status = db.Column(db.String(20), nullable=True)  # Delivery status (sent, failed)
+    error = db.Column(db.Text, nullable=True)  # Error message if status is failure
+    
+    # Relationship with report
+    report = db.relationship('ScheduledReport', backref=db.backref('executions', lazy=True))
+    
+    def __repr__(self):
+        return f"<ReportExecution id={self.id} report_id={self.report_id} status={self.status}>"

@@ -485,6 +485,16 @@ def ai_prompt_testing():
 def ai_continuous_learning():
     """AI continuous learning system page"""
     return render_template('ai_continuous_learning.html')
+    
+@app.route('/ai/advanced-analytics', methods=['GET'])
+def ai_advanced_analytics():
+    """AI advanced analytics dashboard"""
+    return render_template('ai_advanced_analytics.html')
+    
+@app.route('/ai/integration-automation', methods=['GET'])
+def ai_integration_automation():
+    """AI integration and automation configuration page"""
+    return render_template('ai_integration_automation.html')
 
 @app.route('/ai/reports/settings', methods=['GET', 'POST'])
 def ai_report_settings():

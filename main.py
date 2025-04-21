@@ -6,12 +6,25 @@ from etl.narrpr_scraper import NarrprScraper
 from db.database import save_to_database
 from utils.logger import setup_logger
 from utils.config import load_config
+from utils.api_monitoring import setup_monitoring
+from utils.system_monitor import start_monitoring
 from ai.api.prompt_endpoints import register_endpoints as register_prompt_endpoints
 from ai.api.learning_endpoints import register_endpoints as register_learning_endpoints
+from ai.api.integration_endpoints import register_endpoints as register_integration_endpoints
+from ai.api.monitoring_endpoints import register_endpoints as register_monitoring_endpoints
 
 # Register AI endpoints
 register_prompt_endpoints(app)
 register_learning_endpoints(app)
+register_integration_endpoints(app)
+register_monitoring_endpoints(app)
+
+# Setup API monitoring
+setup_monitoring(app)
+
+# Start system monitoring (collect metrics every 5 minutes)
+with app.app_context():
+    start_monitoring(interval=300)
 
 # Set up logging
 setup_logger()
