@@ -466,6 +466,11 @@ def ai_status():
     
     return jsonify(status_data)
 
+@app.route('/ai-demo')
+def ai_demo():
+    """AI capabilities demonstration page"""
+    return render_template('ai_demo.html')
+
 # Initialize database tables
 with app.app_context():
     # Create tables
