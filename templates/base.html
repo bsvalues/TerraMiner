@@ -9,6 +9,8 @@
     <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- TerraMiner CSS -->
+    <link href="/static/css/terraminer.css" rel="stylesheet">
     
     <!-- Custom CSS -->
     <style>
@@ -133,8 +135,11 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
-                <i class="bi bi-buildings me-2"></i>
-                NARRPR Monitoring
+                <i class="bi bi-gem me-2"></i>
+                <span class="text-white">Terra</span><span class="text-accent">Miner</span>
+                <span class="badge ms-2 rounded-pill" style="background-color: var(--tf-dark-gray); font-size: 0.65rem; color: var(--tf-teal);">
+                    TerraFusion
+                </span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
