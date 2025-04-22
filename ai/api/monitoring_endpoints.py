@@ -476,6 +476,296 @@ def get_api_usage_summary():
             "message": str(e)
         }), 500
 
+@metrics_api.route('/api-usage/trend', methods=['GET'])
+def get_api_usage_trend():
+    """Get API usage trend data over time"""
+    try:
+        days = request.args.get('days', default=30, type=int)
+        interval = request.args.get('interval', default='day')
+        
+        # Calculate start date
+        start_date = datetime.now() - timedelta(days=days)
+        
+        # Get API usage logs from the database
+        logs = APIUsageLog.query.filter(APIUsageLog.timestamp >= start_date).all()
+        
+        # Group logs by interval
+        trend_data = {}
+        for log in logs:
+            if interval == 'hour':
+                key = log.timestamp.strftime('%Y-%m-%d %H:00')
+            elif interval == 'day':
+                key = log.timestamp.strftime('%Y-%m-%d')
+            elif interval == 'week':
+                # Calculate the week start date
+                week_start = log.timestamp - timedelta(days=log.timestamp.weekday())
+                key = week_start.strftime('%Y-%m-%d')
+            elif interval == 'month':
+                key = log.timestamp.strftime('%Y-%m')
+            else:
+                key = log.timestamp.strftime('%Y-%m-%d')
+            
+            if key not in trend_data:
+                trend_data[key] = {
+                    'total': 0,
+                    'success': 0,
+                    'error': 0,
+                    'response_times': []
+                }
+            
+            trend_data[key]['total'] += 1
+            if log.status_code < 400:
+                trend_data[key]['success'] += 1
+            else:
+                trend_data[key]['error'] += 1
+            
+            trend_data[key]['response_times'].append(log.response_time)
+        
+        # Format result
+        result = []
+        for key, data in sorted(trend_data.items()):
+            avg_response_time = sum(data['response_times']) / len(data['response_times']) if data['response_times'] else 0
+            error_rate = (data['error'] / data['total'] * 100) if data['total'] > 0 else 0
+            
+            result.append({
+                "date": key,
+                "requests": data['total'],
+                "successful": data['success'],
+                "errors": data['error'],
+                "error_rate": error_rate,
+                "avg_response_time": avg_response_time
+            })
+        
+        return jsonify({
+            "status": "success",
+            "interval": interval,
+            "trend": result
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting API usage trend: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@metrics_api.route('/api-usage/response-time-distribution', methods=['GET'])
+def get_response_time_distribution():
+    """Get distribution of API response times"""
+    try:
+        days = request.args.get('days', default=7, type=int)
+        buckets = request.args.get('buckets', default=10, type=int)
+        
+        # Calculate start date
+        start_date = datetime.now() - timedelta(days=days)
+        
+        # Get API usage logs from the database
+        logs = APIUsageLog.query.filter(APIUsageLog.timestamp >= start_date).all()
+        
+        if not logs:
+            return jsonify({
+                "status": "success",
+                "distribution": []
+            })
+        
+        # Extract response times
+        response_times = [log.response_time for log in logs]
+        
+        # Determine range for the buckets
+        min_time = min(response_times)
+        max_time = max(response_times)
+        
+        # Create buckets
+        bucket_size = (max_time - min_time) / buckets if max_time > min_time else 0.1
+        
+        # Initialize buckets
+        distribution = []
+        for i in range(buckets):
+            bucket_min = min_time + i * bucket_size
+            bucket_max = bucket_min + bucket_size
+            
+            # Count responses in this bucket
+            count = sum(1 for t in response_times if bucket_min <= t < bucket_max)
+            
+            # Format for the last bucket to include max value
+            if i == buckets - 1:
+                count = sum(1 for t in response_times if bucket_min <= t <= bucket_max)
+            
+            # Add to distribution
+            distribution.append({
+                "range": f"{bucket_min:.2f}s - {bucket_max:.2f}s",
+                "min": bucket_min,
+                "max": bucket_max,
+                "count": count,
+                "percentage": (count / len(response_times) * 100) if response_times else 0
+            })
+        
+        return jsonify({
+            "status": "success",
+            "distribution": distribution,
+            "total_count": len(response_times),
+            "min": min_time,
+            "max": max_time,
+            "avg": sum(response_times) / len(response_times) if response_times else 0
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting response time distribution: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@metrics_api.route('/api-usage/status-code-distribution', methods=['GET'])
+def get_status_code_distribution():
+    """Get distribution of API status codes"""
+    try:
+        days = request.args.get('days', default=7, type=int)
+        
+        # Calculate start date
+        start_date = datetime.now() - timedelta(days=days)
+        
+        # Get API usage logs from the database
+        logs = APIUsageLog.query.filter(APIUsageLog.timestamp >= start_date).all()
+        
+        # Group by status code
+        distribution = {}
+        for log in logs:
+            status_code = log.status_code
+            
+            # Group into common categories
+            if status_code < 200:
+                category = "1xx - Informational"
+            elif status_code < 300:
+                category = "2xx - Success"
+            elif status_code < 400:
+                category = "3xx - Redirection"
+            elif status_code < 500:
+                category = "4xx - Client Error"
+            else:
+                category = "5xx - Server Error"
+            
+            if category not in distribution:
+                distribution[category] = {
+                    'count': 0,
+                    'status_codes': {}
+                }
+            
+            distribution[category]['count'] += 1
+            
+            if status_code not in distribution[category]['status_codes']:
+                distribution[category]['status_codes'][status_code] = 0
+            
+            distribution[category]['status_codes'][status_code] += 1
+        
+        # Format result
+        result = []
+        total_count = len(logs)
+        
+        for category, data in distribution.items():
+            # Get individual status codes
+            status_details = []
+            for code, count in data['status_codes'].items():
+                status_details.append({
+                    "code": code,
+                    "count": count,
+                    "percentage": (count / total_count * 100) if total_count > 0 else 0
+                })
+            
+            # Sort by count descending
+            status_details.sort(key=lambda x: x['count'], reverse=True)
+            
+            result.append({
+                "category": category,
+                "count": data['count'],
+                "percentage": (data['count'] / total_count * 100) if total_count > 0 else 0,
+                "status_codes": status_details
+            })
+        
+        # Sort by category
+        result.sort(key=lambda x: x['category'])
+        
+        return jsonify({
+            "status": "success",
+            "distribution": result,
+            "total_count": total_count
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting status code distribution: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@metrics_api.route('/api-usage/top-endpoints', methods=['GET'])
+def get_top_endpoints():
+    """Get top API endpoints by usage"""
+    try:
+        days = request.args.get('days', default=7, type=int)
+        limit = request.args.get('limit', default=10, type=int)
+        
+        # Calculate start date
+        start_date = datetime.now() - timedelta(days=days)
+        
+        # Get API usage logs from the database
+        logs = APIUsageLog.query.filter(APIUsageLog.timestamp >= start_date).all()
+        
+        # Group by endpoint
+        endpoints = {}
+        for log in logs:
+            endpoint = log.endpoint
+            
+            if endpoint not in endpoints:
+                endpoints[endpoint] = {
+                    'count': 0,
+                    'success_count': 0,
+                    'error_count': 0,
+                    'total_response_time': 0,
+                    'methods': set()
+                }
+            
+            endpoints[endpoint]['count'] += 1
+            
+            if log.status_code < 400:
+                endpoints[endpoint]['success_count'] += 1
+            else:
+                endpoints[endpoint]['error_count'] += 1
+                
+            endpoints[endpoint]['total_response_time'] += log.response_time
+            
+            if log.method:
+                endpoints[endpoint]['methods'].add(log.method)
+        
+        # Format result
+        result = []
+        for endpoint, data in endpoints.items():
+            result.append({
+                "endpoint": endpoint,
+                "count": data['count'],
+                "success_count": data['success_count'],
+                "error_count": data['error_count'],
+                "success_rate": (data['success_count'] / data['count']) * 100 if data['count'] > 0 else 0,
+                "avg_response_time": data['total_response_time'] / data['count'] if data['count'] > 0 else 0,
+                "methods": list(data['methods'])
+            })
+        
+        # Sort by count descending and limit results
+        result.sort(key=lambda x: x['count'], reverse=True)
+        result = result[:limit]
+        
+        return jsonify({
+            "status": "success",
+            "endpoints": result
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting top endpoints: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
 # 
 # AI Agent Metrics Endpoints
 #
