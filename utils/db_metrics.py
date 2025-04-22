@@ -70,7 +70,7 @@ def safe_db_operation(func):
     return wrapper
 
 @safe_db_operation
-def get_database_size(conn):
+def get_database_size(conn=None):
     """Get the current database size in MB."""
     cursor = conn.cursor()
     cursor.execute("""
@@ -89,7 +89,7 @@ def get_database_size(conn):
         return f"{size_bytes / (1024 * 1024):.2f} MB"
 
 @safe_db_operation
-def get_active_connections(conn):
+def get_active_connections(conn=None):
     """Get the number of active database connections."""
     cursor = conn.cursor()
     cursor.execute("""
@@ -101,7 +101,7 @@ def get_active_connections(conn):
     return count
 
 @safe_db_operation
-def get_slow_queries(conn, min_duration_ms=500, limit=5):
+def get_slow_queries(conn=None, min_duration_ms=500, limit=5):
     """Get recent slow queries."""
     try:
         cursor = conn.cursor()
@@ -160,7 +160,7 @@ def get_slow_queries(conn, min_duration_ms=500, limit=5):
             return []
 
 @safe_db_operation
-def get_table_stats(conn):
+def get_table_stats(conn=None):
     """Get statistics about tables in the database."""
     cursor = conn.cursor()
     cursor.execute("""
@@ -185,7 +185,7 @@ def get_table_stats(conn):
     return results
 
 @safe_db_operation
-def get_query_types_distribution(conn, minutes=60):
+def get_query_types_distribution(conn=None, minutes=60):
     """Get distribution of query types in the last hour."""
     # This would require a custom logging solution in production
     # For demo, we'll generate representative data based on actual table usage
@@ -223,7 +223,7 @@ def get_query_types_distribution(conn, minutes=60):
     return totals
 
 @safe_db_operation
-def get_recent_operations(conn, limit=20):
+def get_recent_operations(conn=None, limit=20):
     """Get recent database operations."""
     # In production, this would use a custom query logging table
     # For demo purposes, we'll use pg_stat_activity and generate some representative data
@@ -297,7 +297,7 @@ def get_recent_operations(conn, limit=20):
     return results
 
 @safe_db_operation
-def get_avg_query_time(conn):
+def get_avg_query_time(conn=None):
     """Get average query execution time."""
     cursor = conn.cursor()
     # Try using pg_stat_statements for accurate metrics
@@ -316,7 +316,7 @@ def get_avg_query_time(conn):
     return round(result[0], 2)
 
 @safe_db_operation
-def get_queries_per_minute(conn):
+def get_queries_per_minute(conn=None):
     """Estimate queries per minute based on available statistics."""
     cursor = conn.cursor()
     # Try to get stats from pg_stat_statements
@@ -346,37 +346,18 @@ def get_all_db_metrics():
     """Get comprehensive database metrics."""
     start_time = time.time()
     
-    # Create a new connection for each function call to avoid sharing connections
-    # between different metric collection functions
-    conn = get_db_connection()
-    
-    if conn:
-        metrics = {
-            'active_connections': get_active_connections(conn),
-            'db_size': get_database_size(conn),
-            'avg_query_time': get_avg_query_time(conn),
-            'queries_per_min': get_queries_per_minute(conn),
-            'slow_queries': get_slow_queries(conn),
-            'table_stats': get_table_stats(conn),
-            'query_types': get_query_types_distribution(conn),
-            'recent_operations': get_recent_operations(conn)
-        }
-        try:
-            conn.close()
-        except:
-            pass
-    else:
-        # Return default values if cannot connect to database
-        metrics = {
-            'active_connections': 0,
-            'db_size': '0 MB',
-            'avg_query_time': 0,
-            'queries_per_min': 0,
-            'slow_queries': [],
-            'table_stats': [],
-            'query_types': {"SELECT": 0, "INSERT": 0, "UPDATE": 0, "DELETE": 0, "Other": 0},
-            'recent_operations': []
-        }
+    # Use the decorated functions directly without passing a connection
+    # Each decorated function will create its own connection
+    metrics = {
+        'active_connections': get_active_connections(),
+        'db_size': get_database_size(),
+        'avg_query_time': get_avg_query_time(),
+        'queries_per_min': get_queries_per_minute(),
+        'slow_queries': get_slow_queries(),
+        'table_stats': get_table_stats(),
+        'query_types': get_query_types_distribution(),
+        'recent_operations': get_recent_operations()
+    }
     
     logger.debug(f"Database metrics collected in {time.time() - start_time:.2f} seconds")
     return metrics
