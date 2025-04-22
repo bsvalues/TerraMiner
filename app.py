@@ -779,6 +779,174 @@ def monitoring_system():
 def monitoring_api():
     """API performance monitoring page"""
     return render_template('monitoring_api.html')
+
+@app.route('/api/location/data', methods=['GET'])
+def api_location_data():
+    """API endpoint for location data to power geographical visualization."""
+    try:
+        from models import PropertyLocation
+        from sqlalchemy import func
+        
+        # Get query parameters
+        city = request.args.get('city')
+        state = request.args.get('state')
+        zip_code = request.args.get('zip_code')
+        limit = request.args.get('limit', default=100, type=int)
+        
+        # Build query
+        query = PropertyLocation.query
+        
+        # Apply filters if provided
+        if city:
+            query = query.filter(func.lower(PropertyLocation.city) == city.lower())
+        if state:
+            query = query.filter(func.lower(PropertyLocation.state) == state.lower())
+        if zip_code:
+            query = query.filter(PropertyLocation.zip_code == zip_code)
+            
+        # Get locations with limit
+        locations = query.limit(limit).all()
+        
+        # Convert to JSON-serializable format
+        location_data = []
+        for loc in locations:
+            location_data.append({
+                'id': loc.id,
+                'address': loc.full_address,
+                'street': loc.street_address,
+                'city': loc.city,
+                'state': loc.state,
+                'zip_code': loc.zip_code,
+                'latitude': float(loc.latitude) if loc.latitude else None,
+                'longitude': float(loc.longitude) if loc.longitude else None,
+                'property_type': loc.property_type,
+                'year_built': loc.year_built,
+                'report_id': loc.report_id
+            })
+        
+        return jsonify({
+            'status': 'success',
+            'count': len(location_data),
+            'data': location_data
+        })
+    except Exception as e:
+        logger.error(f"Error retrieving location data: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+        
+@app.route('/api/price-trends', methods=['GET'])
+def api_price_trends():
+    """API endpoint for price trend data for visualization."""
+    try:
+        from models import PriceTrend
+        from sqlalchemy import func
+        
+        # Get query parameters
+        city = request.args.get('city')
+        state = request.args.get('state')
+        zip_code = request.args.get('zip_code')
+        time_period = request.args.get('period', default='all')
+        
+        # Build query
+        query = PriceTrend.query
+        
+        # Apply filters if provided
+        if city:
+            query = query.filter(func.lower(PriceTrend.city) == city.lower())
+        if state:
+            query = query.filter(func.lower(PriceTrend.state) == state.lower())
+        if zip_code:
+            query = query.filter(PriceTrend.zip_code == zip_code)
+            
+        # Apply time period filter
+        if time_period != 'all':
+            from datetime import datetime, timedelta
+            end_date = datetime.now()
+            
+            if time_period == '1m':
+                start_date = end_date - timedelta(days=30)
+            elif time_period == '3m':
+                start_date = end_date - timedelta(days=90)
+            elif time_period == '6m':
+                start_date = end_date - timedelta(days=180)
+            elif time_period == '1y':
+                start_date = end_date - timedelta(days=365)
+            elif time_period == '2y':
+                start_date = end_date - timedelta(days=730)
+            else:
+                start_date = end_date - timedelta(days=30)  # Default to 1 month
+                
+            query = query.filter(PriceTrend.date >= start_date)
+        
+        # Order by date
+        query = query.order_by(PriceTrend.date)
+        
+        # Execute query
+        trends = query.all()
+        
+        # Convert to JSON-serializable format
+        trend_data = []
+        for trend in trends:
+            trend_data.append({
+                'id': trend.id,
+                'city': trend.city,
+                'state': trend.state,
+                'zip_code': trend.zip_code,
+                'date': trend.date.isoformat() if trend.date else None,
+                'median_price': float(trend.median_price) if trend.median_price else None,
+                'avg_price': float(trend.avg_price) if trend.avg_price else None,
+                'price_change': float(trend.price_change) if trend.price_change else None,
+                'properties_sold': trend.properties_sold
+            })
+        
+        # Get aggregated statistics
+        stats = {}
+        if trend_data:
+            try:
+                # Calculate metrics by city
+                cities = {}
+                for trend in trend_data:
+                    city = trend['city']
+                    if city not in cities:
+                        cities[city] = {
+                            'median_prices': [],
+                            'avg_prices': [],
+                            'transactions': 0
+                        }
+                    
+                    if trend['median_price'] is not None:
+                        cities[city]['median_prices'].append(trend['median_price'])
+                    if trend['avg_price'] is not None:
+                        cities[city]['avg_prices'].append(trend['avg_price'])
+                    if trend['properties_sold'] is not None:
+                        cities[city]['transactions'] += trend['properties_sold']
+                
+                # Calculate aggregate stats
+                for city, data in cities.items():
+                    if data['median_prices']:
+                        cities[city]['avg_median_price'] = sum(data['median_prices']) / len(data['median_prices'])
+                    if data['avg_prices']:
+                        cities[city]['avg_avg_price'] = sum(data['avg_prices']) / len(data['avg_prices'])
+                
+                stats = cities
+            except Exception as calc_err:
+                logger.warning(f"Error calculating trend statistics: {str(calc_err)}")
+                stats = {}
+        
+        return jsonify({
+            'status': 'success',
+            'count': len(trend_data),
+            'data': trend_data,
+            'stats': stats
+        })
+    except Exception as e:
+        logger.error(f"Error retrieving price trend data: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
     
 @app.route('/monitoring/database', methods=['GET'])
 def monitoring_database():
@@ -804,6 +972,76 @@ def api_database_metrics():
 def monitoring_ai():
     """AI performance monitoring page"""
     return render_template('monitoring_ai.html')
+    
+@app.route('/monitoring/locations', methods=['GET'])
+def monitoring_locations():
+    """Property locations map visualization page"""
+    # Get available states and cities for filters
+    try:
+        from models import PropertyLocation
+        from sqlalchemy import func
+        
+        states = db.session.query(PropertyLocation.state).distinct().order_by(PropertyLocation.state).all()
+        states = [state[0] for state in states if state[0]]
+        
+        cities = db.session.query(PropertyLocation.city).distinct().order_by(PropertyLocation.city).all()
+        cities = [city[0] for city in cities if city[0]]
+        
+        # Get location count
+        location_count = PropertyLocation.query.count()
+        
+    except Exception as e:
+        logger.error(f"Error retrieving location filters: {str(e)}")
+        states = []
+        cities = []
+        location_count = 0
+    
+    return render_template('monitoring_locations.html', 
+                          states=states,
+                          cities=cities,
+                          location_count=location_count)
+                          
+@app.route('/monitoring/price-trends', methods=['GET'])
+def monitoring_price_trends():
+    """Price trends visualization page"""
+    # Get available states and cities for filters
+    try:
+        from models import PriceTrend
+        from sqlalchemy import func
+        
+        states = db.session.query(PriceTrend.state).distinct().order_by(PriceTrend.state).all()
+        states = [state[0] for state in states if state[0]]
+        
+        cities = db.session.query(PriceTrend.city).distinct().order_by(PriceTrend.city).all()
+        cities = [city[0] for city in cities if city[0]]
+        
+        # Get trend date range
+        min_date = db.session.query(func.min(PriceTrend.date)).scalar()
+        max_date = db.session.query(func.max(PriceTrend.date)).scalar()
+        
+        date_range = {
+            'min': min_date.strftime('%Y-%m-%d') if min_date else None,
+            'max': max_date.strftime('%Y-%m-%d') if max_date else None
+        }
+        
+        # Get counts
+        trend_count = PriceTrend.query.count()
+        city_count = len(cities)
+        
+    except Exception as e:
+        logger.error(f"Error retrieving price trend filters: {str(e)}")
+        states = []
+        cities = []
+        date_range = {'min': None, 'max': None}
+        trend_count = 0
+        city_count = 0
+    
+    return render_template('monitoring_price_trends.html', 
+                          states=states,
+                          cities=cities,
+                          date_range=date_range,
+                          trend_count=trend_count,
+                          city_count=city_count)
     
 @app.route('/monitoring/alerts/active', methods=['GET'])
 def monitoring_alerts_active():
