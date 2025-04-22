@@ -1083,6 +1083,187 @@ def monitoring_price_trends():
                           date_range=date_range,
                           trend_count=trend_count,
                           city_count=city_count)
+                          
+@app.route('/api/property/search', methods=['GET'])
+def api_property_search():
+    """API endpoint for searching properties."""
+    try:
+        from models import PropertyLocation
+        from sqlalchemy import func, or_
+        
+        # Get filter parameters
+        property_type = request.args.get('property_type')
+        city = request.args.get('city')
+        state = request.args.get('state')
+        min_price = request.args.get('min_price', type=int)
+        max_price = request.args.get('max_price', type=int)
+        min_beds = request.args.get('min_beds', type=int)
+        max_beds = request.args.get('max_beds', type=int)
+        min_baths = request.args.get('min_baths', type=float)
+        max_baths = request.args.get('max_baths', type=float)
+        limit = request.args.get('limit', default=20, type=int)
+        
+        # Build query
+        query = PropertyLocation.query
+        
+        # Apply filters if provided
+        if property_type:
+            query = query.filter(PropertyLocation.property_type == property_type)
+        if city:
+            query = query.filter(func.lower(PropertyLocation.city) == city.lower())
+        if state:
+            query = query.filter(func.lower(PropertyLocation.state) == state.lower())
+            
+        # Price filters - convert to cents
+        if min_price:
+            query = query.filter(PropertyLocation.price_value >= min_price * 100)
+        if max_price:
+            query = query.filter(PropertyLocation.price_value <= max_price * 100)
+            
+        # Bedroom filters
+        if min_beds:
+            query = query.filter(PropertyLocation.bedrooms >= min_beds)
+        if max_beds:
+            query = query.filter(PropertyLocation.bedrooms <= max_beds)
+            
+        # Bathroom filters
+        if min_baths:
+            query = query.filter(PropertyLocation.bathrooms >= min_baths)
+        if max_baths:
+            query = query.filter(PropertyLocation.bathrooms <= max_baths)
+            
+        # Limit results and execute query
+        properties = query.order_by(PropertyLocation.id).limit(limit).all()
+        
+        # Convert to JSON-serializable format
+        results = []
+        for prop in properties:
+            # Calculate price per square foot
+            price_per_sqft = None
+            if prop.price_value and prop.square_feet and prop.square_feet > 0:
+                price_per_sqft = round(prop.price_value / prop.square_feet / 100, 2)
+                
+            results.append({
+                'id': prop.id,
+                'property_type': prop.property_type,
+                'address': prop.street_address,
+                'city': prop.city,
+                'state': prop.state,
+                'zip_code': prop.zip_code,
+                'price': int(prop.price_value / 100) if prop.price_value else None,
+                'bedrooms': prop.bedrooms,
+                'bathrooms': prop.bathrooms,
+                'square_feet': prop.square_feet,
+                'year_built': prop.year_built,
+                'price_per_sqft': price_per_sqft,
+                'latitude': float(prop.latitude) if prop.latitude else None,
+                'longitude': float(prop.longitude) if prop.longitude else None
+            })
+        
+        return jsonify({
+            'status': 'success',
+            'count': len(results),
+            'data': results
+        })
+    except Exception as e:
+        logger.error(f"Error searching properties: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/property/comparison', methods=['GET'])
+def property_comparison():
+    """One-click property comparison dashboard"""
+    try:
+        from models import PropertyLocation
+        from sqlalchemy import func
+        
+        # Get all property types
+        property_types = db.session.query(PropertyLocation.property_type).distinct().order_by(PropertyLocation.property_type).all()
+        property_types = [p[0] for p in property_types if p[0]]
+        
+        # Get all states and cities
+        states = db.session.query(PropertyLocation.state).distinct().order_by(PropertyLocation.state).all()
+        states = [state[0] for state in states if state[0]]
+        
+        cities = db.session.query(PropertyLocation.city).distinct().order_by(PropertyLocation.city).all()
+        cities = [city[0] for city in cities if city[0]]
+        
+        # Get selected properties IDs from query parameters
+        selected_ids = request.args.getlist('property_id', type=int)
+        
+        # Get selected properties if any
+        selected_properties = []
+        if selected_ids:
+            selected_properties = PropertyLocation.query.filter(PropertyLocation.id.in_(selected_ids)).all()
+        
+        # Get comparable properties for suggestions
+        suggested_properties = []
+        if len(selected_properties) > 0 and len(selected_properties) < 4:
+            # Get the first selected property to find comparable ones
+            base_property = selected_properties[0]
+            
+            # Find properties with similar characteristics
+            query = PropertyLocation.query.filter(
+                PropertyLocation.id != base_property.id,  # Exclude the base property
+                PropertyLocation.property_type == base_property.property_type,  # Same property type
+                PropertyLocation.city == base_property.city,  # Same city
+                PropertyLocation.state == base_property.state  # Same state
+            )
+            
+            # Exclude already selected properties
+            if len(selected_properties) > 1:
+                other_ids = [p.id for p in selected_properties[1:]]
+                query = query.filter(~PropertyLocation.id.in_(other_ids))
+                
+            # Get up to 5 suggested properties
+            suggested_properties = query.limit(5).all()
+        
+        # Get global stats for comparison context
+        avg_price = db.session.query(func.avg(PropertyLocation.price_value)).scalar() or 0
+        avg_price = int(avg_price / 100)  # Convert cents to dollars
+        
+        min_price = db.session.query(func.min(PropertyLocation.price_value)).scalar() or 0
+        min_price = int(min_price / 100)  # Convert cents to dollars
+        
+        max_price = db.session.query(func.max(PropertyLocation.price_value)).scalar() or 0
+        max_price = int(max_price / 100)  # Convert cents to dollars
+        
+        avg_sqft = db.session.query(func.avg(PropertyLocation.square_feet)).scalar() or 0
+        avg_sqft = int(avg_sqft)
+        
+        # Calculate price per square foot for each selected property
+        for prop in selected_properties:
+            if prop.price_value and prop.square_feet and prop.square_feet > 0:
+                prop.price_per_sqft = int(prop.price_value / prop.square_feet / 100)  # Convert to dollars per sqft
+            else:
+                prop.price_per_sqft = None
+        
+        return render_template('property_comparison.html',
+                            property_types=property_types,
+                            states=states,
+                            cities=cities,
+                            selected_properties=selected_properties,
+                            suggested_properties=suggested_properties,
+                            avg_price=avg_price,
+                            min_price=min_price,
+                            max_price=max_price,
+                            avg_sqft=avg_sqft)
+                            
+    except Exception as e:
+        logger.error(f"Error loading property comparison page: {str(e)}")
+        return render_template('property_comparison.html',
+                            property_types=[],
+                            states=[],
+                            cities=[],
+                            selected_properties=[],
+                            suggested_properties=[],
+                            avg_price=0,
+                            min_price=0,
+                            max_price=0,
+                            avg_sqft=0,
+                            error=str(e))
     
 @app.route('/monitoring/alerts/active', methods=['GET'])
 def monitoring_alerts_active():
