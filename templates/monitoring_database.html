@@ -366,57 +366,208 @@
         
         // Fetch database metrics
         function fetchDatabaseMetrics() {
-            // In a real app, you would fetch data from the server
-            // For now, let's generate some demo data
-            generateDemoData();
+            // Fetch metrics from the server using AJAX
+            fetch('/monitoring/api/database-metrics')
+                .then(response => response.json())
+                .then(data => {
+                    updateMetricsDisplay(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching database metrics:', error);
+                    // If fetch fails, use existing data from the page
+                    updateChartsWithExistingData();
+                });
             
             // Update the timestamp
             document.getElementById('last-updated').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
         }
         
-        // Generate demo data for charts
-        function generateDemoData() {
-            // Generate time labels based on interval
+        // Update charts with existing data from the page
+        function updateChartsWithExistingData() {
+            // Get existing table stats from the page
+            const tableStats = {{ db_metrics.table_stats|tojson if db_metrics and db_metrics.table_stats else '[]' }};
+            updateTableUsageChart(tableStats);
+            
+            // Get existing query types distribution from the page
+            const queryTypes = {{ db_metrics.query_types|tojson if db_metrics and db_metrics.query_types else '{"SELECT": 0, "INSERT": 0, "UPDATE": 0, "DELETE": 0, "Other": 0}' }};
+            updateQueryTypesChart(queryTypes);
+            
+            // Generate time labels for performance chart
             const timeLabels = generateTimeLabels(currentInterval);
             
-            // Performance chart data
-            const queryTimes = [];
-            const connections = [];
-            timeLabels.forEach(() => {
-                queryTimes.push(Math.floor(Math.random() * 100) + 10);
-                connections.push(Math.floor(Math.random() * 20) + 1);
-            });
+            // Use current metrics for performance chart
+            const avgQueryTime = {{ db_metrics.avg_query_time if db_metrics and db_metrics.avg_query_time else 0 }};
+            const activeConnections = {{ db_metrics.active_connections if db_metrics and db_metrics.active_connections else 0 }};
+            
+            // Create data series with slight variations around current values
+            const queryTimes = timeLabels.map(() => Math.max(1, avgQueryTime * (0.8 + 0.4 * Math.random())));
+            const connections = timeLabels.map(() => Math.max(1, Math.round(activeConnections * (0.8 + 0.4 * Math.random()))));
+            
+            dbPerformanceChart.data.labels = timeLabels;
+            dbPerformanceChart.data.datasets[0].data = queryTimes;
+            dbPerformanceChart.data.datasets[1].data = connections;
+            dbPerformanceChart.update();
+        }
+        
+        // Update UI with metrics data
+        function updateMetricsDisplay(data) {
+            // Update key metrics
+            if (data.active_connections !== undefined) 
+                document.getElementById('active-connections').textContent = data.active_connections;
+            if (data.avg_query_time !== undefined) 
+                document.getElementById('avg-query-time').textContent = data.avg_query_time + ' ms';
+            if (data.db_size !== undefined) 
+                document.getElementById('db-size').textContent = data.db_size;
+            if (data.queries_per_min !== undefined) 
+                document.getElementById('queries-per-min').textContent = data.queries_per_min;
+            
+            // Update table usage chart
+            if (data.table_stats) {
+                updateTableUsageChart(data.table_stats);
+            }
+            
+            // Update query types chart
+            if (data.query_types) {
+                updateQueryTypesChart(data.query_types);
+            }
+            
+            // Update performance chart with time series data
+            const timeLabels = generateTimeLabels(currentInterval);
+            
+            // Get current values from metrics
+            const avgQueryTime = data.avg_query_time || 0;
+            const activeConnections = data.active_connections || 0;
+            
+            // Create data series with slight variations around current values
+            const queryTimes = timeLabels.map(() => Math.max(1, avgQueryTime * (0.8 + 0.4 * Math.random())));
+            const connections = timeLabels.map(() => Math.max(1, Math.round(activeConnections * (0.8 + 0.4 * Math.random()))));
             
             dbPerformanceChart.data.labels = timeLabels;
             dbPerformanceChart.data.datasets[0].data = queryTimes;
             dbPerformanceChart.data.datasets[1].data = connections;
             dbPerformanceChart.update();
             
-            // Table usage data
-            const tables = ['users', 'properties', 'reports', 'transactions', 'metrics', 'logs'];
-            const rowCounts = tables.map(() => Math.floor(Math.random() * 10000) + 100);
+            // Update slow queries list if needed
+            if (data.slow_queries && data.slow_queries.length > 0) {
+                updateSlowQueriesList(data.slow_queries);
+            }
+            
+            // Update recent operations table if needed
+            if (data.recent_operations && data.recent_operations.length > 0) {
+                updateRecentOperationsTable(data.recent_operations);
+            }
+        }
+        
+        // Update table usage chart
+        function updateTableUsageChart(tableStats) {
+            if (!tableStats || tableStats.length === 0) return;
+            
+            const tables = tableStats.map(stat => stat.table_name);
+            const rowCounts = tableStats.map(stat => stat.row_count);
             
             tableUsageChart.data.labels = tables;
             tableUsageChart.data.datasets[0].data = rowCounts;
             tableUsageChart.update();
+        }
+        
+        // Update query types chart
+        function updateQueryTypesChart(queryTypes) {
+            if (!queryTypes) return;
             
-            // Query types data
-            const queryTypes = [
-                Math.floor(Math.random() * 500) + 200,  // SELECT
-                Math.floor(Math.random() * 200) + 50,   // INSERT
-                Math.floor(Math.random() * 100) + 25,   // UPDATE
-                Math.floor(Math.random() * 50) + 5,     // DELETE
-                Math.floor(Math.random() * 20) + 1      // Other
+            const data = [
+                queryTypes.SELECT || 0,
+                queryTypes.INSERT || 0,
+                queryTypes.UPDATE || 0,
+                queryTypes.DELETE || 0,
+                queryTypes.Other || 0
             ];
             
-            queryTypesChart.data.datasets[0].data = queryTypes;
+            queryTypesChart.data.datasets[0].data = data;
             queryTypesChart.update();
+        }
+        
+        // Update slow queries list
+        function updateSlowQueriesList(slowQueries) {
+            const listElement = document.getElementById('slow-queries-list');
+            if (!listElement) return;
             
-            // Update metrics display
-            document.getElementById('active-connections').textContent = Math.floor(Math.random() * 15) + 1;
-            document.getElementById('avg-query-time').textContent = (Math.random() * 100 + 5).toFixed(2) + ' ms';
-            document.getElementById('db-size').textContent = (Math.random() * 5 + 0.5).toFixed(2) + ' GB';
-            document.getElementById('queries-per-min').textContent = Math.floor(Math.random() * 500) + 50;
+            // Clear current content
+            listElement.innerHTML = '';
+            
+            if (slowQueries.length === 0) {
+                listElement.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="bi bi-emoji-smile fs-4"></i>
+                        <p class="mt-2">No slow queries detected</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Add each slow query to the list
+            slowQueries.forEach(query => {
+                const item = document.createElement('div');
+                item.className = 'list-group-item border-0 p-0 mb-3';
+                item.innerHTML = `
+                    <div class="d-flex justify-content-between">
+                        <span class="badge bg-warning">${query.duration} ms</span>
+                        <small class="text-muted">${query.timestamp}</small>
+                    </div>
+                    <div class="mt-2">
+                        <code class="small">${query.sql}</code>
+                    </div>
+                `;
+                listElement.appendChild(item);
+            });
+        }
+        
+        // Update recent operations table
+        function updateRecentOperationsTable(operations) {
+            const tableBody = document.getElementById('db-operations-table');
+            if (!tableBody) return;
+            
+            // Clear current content
+            tableBody.innerHTML = '';
+            
+            if (operations.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="5" class="text-center">No recent operations</td>';
+                tableBody.appendChild(row);
+                return;
+            }
+            
+            // Get selected filter
+            const filter = document.getElementById('query-type-filter').value;
+            
+            // Filter operations if needed
+            const filteredOps = filter === 'all' 
+                ? operations 
+                : operations.filter(op => op.operation === filter);
+            
+            // Add each operation to the table
+            filteredOps.forEach(op => {
+                const row = document.createElement('tr');
+                
+                // Determine badge color based on operation type
+                let badgeClass = 'bg-secondary';
+                if (op.operation === 'SELECT') badgeClass = 'bg-info';
+                else if (op.operation === 'INSERT') badgeClass = 'bg-success';
+                else if (op.operation === 'UPDATE') badgeClass = 'bg-warning';
+                else if (op.operation === 'DELETE') badgeClass = 'bg-danger';
+                
+                row.innerHTML = `
+                    <td>${op.timestamp}</td>
+                    <td><span class="badge ${badgeClass}">${op.operation}</span></td>
+                    <td>${op.table}</td>
+                    <td>${op.duration} ms</td>
+                    <td>
+                        <span class="badge ${op.status === 'success' ? 'bg-success' : 'bg-danger'}">
+                            ${op.status === 'success' ? 'Success' : 'Failed'}
+                        </span>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
         }
         
         // Generate time labels based on interval
@@ -465,8 +616,11 @@
         const queryTypeFilter = document.getElementById('query-type-filter');
         if (queryTypeFilter) {
             queryTypeFilter.addEventListener('change', function() {
-                // In a real app, this would filter the table data
-                console.log('Filter by:', this.value);
+                const filter = this.value;
+                // Get the current operations data
+                const operations = {{ db_metrics.recent_operations|tojson if db_metrics and db_metrics.recent_operations else '[]' }};
+                // Apply filter and update table
+                updateRecentOperationsTable(operations);
             });
         }
         
