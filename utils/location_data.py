@@ -330,12 +330,28 @@ def generate_price_trends():
                 days_on_market = max(10, 30 + (random.random() * 20) - 10)  # 20-50 days with noise
                 price_per_sqft = adjusted_price // 1500  # rough approximation
                 
+                # Calculate price change from previous month (first month set to 0)
+                if month_offset == 0:
+                    price_change = 0.0  # First month has no change
+                else:
+                    # Calculate month-over-month percentage change
+                    previous_price = int(current_price * (1.0 - ((month_offset-1) * monthly_growth_rate)) * seasonal_factors[(current_date.month % 12)])
+                    price_change = ((adjusted_price - previous_price) / previous_price) * 100
+                
+                # Calculate number of properties sold
+                properties_sold = random.randint(10, 50)
+                
                 trend = PriceTrend(
                     location_type='city',
                     location_value=f"{city}, {state}",
+                    city=city,
+                    state=state,
+                    zip_code='',  # We don't have zip in this aggregation
                     date=current_date,
                     median_price=adjusted_price,
-                    average_price=int(adjusted_price * (0.95 + (random.random() * 0.1))),  # slight variation from median
+                    avg_price=int(adjusted_price * (0.95 + (random.random() * 0.1))),  # slight variation from median
+                    price_change=price_change,
+                    properties_sold=properties_sold,
                     total_listings=total_listings,
                     new_listings=new_listings,
                     days_on_market=days_on_market,

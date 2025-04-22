@@ -782,9 +782,13 @@ def monitoring_dashboard():
                     # Format as a dollar value with K for thousands
                     median_price_k = int(median / 1000)
                     price_stats['median_price'] = f"${median_price_k}K"
-                    
-                # Get average price change
-                changes = [trend.price_change for trend in latest_trends if trend.price_change is not None]
+                
+                # Get average price change - using existing price_change field
+                changes = []
+                for trend in latest_trends:
+                    if hasattr(trend, 'price_change') and trend.price_change is not None:
+                        changes.append(trend.price_change)
+                
                 if changes:
                     avg_change = sum(changes) / len(changes)
                     price_stats['trend_indicator'] = f"{'+' if avg_change >= 0 else ''}{avg_change:.1f}%"
@@ -934,8 +938,8 @@ def api_price_trends():
                 'date': trend.date.isoformat() if trend.date else None,
                 'median_price': float(trend.median_price) if trend.median_price else None,
                 'avg_price': float(trend.avg_price) if trend.avg_price else None,
-                'price_change': float(trend.price_change) if trend.price_change else None,
-                'properties_sold': trend.properties_sold
+                'price_change': float(trend.price_change) if hasattr(trend, 'price_change') and trend.price_change is not None else None,
+                'properties_sold': trend.properties_sold if hasattr(trend, 'properties_sold') else None
             })
         
         # Get aggregated statistics

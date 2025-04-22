@@ -459,9 +459,14 @@ class PriceTrend(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     location_type = db.Column(db.String(20))  # city, state, zip, etc.
     location_value = db.Column(db.String(100))  # actual city name, state code, zip code
+    city = db.Column(db.String(100))
+    state = db.Column(db.String(20))
+    zip_code = db.Column(db.String(20))
     date = db.Column(db.Date, nullable=False)
     median_price = db.Column(db.Integer)  # Stored as integer (cents)
-    average_price = db.Column(db.Integer)  # Stored as integer (cents)
+    avg_price = db.Column(db.Integer)  # Stored as integer (cents)
+    price_change = db.Column(db.Float)  # Percentage change from previous month
+    properties_sold = db.Column(db.Integer)
     total_listings = db.Column(db.Integer)
     new_listings = db.Column(db.Integer)
     days_on_market = db.Column(db.Float)
