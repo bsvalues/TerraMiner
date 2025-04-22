@@ -2,6 +2,13 @@
 
 {% block title %}Property Comparison | TerraMiner{% endblock %}
 
+{% block head %}
+<!-- Cache busting meta tag -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+{% endblock %}
+
 {% block additional_styles %}
 <style>
   :root {
@@ -314,83 +321,162 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-  <div class="row">
-    <div class="col-12">
-      <h1 class="display-5 mb-4">
-        <i class="feather icon-repeat text-primary me-2"></i>
-        Property Comparison
-      </h1>
+<!-- New Header with Background Image -->
+<div class="comparison-hero" style="background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1773&q=80'); background-size: cover; background-position: center; padding: 60px 0; margin-bottom: 30px; border-radius: 0 0 50px 50px;">
+  <div class="container">
+    <div class="row">
+      <div class="col-12 text-center">
+        <h1 class="display-4 text-white mb-3" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+          Property Comparison Tool
+        </h1>
+        <p class="lead text-white mb-4" style="max-width: 700px; margin: 0 auto; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">
+          Compare real estate properties side-by-side to make informed investment decisions
+        </p>
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-center">
+            <li class="breadcrumb-item"><a href="/monitoring/dashboard" class="text-info">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="/monitoring/locations" class="text-info">Property Locations</a></li>
+            <li class="breadcrumb-item active text-white" aria-current="page">Property Comparison</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+</div>
 
-      <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="/monitoring/dashboard">Dashboard</a></li>
-          <li class="breadcrumb-item"><a href="/monitoring/locations">Property Locations</a></li>
-          <li class="breadcrumb-item active" aria-current="page">Property Comparison</li>
-        </ol>
-      </nav>
+<div class="container">
+  <!-- Quick Stats Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="stat-card" style="background: linear-gradient(135deg, #0e1b4d 0%, #192f83 100%); border-radius: 15px; padding: 20px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); text-align: center;">
+        <i class="feather icon-home" style="font-size: 36px; color: var(--accent);"></i>
+        <h3 class="mt-3 text-white">{{ property_types|length }}</h3>
+        <p class="text-muted mb-0">Property Types</p>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="stat-card" style="background: linear-gradient(135deg, #0e1b4d 0%, #192f83 100%); border-radius: 15px; padding: 20px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); text-align: center;">
+        <i class="feather icon-map" style="font-size: 36px; color: var(--accent);"></i>
+        <h3 class="mt-3 text-white">{{ states|length }}</h3>
+        <p class="text-muted mb-0">States</p>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="stat-card" style="background: linear-gradient(135deg, #0e1b4d 0%, #192f83 100%); border-radius: 15px; padding: 20px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); text-align: center;">
+        <i class="feather icon-map-pin" style="font-size: 36px; color: var(--accent);"></i>
+        <h3 class="mt-3 text-white">{{ cities|length }}</h3>
+        <p class="text-muted mb-0">Cities</p>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="stat-card" style="background: linear-gradient(135deg, #0e1b4d 0%, #192f83 100%); border-radius: 15px; padding: 20px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); text-align: center;">
+        <i class="feather icon-dollar-sign" style="font-size: 36px; color: var(--accent);"></i>
+        <h3 class="mt-3 text-white">${{ avg_price }}</h3>
+        <p class="text-muted mb-0">Avg. Price</p>
+      </div>
     </div>
   </div>
 
+  <!-- Main Content -->
   <div class="row">
-    <div class="col-lg-3">
-      <!-- Filter Section -->
-      <div class="filter-card">
-        <h5 class="mb-3">Find Properties</h5>
+    <!-- Left Column - Filters & Search -->
+    <div class="col-lg-4">
+      <div class="filter-card mb-4" style="border-radius: 20px; overflow: hidden;">
+        <div style="background: linear-gradient(90deg, var(--accent-dark) 0%, var(--accent) 100%); padding: 15px; border-radius: 20px 20px 0 0;">
+          <h5 class="text-white mb-0">
+            <i class="feather icon-filter me-2"></i>
+            Find Properties
+          </h5>
+        </div>
         
-        <form id="propertySearchForm" action="/property/comparison" method="GET">
-          <div class="mb-3">
-            <label class="form-label">Property Type</label>
-            <select class="form-select form-select-sm" id="propertyType">
-              <option value="">All Types</option>
-              {% for type in property_types %}
-              <option value="{{ type }}">{{ type }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          
-          <div class="mb-3">
-            <label class="form-label">State</label>
-            <select class="form-select form-select-sm" id="state">
-              <option value="">All States</option>
-              {% for state in states %}
-              <option value="{{ state }}">{{ state }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          
-          <div class="mb-3">
-            <label class="form-label">City</label>
-            <select class="form-select form-select-sm" id="city">
-              <option value="">All Cities</option>
-              {% for city in cities %}
-              <option value="{{ city }}">{{ city }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          
-          <div class="mb-3">
-            <label class="form-label">Price Range</label>
-            <div class="row">
-              <div class="col-6">
-                <input type="number" class="form-control form-control-sm" id="minPrice" placeholder="Min">
-              </div>
-              <div class="col-6">
-                <input type="number" class="form-control form-control-sm" id="maxPrice" placeholder="Max">
+        <div style="padding: 25px;">
+          <form id="propertySearchForm" action="/property/comparison" method="GET">
+            <div class="mb-3">
+              <label class="form-label">Property Type</label>
+              <div class="input-group">
+                <span class="input-group-text" style="background-color: var(--accent); border: none;">
+                  <i class="feather icon-home text-white"></i>
+                </span>
+                <select class="form-select" id="propertyType">
+                  <option value="">All Types</option>
+                  {% for type in property_types %}
+                  <option value="{{ type }}">{{ type }}</option>
+                  {% endfor %}
+                </select>
               </div>
             </div>
-          </div>
-          
-          <div class="d-grid">
-            <button type="button" class="btn btn-primary" id="searchPropertiesBtn">
-              <i class="feather icon-search me-1"></i> Search
-            </button>
-          </div>
-        </form>
+            
+            <div class="mb-3">
+              <label class="form-label">State</label>
+              <div class="input-group">
+                <span class="input-group-text" style="background-color: var(--accent); border: none;">
+                  <i class="feather icon-map text-white"></i>
+                </span>
+                <select class="form-select" id="state">
+                  <option value="">All States</option>
+                  {% for state in states %}
+                  <option value="{{ state }}">{{ state }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label">City</label>
+              <div class="input-group">
+                <span class="input-group-text" style="background-color: var(--accent); border: none;">
+                  <i class="feather icon-map-pin text-white"></i>
+                </span>
+                <select class="form-select" id="city">
+                  <option value="">All Cities</option>
+                  {% for city in cities %}
+                  <option value="{{ city }}">{{ city }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            
+            <div class="mb-4">
+              <label class="form-label">Price Range</label>
+              <div class="row">
+                <div class="col-6">
+                  <div class="input-group">
+                    <span class="input-group-text" style="background-color: var(--accent); border: none;">
+                      <i class="feather icon-dollar-sign text-white"></i>
+                    </span>
+                    <input type="number" class="form-control" id="minPrice" placeholder="Min">
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="input-group">
+                    <span class="input-group-text" style="background-color: var(--accent); border: none;">
+                      <i class="feather icon-dollar-sign text-white"></i>
+                    </span>
+                    <input type="number" class="form-control" id="maxPrice" placeholder="Max">
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="d-grid">
+              <button type="button" class="btn btn-primary btn-lg" id="searchPropertiesBtn" style="background: linear-gradient(90deg, var(--accent-dark) 0%, var(--accent) 100%); border: none; border-radius: 10px; padding: 12px;">
+                <i class="feather icon-search me-2"></i> Search Properties
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      <!-- Results from search -->
+      <div id="searchResults" class="mb-4" style="display: none;">
+        <div style="background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%); padding: 15px; border-radius: 20px 20px 0 0;">
+          <h5 class="text-white mb-0">
+            <i class="feather icon-list me-2"></i>
+            Search Results
+          </h5>
+        </div>
         
-        <!-- Results from search will be shown here -->
-        <div id="searchResults" class="mt-4" style="display: none;">
-          <h6 class="mb-3">Search Results</h6>
+        <div class="p-3" style="background: rgba(14, 27, 77, 0.8); border-radius: 0 0 20px 20px;">
           <div id="propertyList" class="property-list">
             <!-- Property results will go here -->
           </div>
@@ -399,93 +485,140 @@
       
       <!-- Suggested Properties Section -->
       {% if suggested_properties %}
-      <div class="filter-card">
-        <h5 class="mb-3">Suggested Comparisons</h5>
-        
-        {% for property in suggested_properties %}
-        <div class="property-suggestion" data-property-id="{{ property.id }}">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <div>{{ property.property_type }}</div>
-              <div class="small text-muted">{{ property.city }}, {{ property.state }}</div>
-            </div>
-            <div class="suggestion-price">${{ (property.price_value / 100) | int }}</div>
-          </div>
-          <div class="mt-1 small">
-            {{ property.bedrooms }} bd | {{ property.bathrooms }} ba | {{ property.square_feet }} sqft
-          </div>
-          <button class="btn btn-sm btn-outline-primary mt-1 add-to-compare-btn" data-property-id="{{ property.id }}">
-            <i class="feather icon-plus"></i> Add to Compare
-          </button>
+      <div class="mb-4">
+        <div style="background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%); padding: 15px; border-radius: 20px 20px 0 0;">
+          <h5 class="text-white mb-0">
+            <i class="feather icon-star me-2"></i>
+            Suggested Comparisons
+          </h5>
         </div>
-        {% endfor %}
+        
+        <div class="p-3" style="background: rgba(14, 27, 77, 0.8); border-radius: 0 0 20px 20px;">
+          {% for property in suggested_properties %}
+          <div class="property-suggestion mb-3" data-property-id="{{ property.id }}">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div style="font-weight: 600; color: var(--text-light);">{{ property.property_type }}</div>
+                <div class="small text-muted">{{ property.city }}, {{ property.state }}</div>
+              </div>
+              <div class="suggestion-price">${{ (property.price_value / 100) | int }}</div>
+            </div>
+            <div class="mt-1 small d-flex justify-content-between">
+              <span><i class="feather icon-home me-1" style="color: var(--accent);"></i>{{ property.bedrooms }} bd</span>
+              <span><i class="feather icon-droplet me-1" style="color: var(--accent);"></i>{{ property.bathrooms }} ba</span>
+              <span><i class="feather icon-square me-1" style="color: var(--accent);"></i>{{ property.square_feet }} sqft</span>
+            </div>
+            <button class="btn btn-sm btn-outline-primary w-100 mt-2 add-to-compare-btn" data-property-id="{{ property.id }}">
+              <i class="feather icon-plus-circle me-1"></i> Add to Comparison
+            </button>
+          </div>
+          {% endfor %}
+        </div>
       </div>
       {% endif %}
     </div>
     
-    <div class="col-lg-9">
-      <!-- Property Comparison Section -->
+    <!-- Right Column - Comparison Cards -->
+    <div class="col-lg-8">
       {% if selected_properties %}
+      <!-- Property Comparison Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="m-0">Comparing {{ selected_properties|length }} Properties</h3>
+        <a href="/property/comparison" class="btn btn-outline-danger">
+          <i class="feather icon-refresh-cw me-1"></i> Clear Comparison
+        </a>
+      </div>
+      
+      <!-- Comparison Cards -->
       <div class="row">
         {% for property in selected_properties %}
-        <div class="col-md-4 mb-4">
-          <div class="comparison-card">
-            <div class="comparison-header">
-              <h5 class="mb-1">{{ property.property_type }}</h5>
-              <div class="price-tag">${{ (property.price_value / 100) | int }}</div>
-              <div class="property-address">{{ property.street_address }}, {{ property.city }}, {{ property.state }} {{ property.zip_code }}</div>
+        <div class="col-md-6 mb-4">
+          <div class="comparison-card" style="border-radius: 20px; overflow: hidden; border: none; box-shadow: 0 10px 20px rgba(0,0,0,0.15);">
+            <!-- Property Image -->
+            <div class="property-img position-relative" style="height: 220px; background-image: url('https://via.placeholder.com/400x300?text=Property+Image');">
+              <div class="position-absolute" style="top: 15px; left: 15px; background-color: var(--accent); color: white; padding: 5px 10px; border-radius: 30px; font-weight: 600; font-size: 0.9rem;">
+                {{ property.property_type }}
+              </div>
+              <div class="position-absolute" style="bottom: 15px; left: 15px; right: 15px;">
+                <div class="price-tag" style="font-size: 2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">${{ (property.price_value / 100) | int }}</div>
+                <div class="property-address" style="color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.7);">{{ property.street_address }}, {{ property.city }}, {{ property.state }}</div>
+              </div>
             </div>
             
-            <div class="comparison-content">
-              <!-- Property Image (placeholder) -->
-              <div class="property-img" style="background-image: url('https://via.placeholder.com/400x300?text=Property+Image');"></div>
-              
-              <!-- Property Details -->
-              <div class="property-feature">
-                <div class="feature-label">Bedrooms</div>
-                <div class="feature-value">{{ property.bedrooms }}</div>
+            <div class="comparison-content p-4">
+              <!-- Property Features in Grid Layout -->
+              <div class="row mb-4">
+                <div class="col-4 text-center">
+                  <div class="feature-circle" style="width: 60px; height: 60px; border-radius: 50%; background-color: rgba(0, 180, 216, 0.1); display: flex; align-items: center; justify-content: center; margin: 0 auto; border: 2px solid var(--accent);">
+                    <span style="font-size: 1.5rem; font-weight: bold; color: var(--accent);">{{ property.bedrooms }}</span>
+                  </div>
+                  <div class="mt-2 small text-muted">Bedrooms</div>
+                </div>
+                <div class="col-4 text-center">
+                  <div class="feature-circle" style="width: 60px; height: 60px; border-radius: 50%; background-color: rgba(0, 180, 216, 0.1); display: flex; align-items: center; justify-content: center; margin: 0 auto; border: 2px solid var(--accent);">
+                    <span style="font-size: 1.5rem; font-weight: bold; color: var(--accent);">{{ property.bathrooms }}</span>
+                  </div>
+                  <div class="mt-2 small text-muted">Bathrooms</div>
+                </div>
+                <div class="col-4 text-center">
+                  <div class="feature-circle" style="width: 60px; height: 60px; border-radius: 50%; background-color: rgba(0, 180, 216, 0.1); display: flex; align-items: center; justify-content: center; margin: 0 auto; border: 2px solid var(--accent);">
+                    <span style="font-size: 1.5rem; font-weight: bold; color: var(--accent);">{{ property.year_built }}</span>
+                  </div>
+                  <div class="mt-2 small text-muted">Year Built</div>
+                </div>
               </div>
               
-              <div class="property-feature">
-                <div class="feature-label">Bathrooms</div>
-                <div class="feature-value">{{ property.bathrooms }}</div>
-              </div>
-              
-              <div class="property-feature">
-                <div class="feature-label">Square Footage</div>
-                <div class="feature-value">
-                  {{ property.square_feet }} sqft
+              <!-- Advanced Metrics -->
+              <div class="property-feature d-flex justify-content-between align-items-center p-3 mb-3" style="background-color: rgba(0, 180, 216, 0.1); border-radius: 10px; border: none;">
+                <div>
+                  <div class="small text-muted">Square Footage</div>
+                  <div class="feature-value">{{ property.square_feet }} sqft</div>
+                </div>
+                <div>
                   {% if property.square_feet > avg_sqft %}
-                  <span class="metric-badge better-than-avg">+{{ ((property.square_feet - avg_sqft) / avg_sqft * 100) | int }}%</span>
+                  <span class="metric-badge better-than-avg" style="background-color: rgba(74, 222, 128, 0.2); padding: 5px 10px; border-radius: 20px;">
+                    <i class="feather icon-trending-up me-1"></i>+{{ ((property.square_feet - avg_sqft) / avg_sqft * 100) | int }}%
+                  </span>
                   {% elif property.square_feet < avg_sqft %}
-                  <span class="metric-badge worse-than-avg">-{{ ((avg_sqft - property.square_feet) / avg_sqft * 100) | int }}%</span>
+                  <span class="metric-badge worse-than-avg" style="background-color: rgba(239, 68, 68, 0.2); padding: 5px 10px; border-radius: 20px;">
+                    <i class="feather icon-trending-down me-1"></i>-{{ ((avg_sqft - property.square_feet) / avg_sqft * 100) | int }}%
+                  </span>
                   {% endif %}
                 </div>
               </div>
               
-              <div class="property-feature">
-                <div class="feature-label">Year Built</div>
-                <div class="feature-value">{{ property.year_built }}</div>
-              </div>
-              
-              <div class="property-feature">
-                <div class="feature-label">Price per sqft</div>
-                <div class="feature-value">
-                  {% if property.price_per_sqft %}
-                  ${{ property.price_per_sqft }}
-                  {% else %}
-                  N/A
+              <div class="property-feature d-flex justify-content-between align-items-center p-3 mb-3" style="background-color: rgba(0, 180, 216, 0.1); border-radius: 10px; border: none;">
+                <div>
+                  <div class="small text-muted">Price per sqft</div>
+                  <div class="feature-value">
+                    {% if property.price_per_sqft %}
+                    ${{ property.price_per_sqft }}
+                    {% else %}
+                    N/A
+                    {% endif %}
+                  </div>
+                </div>
+                <div>
+                  {% set avg_price_per_sqft = avg_price / avg_sqft %}
+                  {% if property.price_per_sqft and property.price_per_sqft < avg_price_per_sqft %}
+                  <span class="metric-badge better-than-avg" style="background-color: rgba(74, 222, 128, 0.2); padding: 5px 10px; border-radius: 20px;">
+                    <i class="feather icon-check me-1"></i>Below Avg
+                  </span>
+                  {% elif property.price_per_sqft and property.price_per_sqft > avg_price_per_sqft %}
+                  <span class="metric-badge worse-than-avg" style="background-color: rgba(239, 68, 68, 0.2); padding: 5px 10px; border-radius: 20px;">
+                    <i class="feather icon-alert-circle me-1"></i>Above Avg
+                  </span>
                   {% endif %}
                 </div>
               </div>
               
               <!-- Actions -->
-              <div class="d-grid mt-3">
-                <a href="/monitoring/locations?property_id={{ property.id }}" class="btn btn-outline-primary btn-sm">
+              <div class="d-flex mt-4">
+                <a href="/monitoring/locations?property_id={{ property.id }}" class="btn btn-outline-primary flex-grow-1 me-2" style="border-radius: 10px;">
                   <i class="feather icon-map-pin me-1"></i> View on Map
                 </a>
-                <a href="#" class="btn btn-outline-danger btn-sm mt-2 remove-property" data-property-id="{{ property.id }}">
-                  <i class="feather icon-x me-1"></i> Remove
+                <a href="#" class="btn btn-outline-danger flex-grow-1 remove-property" data-property-id="{{ property.id }}" style="border-radius: 10px;">
+                  <i class="feather icon-trash-2 me-1"></i> Remove
                 </a>
               </div>
             </div>
@@ -495,114 +628,142 @@
       </div>
       
       <!-- Comparison Analysis -->
-      <div class="row mt-3">
-        <div class="col-12">
-          <div class="card bg-dark border-primary">
-            <div class="card-header bg-primary bg-gradient text-white">
-              <h5 class="mb-0">
-                <i class="feather icon-bar-chart-2 me-2"></i>
-                Comparison Analysis
-              </h5>
+      <div class="card bg-dark mt-4 mb-5" style="border: none; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+        <div class="card-header" style="background: linear-gradient(90deg, var(--accent-dark) 0%, var(--accent) 100%); padding: 15px 20px;">
+          <h5 class="mb-0 text-white">
+            <i class="feather icon-bar-chart-2 me-2"></i>
+            Comparative Market Analysis
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          <div class="row">
+            <div class="col-md-6 mb-4">
+              <!-- Price Comparison with Visuals -->
+              <h6 class="text-accent mb-3"><i class="feather icon-dollar-sign me-2"></i>Price Comparison</h6>
+              <div class="p-3" style="background: rgba(0, 180, 216, 0.05); border-radius: 10px;">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span style="color: var(--text-muted);">Price Range:</span>
+                  <span style="font-weight: 600; color: var(--text-light);">${{ min_price }} - ${{ max_price }}</span>
+                </div>
+                <div class="position-relative mb-3" style="height: 30px;">
+                  <!-- Range Bar -->
+                  <div style="position: absolute; top: 50%; left: 0; right: 0; height: 6px; transform: translateY(-50%); background-color: rgba(255,255,255,0.1); border-radius: 3px;"></div>
+                  
+                  <!-- Property Markers -->
+                  {% for property in selected_properties %}
+                  {% set position = ((property.price_value / 100) - min_price) / (max_price - min_price) * 100 %}
+                  <div style="position: absolute; top: 50%; left: {{ position }}%; width: 16px; height: 16px; background-color: var(--accent); border-radius: 50%; transform: translate(-50%, -50%); z-index: 2; box-shadow: 0 0 0 4px rgba(0, 180, 216, 0.2);"
+                       data-bs-toggle="tooltip" title="${{ (property.price_value / 100) | int }}"></div>
+                  {% endfor %}
+                  
+                  <!-- Average Price Marker -->
+                  {% set avg_position = (avg_price - min_price) / (max_price - min_price) * 100 %}
+                  <div style="position: absolute; top: 50%; left: {{ avg_position }}%; width: 2px; height: 20px; background-color: var(--success); transform: translate(-50%, -50%);"
+                       data-bs-toggle="tooltip" title="Avg: ${{ avg_price }}"></div>
+                </div>
+                
+                <div class="small text-center text-muted">
+                  <span class="me-3"><i class="feather icon-circle" style="color: var(--accent); font-size: 8px;"></i> Property Price</span>
+                  <span><i class="feather icon-minus" style="color: var(--success); font-size: 8px;"></i> Market Average</span>
+                </div>
+              </div>
             </div>
-            <div class="card-body">
-              <div class="row">
-                <div class="col-md-4 mb-3">
-                  <div class="card bg-dark h-100">
-                    <div class="card-body">
-                      <h6 class="card-title">Price Range</h6>
-                      <div class="d-flex justify-content-between align-items-center mt-3">
-                        <span>${{ min_price }}</span>
-                        <span>${{ max_price }}</span>
-                      </div>
-                      <div class="progress mt-2" style="height: 8px;">
-                        {% for property in selected_properties %}
-                        {% set position = ((property.price_value / 100) - min_price) / (max_price - min_price) * 100 %}
-                        <div class="progress-bar bg-info" role="progressbar" 
-                             style="width: 4px; position: absolute; left: {{ position }}%;" 
-                             title="${{ (property.price_value / 100) | int }}"></div>
-                        {% endfor %}
-                        <div class="progress-bar bg-secondary opacity-25" role="progressbar" style="width: 100%"></div>
-                      </div>
-                      <div class="text-center mt-2">
-                        <span class="badge bg-info">Average: ${{ avg_price }}</span>
-                      </div>
+            
+            <div class="col-md-6 mb-4">
+              <!-- Square Footage Analysis -->
+              <h6 class="text-accent mb-3"><i class="feather icon-square me-2"></i>Square Footage Analysis</h6>
+              <div class="p-3" style="background: rgba(0, 180, 216, 0.05); border-radius: 10px;">
+                {% for property in selected_properties %}
+                <div class="mb-3">
+                  <div class="d-flex justify-content-between align-items-center small mb-1">
+                    <span class="text-muted">Property #{{ loop.index }}</span>
+                    <span style="font-weight: 600; color: var(--text-light);">{{ property.square_feet }} sqft</span>
+                  </div>
+                  <div class="d-flex align-items-center">
+                    <div class="flex-grow-1 me-2" style="height: 8px; background-color: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+                      {% set sqft_percent = (property.square_feet / (avg_sqft * 2)) * 100 %}
+                      {% if sqft_percent > 100 %}{% set sqft_percent = 100 %}{% endif %}
+                      <div style="height: 100%; width: {{ sqft_percent }}%; background-color: var(--accent);"></div>
+                    </div>
+                    <div>
+                      {% if property.square_feet > avg_sqft %}
+                      <span class="better-than-avg">+{{ ((property.square_feet - avg_sqft) / avg_sqft * 100) | int }}%</span>
+                      {% elif property.square_feet < avg_sqft %}
+                      <span class="worse-than-avg">-{{ ((avg_sqft - property.square_feet) / avg_sqft * 100) | int }}%</span>
+                      {% else %}
+                      <span>0%</span>
+                      {% endif %}
                     </div>
                   </div>
                 </div>
-                
-                <div class="col-md-4 mb-3">
-                  <div class="card bg-dark h-100">
-                    <div class="card-body">
-                      <h6 class="card-title">Square Footage</h6>
-                      <div class="table-responsive">
-                        <table class="table table-sm table-dark">
-                          <thead>
-                            <tr>
-                              <th>Property</th>
-                              <th>Sqft</th>
-                              <th>Vs. Avg</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {% for property in selected_properties %}
-                            <tr>
-                              <td>#{{ loop.index }}</td>
-                              <td>{{ property.square_feet }}</td>
-                              <td>
-                                {% if property.square_feet > avg_sqft %}
-                                <span class="text-success">+{{ ((property.square_feet - avg_sqft) / avg_sqft * 100) | int }}%</span>
-                                {% elif property.square_feet < avg_sqft %}
-                                <span class="text-danger">-{{ ((avg_sqft - property.square_feet) / avg_sqft * 100) | int }}%</span>
-                                {% else %}
-                                <span>0%</span>
-                                {% endif %}
-                              </td>
-                            </tr>
-                            {% endfor %}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
+                {% endfor %}
+                <div class="small text-center text-muted mt-3">
+                  Average square footage in market: {{ avg_sqft }} sqft
                 </div>
-                
-                <div class="col-md-4 mb-3">
-                  <div class="card bg-dark h-100">
-                    <div class="card-body">
-                      <h6 class="card-title">Price per Square Foot</h6>
-                      <div class="table-responsive">
-                        <table class="table table-sm table-dark">
-                          <thead>
-                            <tr>
-                              <th>Property</th>
-                              <th>$/sqft</th>
-                              <th>Value</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {% for property in selected_properties %}
-                            {% if property.price_per_sqft %}
-                            <tr>
-                              <td>#{{ loop.index }}</td>
-                              <td>${{ property.price_per_sqft }}</td>
-                              <td>
-                                {% set avg_price_per_sqft = avg_price / avg_sqft %}
-                                {% if property.price_per_sqft < avg_price_per_sqft %}
-                                <span class="text-success">Better</span>
-                                {% elif property.price_per_sqft > avg_price_per_sqft %}
-                                <span class="text-danger">Higher</span>
-                                {% else %}
-                                <span>Average</span>
-                                {% endif %}
-                              </td>
-                            </tr>
+              </div>
+            </div>
+            
+            <div class="col-12">
+              <!-- Value Analysis -->
+              <h6 class="text-accent mb-3"><i class="feather icon-trending-up me-2"></i>Value Analysis</h6>
+              <div class="p-3" style="background: rgba(0, 180, 216, 0.05); border-radius: 10px;">
+                <div class="table-responsive">
+                  <table class="table table-sm table-dark" style="border-collapse: separate; border-spacing: 0 5px;">
+                    <thead>
+                      <tr>
+                        <th scope="col" style="border: none; color: var(--text-muted);">Property</th>
+                        <th scope="col" style="border: none; color: var(--text-muted);">Price</th>
+                        <th scope="col" style="border: none; color: var(--text-muted);">$/sqft</th>
+                        <th scope="col" style="border: none; color: var(--text-muted);">Value Rating</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for property in selected_properties %}
+                      <tr style="background-color: rgba(14, 27, 77, 0.4);">
+                        <td style="border: none;">
+                          <strong style="color: var(--text-light);">#{{ loop.index }}</strong>
+                          <div class="small text-muted">{{ property.city }}, {{ property.state }}</div>
+                        </td>
+                        <td style="border: none;">${{ (property.price_value / 100) | int }}</td>
+                        <td style="border: none;">
+                          {% if property.price_per_sqft %}
+                          ${{ property.price_per_sqft }}
+                          {% else %}
+                          N/A
+                          {% endif %}
+                        </td>
+                        <td style="border: none;">
+                          {% set avg_price_per_sqft = avg_price / avg_sqft %}
+                          {% if property.price_per_sqft %}
+                            {% if property.price_per_sqft < avg_price_per_sqft * 0.9 %}
+                            <div style="display: inline-block; width: 100px; height: 6px; background-color: rgba(255,255,255,0.1); border-radius: 3px;">
+                              <div style="height: 100%; width: 90%; background-color: var(--success);"></div>
+                            </div>
+                            <span class="text-success ms-2">Excellent</span>
+                            {% elif property.price_per_sqft < avg_price_per_sqft %}
+                            <div style="display: inline-block; width: 100px; height: 6px; background-color: rgba(255,255,255,0.1); border-radius: 3px;">
+                              <div style="height: 100%; width: 75%; background-color: var(--success);"></div>
+                            </div>
+                            <span class="text-success ms-2">Good</span>
+                            {% elif property.price_per_sqft < avg_price_per_sqft * 1.1 %}
+                            <div style="display: inline-block; width: 100px; height: 6px; background-color: rgba(255,255,255,0.1); border-radius: 3px;">
+                              <div style="height: 100%; width: 50%; background-color: var(--accent);"></div>
+                            </div>
+                            <span class="text-info ms-2">Fair</span>
+                            {% else %}
+                            <div style="display: inline-block; width: 100px; height: 6px; background-color: rgba(255,255,255,0.1); border-radius: 3px;">
+                              <div style="height: 100%; width: 25%; background-color: var(--error);"></div>
+                            </div>
+                            <span class="text-danger ms-2">Premium</span>
                             {% endif %}
-                            {% endfor %}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
+                          {% else %}
+                            N/A
+                          {% endif %}
+                        </td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -612,15 +773,24 @@
       
       {% else %}
       <!-- Empty State - No Properties Selected -->
-      <div class="empty-state">
-        <div class="empty-icon">
-          <i class="feather icon-home"></i>
+      <div class="empty-state" style="position: relative; border-radius: 20px; overflow: hidden; padding: 80px 40px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1773&q=80'); background-size: cover; background-position: center; opacity: 0.1;"></div>
+        
+        <div class="empty-icon" style="position: relative; z-index: 1;">
+          <i class="feather icon-home" style="font-size: 5rem;"></i>
         </div>
-        <h4>No Properties Selected</h4>
-        <p class="mb-4">Select properties to compare using the search panel or from other pages of the application.</p>
-        <a href="/monitoring/locations" class="btn btn-primary">
-          <i class="feather icon-map-pin me-1"></i> Browse Properties
-        </a>
+        <h3 style="position: relative; z-index: 1; margin-bottom: 1rem; color: var(--text-light);">No Properties Selected</h3>
+        <p class="mb-4" style="position: relative; z-index: 1; color: var(--text-muted); max-width: 500px; text-align: center;">
+          Select properties to compare using the search panel on the left. You can compare up to 3 properties side-by-side to make informed investment decisions.
+        </p>
+        <div style="position: relative; z-index: 1; display: flex; gap: 15px;">
+          <a href="/monitoring/locations" class="btn btn-primary" style="padding: 10px 20px; border-radius: 10px;">
+            <i class="feather icon-map-pin me-2"></i> Browse Property Map
+          </a>
+          <button type="button" class="btn btn-outline-primary" style="padding: 10px 20px; border-radius: 10px;" id="searchPropertiesBtn">
+            <i class="feather icon-search me-2"></i> Search Properties
+          </button>
+        </div>
       </div>
       {% endif %}
     </div>
