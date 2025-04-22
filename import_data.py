@@ -391,20 +391,7 @@ def import_api_usage_logs():
             logging.info(f"Found {count} existing records in api_usage_log, skipping import")
             return
             
-        # Create table if it doesn't exist
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS api_usage_log (
-                id SERIAL PRIMARY KEY,
-                endpoint VARCHAR(255) NOT NULL,
-                method VARCHAR(10) NOT NULL,
-                status_code INTEGER NOT NULL,
-                response_time_ms DOUBLE PRECISION NOT NULL,
-                client_ip VARCHAR(50),
-                user_agent TEXT,
-                request_params JSONB,
-                timestamp TIMESTAMP NOT NULL
-            )
-        """)
+        # No need to create table - it already exists with different column names
         
         # Generate about 1000 log entries
         logs = []
@@ -494,19 +481,19 @@ def import_api_usage_logs():
         # Sort logs by timestamp
         logs.sort(key=lambda x: x["timestamp"])
         
-        # Insert logs
+        # Insert logs using the correct column names from the existing table
         for log in logs:
             cursor.execute(
                 """
-                INSERT INTO api_usage_log (endpoint, method, status_code, response_time_ms, 
-                                           client_ip, user_agent, request_params, timestamp)
+                INSERT INTO api_usage_log (endpoint, method, status_code, response_time, 
+                                           ip_address, user_agent, request_payload, timestamp)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     log["endpoint"],
                     log["method"],
                     log["status_code"],
-                    log["response_time_ms"],
+                    log["response_time_ms"],  # We keep our variable names but map to correct columns
                     log["client_ip"],
                     log["user_agent"],
                     log["request_params"],
