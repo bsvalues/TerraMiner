@@ -1,0 +1,214 @@
+/* TerraMiner custom styles - part of TerraFusion platform */
+
+:root {
+  /* TerraFusion brand color palette */
+  --tf-dark-blue: #0c1623;
+  --tf-blue: #153249;
+  --tf-teal: #00bfb3;
+  --tf-light-teal: #42e8dc;
+  --tf-white: #f9fafc;
+  --tf-light-gray: #d1d5db;
+  --tf-dark-gray: #4b5563;
+  
+  /* UI Colors */
+  --tf-bg-primary: var(--tf-dark-blue);
+  --tf-bg-secondary: var(--tf-blue);
+  --tf-bg-accent: rgba(0, 191, 179, 0.1);
+  --tf-text-primary: var(--tf-white);
+  --tf-text-secondary: var(--tf-light-gray);
+  --tf-text-accent: var(--tf-teal);
+  --tf-border-color: rgba(255, 255, 255, 0.1);
+  
+  /* Status colors with improved contrast */
+  --tf-success: #2ecc71;
+  --tf-warning: #f39c12;
+  --tf-danger: #e74c3c;
+  --tf-info: #3498db;
+}
+
+/* Base elements */
+body {
+  background-color: var(--tf-bg-primary);
+  color: var(--tf-text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+/* Improved text contrast */
+.text-muted {
+  color: var(--tf-text-secondary) !important;
+  opacity: 0.9;
+}
+
+.card {
+  background-color: var(--tf-bg-secondary);
+  border: 1px solid var(--tf-border-color);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid var(--tf-border-color);
+}
+
+/* Sidebar styling */
+.sidebar {
+  background-color: var(--tf-bg-secondary) !important;
+  border-right: 1px solid var(--tf-border-color);
+}
+
+.list-group-item {
+  background-color: transparent;
+  border: none;
+  border-radius: 4px;
+  margin-bottom: 2px;
+  color: var(--tf-text-secondary);
+}
+
+.list-group-item:hover {
+  background-color: rgba(0, 191, 179, 0.1);
+  color: var(--tf-light-teal);
+}
+
+.list-group-item.active {
+  background-color: rgba(0, 191, 179, 0.2);
+  color: var(--tf-light-teal);
+  border-left: 3px solid var(--tf-teal);
+}
+
+/* Navigation bar */
+.navbar {
+  background-color: var(--tf-bg-secondary) !important;
+  border-bottom: 1px solid var(--tf-border-color);
+}
+
+.navbar-brand {
+  color: var(--tf-teal) !important;
+  font-weight: 600;
+}
+
+/* Dashboard metrics */
+.metric-card {
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--tf-border-color) !important;
+}
+
+.metric-value {
+  color: var(--tf-light-teal) !important;
+}
+
+.metric-label {
+  color: var(--tf-text-secondary);
+}
+
+/* Tables with improved readability */
+.table {
+  color: var(--tf-text-primary);
+}
+
+.table thead th {
+  border-bottom-color: var(--tf-border-color);
+  color: var(--tf-teal);
+}
+
+.table td {
+  border-top-color: var(--tf-border-color);
+  padding: 0.75rem;
+}
+
+/* Make list items more visible */
+.list-group-item i {
+  color: var(--tf-teal);
+}
+
+/* Status badges with improved contrast */
+.badge.bg-success {
+  background-color: var(--tf-success) !important;
+  color: #000 !important;
+}
+
+.badge.bg-warning {
+  background-color: var(--tf-warning) !important;
+  color: #000 !important;
+}
+
+.badge.bg-danger {
+  background-color: var(--tf-danger) !important;
+  color: #fff !important;
+}
+
+.badge.bg-info {
+  background-color: var(--tf-info) !important;
+  color: #000 !important;
+}
+
+/* Progress bars with improved visibility */
+.progress {
+  background-color: rgba(255, 255, 255, 0.1);
+  height: 8px;
+}
+
+.progress-bar.bg-success {
+  background-color: var(--tf-success) !important;
+}
+
+.progress-bar.bg-warning {
+  background-color: var(--tf-warning) !important;
+}
+
+.progress-bar.bg-danger {
+  background-color: var(--tf-danger) !important;
+}
+
+/* Charts - ensure containers have proper height */
+.chart-container {
+  position: relative;
+  height: 300px;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: var(--tf-teal);
+  border-color: var(--tf-teal);
+  color: var(--tf-dark-blue);
+}
+
+.btn-primary:hover {
+  background-color: var(--tf-light-teal);
+  border-color: var(--tf-light-teal);
+  color: var(--tf-dark-blue);
+}
+
+.btn-outline-secondary {
+  border-color: var(--tf-teal);
+  color: var(--tf-teal);
+}
+
+.btn-outline-secondary:hover, 
+.btn-outline-secondary.active {
+  background-color: var(--tf-teal);
+  border-color: var(--tf-teal);
+  color: var(--tf-dark-blue);
+}
+
+/* Fix alert text colors */
+.text-danger {
+  color: #ff6b6b !important;
+}
+
+.text-warning {
+  color: #feca57 !important;
+}
+
+.text-info {
+  color: #54a0ff !important;
+}
+
+.text-success {
+  color: #1dd1a1 !important;
+}

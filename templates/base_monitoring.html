@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Monitoring Dashboard{% endblock %} | NARRPR Scraper</title>
+    <title>{% block title %}Monitoring Dashboard{% endblock %} | TerraMiner</title>
     <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/css/terraminer.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         .navbar-brand {
@@ -79,7 +80,13 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/"><i class="bi bi-house-door"></i> NARRPR Scraper</a>
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-gem me-2"></i> 
+                <span class="text-white">Terra</span><span class="text-accent">Miner</span>
+                <span class="badge ms-2 rounded-pill" style="background-color: var(--tf-dark-gray); font-size: 0.65rem; color: var(--tf-teal);">
+                    TerraFusion
+                </span>
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
