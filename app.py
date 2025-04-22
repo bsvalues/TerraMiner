@@ -783,7 +783,12 @@ def monitoring_api():
 @app.route('/monitoring/database', methods=['GET'])
 def monitoring_database():
     """Database performance monitoring page"""
-    return render_template('monitoring_database.html')
+    from utils.db_metrics import get_all_db_metrics
+    
+    # Get real database metrics
+    db_metrics = get_all_db_metrics()
+    
+    return render_template('monitoring_database.html', db_metrics=db_metrics)
     
 @app.route('/monitoring/ai', methods=['GET'])
 def monitoring_ai():
