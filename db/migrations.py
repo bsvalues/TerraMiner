@@ -243,6 +243,98 @@ def create_alert_notification_map_table():
     
     return create_table_if_not_exists("alert_notification_map", columns)
 
+def migrate_price_trend_table():
+    """
+    Migrate the price_trend table to add new columns.
+    
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    success = True
+    
+    # Add city column
+    if not column_exists("price_trend", "city"):
+        success = success and add_column(
+            "price_trend", 
+            "city", 
+            "VARCHAR(100)", 
+            nullable=True
+        )
+    
+    # Add state column
+    if not column_exists("price_trend", "state"):
+        success = success and add_column(
+            "price_trend", 
+            "state", 
+            "VARCHAR(20)", 
+            nullable=True
+        )
+    
+    # Add zip_code column
+    if not column_exists("price_trend", "zip_code"):
+        success = success and add_column(
+            "price_trend", 
+            "zip_code", 
+            "VARCHAR(20)", 
+            nullable=True
+        )
+        
+    # Add price_change column
+    if not column_exists("price_trend", "price_change"):
+        success = success and add_column(
+            "price_trend", 
+            "price_change", 
+            "FLOAT", 
+            nullable=True
+        )
+        
+    # Add properties_sold column
+    if not column_exists("price_trend", "properties_sold"):
+        success = success and add_column(
+            "price_trend", 
+            "properties_sold", 
+            "INTEGER", 
+            nullable=True
+        )
+        
+    # Add avg_price column (if the table was using average_price before)
+    if not column_exists("price_trend", "avg_price") and column_exists("price_trend", "average_price"):
+        # Copy data from average_price to avg_price
+        success = success and add_column(
+            "price_trend", 
+            "avg_price", 
+            "INTEGER", 
+            nullable=True
+        )
+        
+        if success:
+            # Update the new column with values from the old column
+            success = success and safe_execute_sql(
+                "UPDATE price_trend SET avg_price = average_price"
+            )
+    elif not column_exists("price_trend", "avg_price"):
+        # Just create the column if average_price doesn't exist either
+        success = success and add_column(
+            "price_trend", 
+            "avg_price", 
+            "INTEGER", 
+            nullable=True
+        )
+    
+    # Extract city and state from location_value
+    if success and column_exists("price_trend", "city") and column_exists("price_trend", "state"):
+        # Update city and state based on location_value (usually in format "City, State")
+        success = success and safe_execute_sql("""
+            UPDATE price_trend
+            SET 
+                city = SPLIT_PART(location_value, ',', 1),
+                state = TRIM(SPLIT_PART(location_value, ',', 2))
+            WHERE 
+                location_type = 'city' AND location_value LIKE '%,%'
+        """)
+    
+    return success
+
 def run_all_migrations():
     """
     Run all database migrations.
@@ -254,6 +346,9 @@ def run_all_migrations():
     
     # Migrate monitoring_alert table
     results["monitoring_alert"] = migrate_monitoring_alert_table()
+    
+    # Migrate price_trend table
+    results["price_trend"] = migrate_price_trend_table()
     
     # Create new tables
     results["notification_channel"] = create_notification_channel_table()
