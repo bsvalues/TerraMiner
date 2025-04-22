@@ -408,3 +408,129 @@ class ReportExecutionLog(db.Model):
     
     def __repr__(self):
         return f"<ReportExecutionLog id={self.id} report_type={self.report_type} status={self.status}>"
+        
+class NarrprReports(db.Model):
+    """Model for storing NARRPR property reports."""
+    __tablename__ = 'narrpr_reports'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255), nullable=False)
+    date = db.Column(db.String(50), nullable=False)
+    address = db.Column(db.String(255), nullable=False)
+    price = db.Column(db.String(50), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    # Relationships
+    locations = db.relationship('PropertyLocation', backref='report', lazy=True)
+    
+    def __repr__(self):
+        return f"<NarrprReports id={self.id} title={self.title} address={self.address}>"
+        
+class PropertyLocation(db.Model):
+    """Model for storing geocoded property locations for visualization."""
+    __tablename__ = 'property_location'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    address = db.Column(db.String(255), nullable=False)
+    street = db.Column(db.String(100))
+    city = db.Column(db.String(100))
+    state = db.Column(db.String(50))
+    zip_code = db.Column(db.String(20))
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
+    price = db.Column(db.String(50))
+    price_value = db.Column(db.Integer)  # Stored as integer (cents)
+    property_type = db.Column(db.String(50))
+    bedrooms = db.Column(db.Integer)
+    bathrooms = db.Column(db.Float)
+    square_feet = db.Column(db.Integer)
+    year_built = db.Column(db.Integer)
+    report_id = db.Column(db.Integer, db.ForeignKey('narrpr_reports.id'))
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    def __repr__(self):
+        return f"<PropertyLocation id={self.id} address={self.address}>"
+
+class PriceTrend(db.Model):
+    """Model for storing price trends by location over time."""
+    __tablename__ = 'price_trend'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    location_type = db.Column(db.String(20))  # city, state, zip, etc.
+    location_value = db.Column(db.String(100))  # actual city name, state code, zip code
+    date = db.Column(db.Date, nullable=False)
+    median_price = db.Column(db.Integer)  # Stored as integer (cents)
+    average_price = db.Column(db.Integer)  # Stored as integer (cents)
+    total_listings = db.Column(db.Integer)
+    new_listings = db.Column(db.Integer)
+    days_on_market = db.Column(db.Float)
+    price_per_sqft = db.Column(db.Integer)  # Stored as integer (cents)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    def __repr__(self):
+        return f"<PriceTrend id={self.id} location={self.location_value} date={self.date}>"
+
+class UserActivity(db.Model):
+    """Model for tracking user engagement with the platform."""
+    __tablename__ = 'user_activity'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer)  # Not using foreign key to avoid circular dependency
+    session_id = db.Column(db.String(100))
+    activity_type = db.Column(db.String(50))  # search, view_report, generate_report, etc.
+    page = db.Column(db.String(255))
+    duration_seconds = db.Column(db.Integer)
+    device_type = db.Column(db.String(50))
+    browser = db.Column(db.String(100))
+    ip_address = db.Column(db.String(50))
+    timestamp = db.Column(db.DateTime, default=datetime.now)
+    activity_metadata = db.Column(db.Text)  # For storing additional activity details as JSON
+    
+    def __repr__(self):
+        return f"<UserActivity id={self.id} type={self.activity_type} user_id={self.user_id}>"
+
+class AIRecommendation(db.Model):
+    """Model for tracking AI recommendation engine performance."""
+    __tablename__ = 'ai_recommendation'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer)  # Not using foreign key to avoid circular dependency
+    property_id = db.Column(db.Integer)
+    recommendation_type = db.Column(db.String(50))  # similar_property, investment, etc.
+    relevance_score = db.Column(db.Float)
+    position = db.Column(db.Integer)  # Position in recommendations list
+    was_clicked = db.Column(db.Boolean, default=False)
+    was_viewed = db.Column(db.Boolean, default=False)
+    was_saved = db.Column(db.Boolean, default=False)
+    time_to_click = db.Column(db.Integer)  # Time in seconds
+    algorithm_version = db.Column(db.String(50))
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    features_used = db.Column(db.Text)  # Features used for this recommendation as JSON
+    
+    def __repr__(self):
+        return f"<AIRecommendation id={self.id} type={self.recommendation_type} score={self.relevance_score}>"
+
+class ScraperLog(db.Model):
+    """Model for tracking scraper performance."""
+    __tablename__ = 'scraper_log'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    scraper_name = db.Column(db.String(100))
+    target_url = db.Column(db.String(255))
+    status = db.Column(db.String(50))  # success, failure, partial_success
+    start_time = db.Column(db.DateTime)
+    end_time = db.Column(db.DateTime)
+    duration_seconds = db.Column(db.Integer)
+    items_found = db.Column(db.Integer)
+    items_scraped = db.Column(db.Integer)
+    error_message = db.Column(db.Text)
+    error_type = db.Column(db.String(100))
+    retry_count = db.Column(db.Integer, default=0)
+    proxy_used = db.Column(db.String(100))
+    success_rate = db.Column(db.Float)  # Percentage of successful items
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    scraper_metadata = db.Column(db.Text)  # For storing additional scraper details as JSON
+    
+    def __repr__(self):
+        return f"<ScraperLog id={self.id} name={self.scraper_name} status={self.status}>"
