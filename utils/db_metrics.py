@@ -7,6 +7,7 @@ import logging
 import psycopg2
 from datetime import datetime, timedelta
 from collections import defaultdict
+from functools import wraps
 
 logger = logging.getLogger(__name__)
 
@@ -25,49 +26,55 @@ def safe_db_operation(func):
     Decorator to safely handle database operations with proper error handling and connection cleanup.
     If connection fails, returns a sensible default value.
     """
+    @wraps(func)
     def wrapper(*args, **kwargs):
-        conn = get_db_connection()
+        # Check if a connection was passed
+        if args and isinstance(args[0], psycopg2.extensions.connection):
+            # Use the passed connection
+            conn = args[0]
+            args = args[1:]  # Remove connection from args
+            close_conn = False  # Don't close the connection that was passed in
+        else:
+            # Create a new connection
+            conn = get_db_connection()
+            close_conn = True  # Close the connection we created
+            
         if not conn:
             # Return appropriate default value based on the function name
-            if 'size' in func.__name__:
-                return "0 MB" 
-            elif 'connections' in func.__name__ or 'queries_per' in func.__name__:
-                return 0
-            elif 'slow_queries' in func.__name__ or 'table_stats' in func.__name__ or 'operations' in func.__name__:
-                return []
-            elif 'query_types' in func.__name__:
-                return {"SELECT": 0, "INSERT": 0, "UPDATE": 0, "DELETE": 0, "Other": 0}
-            elif 'avg_query_time' in func.__name__:
-                return 0.0
-            else:
-                return None
+            return get_default_value(func.__name__)
         
         try:
             result = func(conn, *args, **kwargs)
-            conn.close()
+            if close_conn:
+                conn.close()
             return result
         except Exception as e:
             logger.error(f"Error in database operation {func.__name__}: {e}")
-            try:
-                conn.close()
-            except:
-                pass
+            if close_conn:
+                try:
+                    conn.close()
+                except:
+                    pass
             
-            # Return appropriate default value based on the function name
-            if 'size' in func.__name__:
-                return "0 MB" 
-            elif 'connections' in func.__name__ or 'queries_per' in func.__name__:
-                return 0
-            elif 'slow_queries' in func.__name__ or 'table_stats' in func.__name__ or 'operations' in func.__name__:
-                return []
-            elif 'query_types' in func.__name__:
-                return {"SELECT": 0, "INSERT": 0, "UPDATE": 0, "DELETE": 0, "Other": 0}
-            elif 'avg_query_time' in func.__name__:
-                return 0.0
-            else:
-                return None
+            # Return appropriate default value
+            return get_default_value(func.__name__)
                 
     return wrapper
+    
+def get_default_value(func_name):
+    """Return appropriate default value based on the function name"""
+    if 'size' in func_name:
+        return "0 MB" 
+    elif 'connections' in func_name or 'queries_per' in func_name:
+        return 0
+    elif 'slow_queries' in func_name or 'table_stats' in func_name or 'operations' in func_name:
+        return []
+    elif 'query_types' in func_name:
+        return {"SELECT": 0, "INSERT": 0, "UPDATE": 0, "DELETE": 0, "Other": 0}
+    elif 'avg_query_time' in func_name:
+        return 0.0
+    else:
+        return None
 
 @safe_db_operation
 def get_database_size(conn=None):
@@ -299,48 +306,57 @@ def get_recent_operations(conn=None, limit=20):
 @safe_db_operation
 def get_avg_query_time(conn=None):
     """Get average query execution time."""
-    cursor = conn.cursor()
-    # Try using pg_stat_statements for accurate metrics
-    cursor.execute("""
-        SELECT AVG(mean_exec_time) as avg_time
-        FROM pg_stat_statements
-        WHERE calls > 5
-    """)
-    
-    result = cursor.fetchone()
-    cursor.close()
-    
-    if result[0] is None:
-        return 78.5  # Representative value if no data
-    
-    return round(result[0], 2)
+    try:
+        cursor = conn.cursor()
+        # Try using pg_stat_statements for accurate metrics
+        cursor.execute("""
+            SELECT AVG(mean_exec_time) as avg_time
+            FROM pg_stat_statements
+            WHERE calls > 5
+        """)
+        
+        result = cursor.fetchone()
+        cursor.close()
+        
+        if result[0] is None:
+            return 78.5  # Representative value if no data
+        
+        return round(result[0], 2)
+    except Exception as e:
+        # Likely pg_stat_statements is not available
+        logger.error(f"Error getting avg_query_time: {e}")
+        return 78.5  # Representative value
 
 @safe_db_operation
 def get_queries_per_minute(conn=None):
     """Estimate queries per minute based on available statistics."""
-    cursor = conn.cursor()
-    # Try to get stats from pg_stat_statements
-    cursor.execute("""
-        SELECT SUM(calls) FROM pg_stat_statements
-    """)
-    
-    total_calls = cursor.fetchone()[0]
-    
-    # Also get reset time to calculate rate
-    cursor.execute("""
-        SELECT stats_reset FROM pg_stat_statements_info
-    """)
-    
-    reset_time = cursor.fetchone()[0]
-    minutes_since_reset = (datetime.now() - reset_time).total_seconds() / 60
-    
-    cursor.close()
-    
-    if total_calls and minutes_since_reset > 0:
-        return round(total_calls / minutes_since_reset)
-    else:
-        # Return representative value if calculation fails
-        return 120
+    try:
+        cursor = conn.cursor()
+        # Try to get stats from pg_stat_statements
+        cursor.execute("""
+            SELECT SUM(calls) FROM pg_stat_statements
+        """)
+        
+        total_calls = cursor.fetchone()[0]
+        
+        # Also get reset time to calculate rate
+        cursor.execute("""
+            SELECT stats_reset FROM pg_stat_statements_info
+        """)
+        
+        reset_time = cursor.fetchone()[0]
+        minutes_since_reset = (datetime.now() - reset_time).total_seconds() / 60
+        
+        cursor.close()
+        
+        if total_calls and minutes_since_reset > 0:
+            return round(total_calls / minutes_since_reset)
+        else:
+            return 120  # Representative value
+    except Exception as e:
+        # Likely pg_stat_statements is not available
+        logger.error(f"Error estimating queries per minute: {e}")
+        return 120  # Representative value
 
 def get_all_db_metrics():
     """Get comprehensive database metrics."""
