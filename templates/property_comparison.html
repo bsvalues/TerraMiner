@@ -7,6 +7,12 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+
+<!-- noUiSlider CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nouislider@14.6.3/distribute/nouislider.min.css">
+
+<!-- noUiSlider JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/nouislider@14.6.3/distribute/nouislider.min.js"></script>
 {% endblock %}
 
 {% block additional_styles %}
@@ -317,7 +323,152 @@
       opacity: 1;
     }
   }
+  
+  /* Custom styling for noUiSlider */
+  .noUi-target {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 5px;
+    box-shadow: none;
+    height: 6px;
+  }
+  
+  .noUi-connect {
+    background: linear-gradient(90deg, var(--accent-dark), var(--accent));
+  }
+  
+  .noUi-handle {
+    width: 18px !important;
+    height: 18px !important;
+    border-radius: 50%;
+    background-color: white;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+    border: 2px solid var(--accent);
+    cursor: pointer;
+    top: -7px !important;
+  }
+  
+  .noUi-handle:before, 
+  .noUi-handle:after {
+    display: none;
+  }
+  
+  .noUi-tooltip {
+    background-color: var(--accent);
+    border: none;
+    color: white;
+    font-size: 0.8rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+  }
 </style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Define price range slider options
+    const minPrice = 0;
+    const maxPrice = 2000000; // $2M max price
+    const startMin = {{ request.args.get('min_price', 0)|int }};
+    const startMax = {{ request.args.get('max_price', 1000000)|int }};
+    
+    // Initialize the price range slider
+    const priceSlider = document.getElementById('priceRangeSlider');
+    
+    if (priceSlider) {
+      noUiSlider.create(priceSlider, {
+        start: [startMin, startMax],
+        connect: true,
+        step: 10000, // $10K increments
+        range: {
+          'min': minPrice,
+          'max': maxPrice
+        },
+        format: {
+          to: function(value) {
+            return Math.round(value);
+          },
+          from: function(value) {
+            return Math.round(value);
+          }
+        }
+      });
+      
+      // Get the display and hidden input elements
+      const minPriceDisplay = document.getElementById('minPriceDisplay');
+      const maxPriceDisplay = document.getElementById('maxPriceDisplay');
+      const minPriceInput = document.getElementById('minPrice');
+      const maxPriceInput = document.getElementById('maxPrice');
+      
+      // Format price values with commas for display
+      function formatPrice(price) {
+        return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      }
+      
+      // Update the display elements and hidden inputs when slider values change
+      priceSlider.noUiSlider.on('update', function(values, handle) {
+        const value = Math.round(values[handle]);
+        
+        // Update the appropriate display and input elements
+        if (handle === 0) {
+          minPriceDisplay.textContent = formatPrice(value);
+          minPriceInput.value = value;
+        } else {
+          maxPriceDisplay.textContent = formatPrice(value);
+          maxPriceInput.value = value;
+        }
+      });
+      
+      // Update slider with animation when resetting
+      document.addEventListener('click', function(e) {
+        // If the clear comparison button is clicked, reset the slider
+        if (e.target.closest('.btn-outline-danger') && e.target.closest('.btn-outline-danger').textContent.includes('Clear Comparison')) {
+          priceSlider.noUiSlider.set([minPrice, maxPrice]);
+          
+          // Animate the slider thumbs
+          const handles = priceSlider.querySelectorAll('.noUi-handle');
+          handles.forEach(handle => {
+            handle.style.transition = 'transform 0.3s ease';
+            handle.style.transform = 'scale(1.3)';
+            setTimeout(() => {
+              handle.style.transform = 'scale(1)';
+            }, 300);
+          });
+        }
+      });
+    }
+    
+    // Search button functionality
+    const searchButton = document.getElementById('searchPropertiesBtn');
+    if (searchButton) {
+      searchButton.addEventListener('click', function() {
+        // Get the form values
+        const propertyType = document.getElementById('propertyType').value;
+        const state = document.getElementById('state').value;
+        const city = document.getElementById('city').value;
+        const minPrice = document.getElementById('minPrice').value;
+        const maxPrice = document.getElementById('maxPrice').value;
+        
+        // Construct URL with query parameters
+        let url = '/property/comparison?';
+        if (propertyType) url += `property_type=${encodeURIComponent(propertyType)}&`;
+        if (state) url += `state=${encodeURIComponent(state)}&`;
+        if (city) url += `city=${encodeURIComponent(city)}&`;
+        if (minPrice) url += `min_price=${encodeURIComponent(minPrice)}&`;
+        if (maxPrice) url += `max_price=${encodeURIComponent(maxPrice)}&`;
+        
+        // Remove trailing &
+        if (url.endsWith('&')) {
+          url = url.slice(0, -1);
+        }
+        
+        // Navigate to the URL
+        window.location.href = url;
+      });
+    }
+  });
+</script>
 {% endblock %}
 
 {% block content %}
@@ -438,23 +589,30 @@
             
             <div class="mb-4">
               <label class="form-label">Price Range</label>
-              <div class="row">
-                <div class="col-6">
-                  <div class="input-group">
-                    <span class="input-group-text" style="background-color: var(--accent); border: none;">
-                      <i class="feather icon-dollar-sign text-white"></i>
+              <div class="price-slider-container" style="padding: 15px 10px 5px;">
+                <!-- Price range slider -->
+                <div id="priceRangeSlider" style="height: 10px;"></div>
+                
+                <!-- Price display -->
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                  <div class="price-display">
+                    <span class="input-group-text" style="background-color: var(--accent); border: none; border-radius: 20px; padding: 5px 10px; font-size: 0.9rem;">
+                      <i class="feather icon-dollar-sign text-white me-1"></i>
+                      <span id="minPriceDisplay" style="color: white; font-weight: 500;">0</span>
                     </span>
-                    <input type="number" class="form-control" id="minPrice" placeholder="Min">
+                  </div>
+                  <span class="text-muted">to</span>
+                  <div class="price-display">
+                    <span class="input-group-text" style="background-color: var(--accent); border: none; border-radius: 20px; padding: 5px 10px; font-size: 0.9rem;">
+                      <i class="feather icon-dollar-sign text-white me-1"></i>
+                      <span id="maxPriceDisplay" style="color: white; font-weight: 500;">1,000,000</span>
+                    </span>
                   </div>
                 </div>
-                <div class="col-6">
-                  <div class="input-group">
-                    <span class="input-group-text" style="background-color: var(--accent); border: none;">
-                      <i class="feather icon-dollar-sign text-white"></i>
-                    </span>
-                    <input type="number" class="form-control" id="maxPrice" placeholder="Max">
-                  </div>
-                </div>
+                
+                <!-- Hidden inputs to store the actual values -->
+                <input type="hidden" id="minPrice" name="min_price" value="0">
+                <input type="hidden" id="maxPrice" name="max_price" value="1000000">
               </div>
             </div>
             
