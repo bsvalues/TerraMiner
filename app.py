@@ -47,6 +47,14 @@ try:
 except ImportError:
     logger.warning("Could not import monitoring blueprint")
 
+# Register Zillow API blueprint
+try:
+    from api.zillow_routes import zillow_api
+    app.register_blueprint(zillow_api)
+    logger.info("Registered Zillow API blueprint")
+except ImportError:
+    logger.warning("Could not import Zillow API blueprint")
+
 # Routes
 @app.route('/')
 def index():
@@ -1731,6 +1739,29 @@ def get_ai_report_settings():
             "status": "error",
             "message": str(e)
         }), 500
+
+# Zillow routes
+@app.route('/zillow/market-data')
+def zillow_market_data():
+    """Zillow market data visualization page."""
+    try:
+        return render_template('zillow_market_data.html')
+    except Exception as e:
+        logger.exception(f"Error in zillow_market_data route: {str(e)}")
+        flash(f"Error loading market data page: {str(e)}", "danger")
+        return redirect(url_for('index'))
+
+@app.route('/zillow/properties')
+def zillow_properties():
+    """Zillow property search and display page."""
+    location = request.args.get('location', '')
+    
+    try:
+        return render_template('zillow_properties.html', location=location)
+    except Exception as e:
+        logger.exception(f"Error in zillow_properties route: {str(e)}")
+        flash(f"Error loading properties page: {str(e)}", "danger")
+        return redirect(url_for('index'))
 
 # Initialize database tables
 with app.app_context():

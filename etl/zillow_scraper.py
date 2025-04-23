@@ -2,9 +2,9 @@
 Zillow data scraper module for retrieving real estate market data via the RapidAPI.
 """
 import os
+import json
 import logging
 import requests
-import json
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 
@@ -23,16 +23,20 @@ class ZillowScraper:
         Args:
             api_key (str, optional): RapidAPI key. If None, will try to get from environment.
         """
-        self.api_key = api_key or os.getenv("RAPIDAPI_KEY")
-        self.api_host = "zillow-com1.p.rapidapi.com"
-        self.base_url = "https://zillow-com1.p.rapidapi.com"
+        self.api_key = api_key or os.environ.get('RAPIDAPI_KEY')
         
         if not self.api_key:
-            logger.error("RapidAPI key not found. Please set RAPIDAPI_KEY environment variable.")
-            raise ValueError("RapidAPI key is required")
-            
-        logger.info("ZillowScraper initialized")
+            logger.warning("No RapidAPI key provided or found in environment. API requests will fail.")
         
+        self.base_url = "https://zillow-com1.p.rapidapi.com"
+        self.headers = {
+            "X-RapidAPI-Key": self.api_key,
+            "X-RapidAPI-Host": "zillow-com1.p.rapidapi.com"
+        }
+        
+        # Create data directory if it doesn't exist
+        os.makedirs("output/zillow", exist_ok=True)
+    
     def _make_request(self, endpoint: str, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Make a request to the Zillow API.
@@ -46,24 +50,34 @@ class ZillowScraper:
         """
         url = f"{self.base_url}/{endpoint}"
         
-        headers = {
-            "x-rapidapi-host": self.api_host,
-            "x-rapidapi-key": self.api_key
-        }
-        
         try:
-            logger.info(f"Making request to {endpoint} with params: {params}")
-            response = requests.get(url, headers=headers, params=params)
-            response.raise_for_status()  # Raise exception for 4XX/5XX responses
+            logger.debug(f"Making request to {url} with params: {params}")
+            response = requests.get(url, headers=self.headers, params=params)
             
-            return response.json()
+            # Check if request was successful
+            response.raise_for_status()
+            
+            # Parse response JSON
+            data = response.json()
+            logger.debug(f"Received response from {url}: {response.status_code}")
+            
+            return data
+            
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"HTTP error occurred: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response status code: {e.response.status_code}")
+                logger.error(f"Response text: {e.response.text}")
+            return {}
             
         except requests.exceptions.RequestException as e:
-            logger.error(f"Error making request to {endpoint}: {str(e)}")
-            if hasattr(e.response, 'text'):
-                logger.error(f"Response text: {e.response.text}")
-            raise
+            logger.error(f"Request exception occurred: {e}")
+            return {}
             
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON response: {e}")
+            return {}
+    
     def get_market_data(self, resource_id: str, beds: int = 0, 
                        property_types: str = "house") -> Dict[str, Any]:
         """
@@ -78,17 +92,20 @@ class ZillowScraper:
             Dict[str, Any]: Market data from Zillow
         """
         params = {
-            "resourceId": resource_id,
-            "beds": str(beds),
-            "propertyTypes": property_types
+            "beds": beds,
+            "propertyTypes": property_types,
+            "type": "region",
+            "resourceId": resource_id
         }
         
-        try:
-            return self._make_request("marketData", params)
-        except Exception as e:
-            logger.error(f"Error getting market data: {str(e)}")
-            return {}
-            
+        data = self._make_request("marketData", params)
+        
+        # Save data to file for debugging/reference
+        if data:
+            self.save_to_json(data, f"market_data_{resource_id}_{beds}bd_{property_types}.json")
+        
+        return data
+    
     def get_property_details(self, zpid: str) -> Dict[str, Any]:
         """
         Get detailed information about a property by its Zillow Property ID (zpid).
@@ -103,12 +120,14 @@ class ZillowScraper:
             "zpid": zpid
         }
         
-        try:
-            return self._make_request("propertyDetails", params)
-        except Exception as e:
-            logger.error(f"Error getting property details: {str(e)}")
-            return {}
-            
+        data = self._make_request("property", params)
+        
+        # Save data to file for debugging/reference
+        if data:
+            self.save_to_json(data, f"property_{zpid}.json")
+        
+        return data
+    
     def get_property_by_address(self, address: str, city_state_zip: str) -> Dict[str, Any]:
         """
         Search for a property by its address.
@@ -122,15 +141,17 @@ class ZillowScraper:
         """
         params = {
             "address": address,
-            "cityStateZip": city_state_zip
+            "citystatezip": city_state_zip
         }
         
-        try:
-            return self._make_request("propertyByAddress", params)
-        except Exception as e:
-            logger.error(f"Error getting property by address: {str(e)}")
-            return {}
-            
+        data = self._make_request("propertyByAddress", params)
+        
+        # Save data to file for debugging/reference
+        if data:
+            self.save_to_json(data, f"property_search_{address}_{city_state_zip}.json")
+        
+        return data
+    
     def search_properties(self, location: str, page: int = 1) -> Dict[str, Any]:
         """
         Search for properties in a given location.
@@ -144,15 +165,17 @@ class ZillowScraper:
         """
         params = {
             "location": location,
-            "page": str(page)
+            "page": page
         }
         
-        try:
-            return self._make_request("propertySearch", params)
-        except Exception as e:
-            logger.error(f"Error searching properties: {str(e)}")
-            return {}
-            
+        data = self._make_request("propertyByAddress", params)
+        
+        # Save data to file for debugging/reference
+        if data:
+            self.save_to_json(data, f"property_search_{location}_page{page}.json")
+        
+        return data
+    
     def get_similar_homes(self, zpid: str) -> Dict[str, Any]:
         """
         Get similar homes to a given property.
@@ -167,12 +190,14 @@ class ZillowScraper:
             "zpid": zpid
         }
         
-        try:
-            return self._make_request("similarHomes", params)
-        except Exception as e:
-            logger.error(f"Error getting similar homes: {str(e)}")
-            return {}
-            
+        data = self._make_request("similarHomes", params)
+        
+        # Save data to file for debugging/reference
+        if data:
+            self.save_to_json(data, f"similar_homes_{zpid}.json")
+        
+        return data
+    
     def save_to_json(self, data: Dict[str, Any], filename: Optional[str] = None) -> str:
         """
         Save data to a JSON file in the data directory.
@@ -184,28 +209,23 @@ class ZillowScraper:
         Returns:
             str: Path to the saved file
         """
-        # Create data directory if it doesn't exist
-        data_dir = os.path.join(os.getcwd(), "data")
-        os.makedirs(data_dir, exist_ok=True)
-        
-        # Generate filename if not provided
-        if not filename:
+        if filename is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"zillow_data_{timestamp}.json"
-            
-        file_path = os.path.join(data_dir, filename)
+        
+        filepath = os.path.join("output/zillow", filename)
         
         try:
-            with open(file_path, 'w') as f:
-                json.dump(data, f, indent=2)
-                
-            logger.info(f"Data saved to {file_path}")
-            return file_path
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=4)
+            
+            logger.debug(f"Saved data to {filepath}")
+            return filepath
             
         except Exception as e:
-            logger.error(f"Error saving data to JSON: {str(e)}")
+            logger.error(f"Failed to save data to file: {e}")
             return ""
-            
+    
     @staticmethod
     def format_market_data(raw_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -217,53 +237,46 @@ class ZillowScraper:
         Returns:
             Dict[str, Any]: Formatted data
         """
-        formatted_data = {
+        # Initialize result structure
+        result = {
             "location_info": {},
             "market_overview": {},
-            "price_trends": [],
-            "inventory": {}
+            "price_trends": []
         }
         
-        # Early return if data is empty or invalid
-        if not raw_data or "locationInfo" not in raw_data:
-            return formatted_data
-            
-        # Extract location information
-        location_info = raw_data.get("locationInfo", {})
-        formatted_data["location_info"] = {
-            "id": location_info.get("id"),
-            "name": location_info.get("name"),
-            "url": location_info.get("url"),
-            "type": location_info.get("type"),
-            "region_type": location_info.get("regionType")
-        }
+        # Extract location info
+        if "locationInfo" in raw_data:
+            loc_info = raw_data["locationInfo"]
+            result["location_info"] = {
+                "name": loc_info.get("name", ""),
+                "type": loc_info.get("type", ""),
+                "url": loc_info.get("url", ""),
+                "state": loc_info.get("state", ""),
+                "city": loc_info.get("city", ""),
+                "county": loc_info.get("county", "")
+            }
         
         # Extract market overview data
-        market = raw_data.get("market", {})
-        formatted_data["market_overview"] = {
-            "median_price": market.get("medianPrice"),
-            "median_price_per_sqft": market.get("medianPricePerSqft"),
-            "median_days_on_market": market.get("medianDaysOnMarket"),
-            "avg_days_on_market": market.get("avgDaysOnMarket"),
-            "homes_sold_last_month": market.get("homesSoldLastMonth"),
-            "total_active_listings": market.get("totalActiveListing")
-        }
+        if "marketOverview" in raw_data:
+            market_data = raw_data["marketOverview"]
+            result["market_overview"] = {
+                "median_price": market_data.get("median", 0),
+                "median_price_per_sqft": market_data.get("medianPricePerSqft", 0),
+                "median_days_on_market": market_data.get("medianDom", 0),
+                "avg_days_on_market": market_data.get("avgDom", 0),
+                "homes_sold_last_month": market_data.get("homesSoldLastMonth", 0),
+                "total_active_listings": market_data.get("totalActiveListings", 0)
+            }
         
-        # Extract price trends
-        price_history = raw_data.get("priceHistory", [])
-        for entry in price_history:
-            formatted_data["price_trends"].append({
-                "date": entry.get("date"),
-                "price": entry.get("price"),
-                "percent_change": entry.get("percentChange")
-            })
-            
-        # Extract inventory data
-        inventory = raw_data.get("inventory", {})
-        formatted_data["inventory"] = {
-            "total": inventory.get("total"),
-            "by_price_range": inventory.get("byPriceRange", []),
-            "by_property_type": inventory.get("byPropertyType", [])
-        }
+        # Extract price trends (historical price data)
+        if "marketHistoricalData" in raw_data and "median" in raw_data["marketHistoricalData"]:
+            trend_data = raw_data["marketHistoricalData"]["median"]
+            for point in trend_data:
+                if "date" in point and "value" in point and point["value"] is not None:
+                    result["price_trends"].append({
+                        "date": point["date"],
+                        "price": point["value"],
+                        "percent_change": point.get("percentChange")
+                    })
         
-        return formatted_data
+        return result
