@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify
 
 from app import db
-from models import AIIntegration, AIAutomation, AutomationLog
+# Import models inside functions to avoid circular imports
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -24,6 +24,9 @@ automation_api = Blueprint('automation_api', __name__, url_prefix='/api/ai/autom
 def get_integrations():
     """Get all integrations or filtered by type/agent"""
     try:
+        # Import models inside function to avoid circular imports
+        from models import AIIntegration
+        
         integration_type = request.args.get('type')
         agent_type = request.args.get('agent')
         is_active = request.args.get('active', default=None, type=lambda v: v.lower() == 'true' if v else None)
@@ -71,6 +74,9 @@ def get_integrations():
 def get_integration(integration_id):
     """Get a specific integration by ID"""
     try:
+        # Import models inside function to avoid circular imports
+        from models import AIIntegration
+        
         integration = AIIntegration.query.get(integration_id)
         
         if not integration:
@@ -114,6 +120,9 @@ def get_integration(integration_id):
 def create_integration():
     """Create a new integration"""
     try:
+        # Import models inside function to avoid circular imports
+        from models import AIIntegration
+        
         data = request.json
         
         if not data:

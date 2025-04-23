@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify
 
 from app import db
-from models import LearningCycle, AgentOptimizationResult, PromptVersion, PromptABTest, AIFeedback
+# Import models inside functions to avoid circular imports
 from ai.continuous_learning_system import ContinuousLearningSystem
 
 # Set up logging
@@ -23,6 +23,9 @@ learning_system = ContinuousLearningSystem()
 def get_system_status():
     """Get the status of the continuous learning system"""
     try:
+        # Import models here to avoid circular imports
+        from models import LearningCycle, AgentOptimizationResult, PromptVersion, PromptABTest, AIFeedback
+        
         # Get latest cycle
         latest_cycle = LearningCycle.query.order_by(LearningCycle.created_at.desc()).first()
         
@@ -77,6 +80,9 @@ def get_system_status():
 def get_learning_metrics():
     """Get metrics for the continuous learning system"""
     try:
+        # Import models here to avoid circular imports
+        from models import LearningCycle, AIFeedback
+        
         # Get time range parameter
         days = request.args.get('days', 90, type=int)
         
@@ -140,6 +146,9 @@ def get_learning_metrics():
 def get_learning_cycles():
     """Get all learning cycles"""
     try:
+        # Import models here to avoid circular imports
+        from models import LearningCycle
+        
         # Get status parameter
         status = request.args.get('status', None)
         
@@ -183,6 +192,9 @@ def get_learning_cycles():
 def start_learning_cycle():
     """Start a new learning cycle"""
     try:
+        # Import models here to avoid circular imports
+        from models import LearningCycle
+        
         # Check if there's already an active cycle
         active_cycle = LearningCycle.query.filter_by(status='in_progress').first()
         

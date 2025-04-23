@@ -7,7 +7,8 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify
 
 from app import db
-from models import PromptVersion, PromptABTest
+# Import models when needed to avoid circular imports
+# from models import PromptVersion, PromptABTest
 from ai.prompt_optimizer import PromptOptimizer
 
 # Set up logging
@@ -23,6 +24,9 @@ optimizer = PromptOptimizer()
 def get_prompt_versions(agent_type):
     """Get prompt versions for an agent type"""
     try:
+        # Import models here to avoid circular imports
+        from models import PromptVersion
+        
         # Get all versions
         versions = PromptVersion.query.filter_by(
             agent_type=agent_type
@@ -63,6 +67,9 @@ def get_prompt_versions(agent_type):
 def create_prompt_version():
     """Create a new prompt version"""
     try:
+        # Import models here to avoid circular imports
+        from models import PromptVersion
+        
         data = request.json
         
         if not data:
@@ -134,6 +141,9 @@ def create_prompt_version():
 def activate_prompt_version(version_id):
     """Activate a prompt version"""
     try:
+        # Import models here to avoid circular imports
+        from models import PromptVersion
+        
         # Get the version
         version = PromptVersion.query.get(version_id)
         
@@ -230,6 +240,9 @@ def create_ab_test():
 def get_ab_tests():
     """Get A/B tests"""
     try:
+        # Import models here to avoid circular imports
+        from models import PromptABTest
+        
         # Get status parameter (default: all)
         status = request.args.get('status', None)
         agent_type = request.args.get('agent_type', None)
@@ -283,6 +296,9 @@ def get_ab_tests():
 def get_ab_test(test_id):
     """Get an A/B test"""
     try:
+        # Import models here to avoid circular imports
+        from models import PromptABTest
+        
         # Get the test
         test = PromptABTest.query.get(test_id)
         

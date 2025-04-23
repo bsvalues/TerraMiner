@@ -9,7 +9,7 @@ from typing import Dict, List, Any, Optional
 import traceback
 
 from app import db
-from models import LearningCycle, AgentOptimizationResult, PromptVersion, PromptABTest, AIFeedback
+# Import models inside functions to avoid circular imports
 from ai.prompt_optimizer import PromptOptimizer
 
 # Set up logging
@@ -26,14 +26,17 @@ class ContinuousLearningSystem:
         self.optimizer = PromptOptimizer()
         self.agent_types = ["summarizer", "market_analyzer", "recommender", "nl_search"]
         
-    def start_learning_cycle(self) -> LearningCycle:
+    def start_learning_cycle(self) -> Dict[str, Any]:
         """
         Start a new learning cycle that will analyze recent feedback
         and generate new prompt versions for each agent type.
         
         Returns:
-            LearningCycle: The newly created learning cycle
+            Dict[str, Any]: Information about the newly created learning cycle
         """
+        # Import models inside function to avoid circular imports
+        from models import LearningCycle
+        
         # Create a new learning cycle
         cycle = LearningCycle(
             start_date=datetime.now(),
@@ -43,7 +46,12 @@ class ContinuousLearningSystem:
         db.session.add(cycle)
         db.session.commit()
         
-        return cycle
+        return {
+            "status": "success",
+            "cycle_id": cycle.id,
+            "start_date": cycle.start_date.isoformat(),
+            "status": cycle.status
+        }
     
     def run_learning_cycle(self, cycle_id: int) -> Dict[str, Any]:
         """
@@ -55,6 +63,9 @@ class ContinuousLearningSystem:
         Returns:
             Dict[str, Any]: Results of the learning cycle
         """
+        # Import models inside function to avoid circular imports
+        from models import LearningCycle
+        
         # Get the cycle
         cycle = LearningCycle.query.get(cycle_id)
         
@@ -134,17 +145,20 @@ class ContinuousLearningSystem:
             
             return {"status": "error", "message": str(e)}
     
-    def _optimize_agent(self, cycle: LearningCycle, agent_type: str) -> Optional[Dict[str, Any]]:
+    def _optimize_agent(self, cycle, agent_type: str) -> Optional[Dict[str, Any]]:
         """
         Optimize a specific agent type based on feedback data.
         
         Args:
-            cycle (LearningCycle): The current learning cycle
+            cycle: The current learning cycle
             agent_type (str): The agent type to optimize
             
         Returns:
             Optional[Dict[str, Any]]: Optimization results, or None if optimization failed
         """
+        # Import models inside function to avoid circular imports
+        from models import PromptVersion, AgentOptimizationResult, AIFeedback
+        
         logger.info(f"Starting optimization for agent type: {agent_type}")
         
         # Get the current active prompt
@@ -334,6 +348,9 @@ class ContinuousLearningSystem:
         Returns:
             Dict[str, Any]: Result of the cancellation
         """
+        # Import models inside function to avoid circular imports
+        from models import LearningCycle
+        
         # Get the cycle
         cycle = LearningCycle.query.get(cycle_id)
         
@@ -361,6 +378,9 @@ class ContinuousLearningSystem:
         Returns:
             Dict[str, Any]: System status information
         """
+        # Import models inside function to avoid circular imports
+        from models import LearningCycle, PromptVersion, PromptABTest, AIFeedback
+        
         # Get latest cycle
         latest_cycle = LearningCycle.query.order_by(LearningCycle.created_at.desc()).first()
         

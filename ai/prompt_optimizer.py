@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 
 from app import db
-from models import AIFeedback
+# Move model imports inside functions to avoid circular imports
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -35,6 +35,9 @@ class PromptOptimizer:
             List[Dict[str, Any]]: List of feedback entries
         """
         try:
+            # Import models here to avoid circular imports
+            from models import AIFeedback
+            
             # Calculate date cutoff
             cutoff_date = datetime.now() - timedelta(days=days)
             
@@ -405,6 +408,7 @@ class PromptOptimizer:
         Returns:
             Dict[str, Any]: Test configuration
         """
+        # Import models here to avoid circular imports
         from models import PromptABTest
         
         # Create test record

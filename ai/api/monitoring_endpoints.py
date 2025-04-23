@@ -7,14 +7,7 @@ from datetime import datetime, timedelta, date
 from flask import Blueprint, request, jsonify, current_app
 
 from app import db
-from models import (
-    SystemMetric, 
-    APIUsageLog, 
-    AIAgentMetrics, 
-    MonitoringAlert,
-    ScheduledReport,
-    ReportExecution
-)
+# Import models inside functions to avoid circular imports
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -33,6 +26,9 @@ alerts_api = Blueprint('alerts_api', __name__, url_prefix='/api/alerts')
 def record_metric():
     """Record a new system metric"""
     try:
+        # Import models inside function to avoid circular imports
+        from models import SystemMetric
+        
         data = request.json
         
         if not data:
@@ -91,6 +87,9 @@ def record_metric():
 def get_metrics():
     """Get system metrics with filtering options"""
     try:
+        # Import models inside function to avoid circular imports
+        from models import SystemMetric
+        
         metric_name = request.args.get('metric_name')
         category = request.args.get('category')
         component = request.args.get('component')
@@ -141,6 +140,9 @@ def get_metrics():
 def get_metrics_summary():
     """Get summary of system metrics grouped by name/category/component"""
     try:
+        # Import models inside function to avoid circular imports
+        from models import SystemMetric
+        
         group_by = request.args.get('group_by', default='metric_name')
         if group_by not in ['metric_name', 'category', 'component']:
             group_by = 'metric_name'
@@ -211,6 +213,9 @@ def get_metrics_summary():
 def get_metrics_trend():
     """Get trend data for a specific metric over time"""
     try:
+        # Import models inside function to avoid circular imports
+        from models import SystemMetric
+        
         metric_name = request.args.get('metric_name')
         component = request.args.get('component')
         days = request.args.get('days', default=30, type=int)
@@ -298,6 +303,9 @@ def get_metrics_trend():
 def record_api_usage():
     """Record API usage log (typically called by middleware)"""
     try:
+        # Import models inside function to avoid circular imports
+        from models import APIUsageLog
+        
         data = request.json
         
         if not data:
@@ -352,6 +360,9 @@ def record_api_usage():
 def get_api_usage():
     """Get API usage logs with filtering options"""
     try:
+        # Import models inside function to avoid circular imports
+        from models import APIUsageLog
+        
         endpoint = request.args.get('endpoint')
         method = request.args.get('method')
         status_code = request.args.get('status_code', type=int)
@@ -403,6 +414,9 @@ def get_api_usage():
 def get_api_usage_summary():
     """Get summary of API usage grouped by endpoint/method/status"""
     try:
+        # Import models inside function to avoid circular imports
+        from models import APIUsageLog
+        
         group_by = request.args.get('group_by', default='endpoint')
         days = request.args.get('days', default=7, type=int)
         
@@ -480,6 +494,9 @@ def get_api_usage_summary():
 def get_api_usage_trend():
     """Get API usage trend data over time"""
     try:
+        # Import models inside function to avoid circular imports
+        from models import APIUsageLog
+        
         days = request.args.get('days', default=30, type=int)
         interval = request.args.get('interval', default='day')
         
@@ -553,6 +570,9 @@ def get_api_usage_trend():
 def get_response_time_distribution():
     """Get distribution of API response times"""
     try:
+        # Import models inside function to avoid circular imports
+        from models import APIUsageLog
+        
         days = request.args.get('days', default=7, type=int)
         buckets = request.args.get('buckets', default=10, type=int)
         
@@ -620,6 +640,9 @@ def get_response_time_distribution():
 def get_status_code_distribution():
     """Get distribution of API status codes"""
     try:
+        # Import models inside function to avoid circular imports
+        from models import APIUsageLog
+        
         days = request.args.get('days', default=7, type=int)
         
         # Calculate start date
@@ -702,6 +725,9 @@ def get_status_code_distribution():
 def get_top_endpoints():
     """Get top API endpoints by usage"""
     try:
+        # Import models inside function to avoid circular imports
+        from models import APIUsageLog
+        
         days = request.args.get('days', default=7, type=int)
         limit = request.args.get('limit', default=10, type=int)
         
@@ -774,6 +800,10 @@ def get_top_endpoints():
 def record_ai_agent_metrics():
     """Record AI agent metrics (typically updated daily)"""
     try:
+        # Import models inside function to avoid circular imports
+        from models import AIAgentMetrics
+        from app import db
+        
         data = request.json
         
         if not data:
@@ -862,6 +892,9 @@ def record_ai_agent_metrics():
 def get_ai_agent_metrics():
     """Get AI agent metrics with filtering options"""
     try:
+        # Import models inside function to avoid circular imports
+        from models import AIAgentMetrics
+        
         agent_type = request.args.get('agent_type')
         prompt_version_id = request.args.get('prompt_version_id', type=int)
         days = request.args.get('days', default=30, type=int)
@@ -911,6 +944,9 @@ def get_ai_agent_metrics():
 def get_ai_agent_daily_trend():
     """Get daily trend data for AI agents over time"""
     try:
+        # Import models inside function to avoid circular imports
+        from models import AIAgentMetrics
+        
         days = request.args.get('days', default=30, type=int)
         agent_type = request.args.get('agent_type')
         

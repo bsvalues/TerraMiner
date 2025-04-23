@@ -12,7 +12,8 @@ import sqlalchemy
 from sqlalchemy.sql import text
 
 from app import db
-from models import SystemMetric, MonitoringAlert
+# Import models when needed to avoid circular imports
+# from models import SystemMetric, MonitoringAlert
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -128,6 +129,9 @@ class SystemMonitor:
     def _record_metric(self, name, value, unit, category, component):
         """Record a metric in the database."""
         try:
+            # Import models here to avoid circular imports
+            from models import SystemMetric
+            
             metric = SystemMetric(
                 metric_name=name,
                 metric_value=float(value),
@@ -267,6 +271,9 @@ class SystemMonitor:
     def _create_alert(self, alert_type, severity, component, message, details=None):
         """Create a new alert in the database if one doesn't already exist."""
         try:
+            # Import models here to avoid circular imports
+            from models import MonitoringAlert
+            
             # Check if there's already an active alert of this type
             existing_alert = MonitoringAlert.query.filter(
                 MonitoringAlert.alert_type == alert_type,

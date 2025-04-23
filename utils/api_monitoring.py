@@ -8,7 +8,8 @@ from flask import request, g, current_app
 from functools import wraps
 
 from app import db
-from models import APIUsageLog, SystemMetric
+# Import models when needed to avoid circular imports
+# from models import APIUsageLog, SystemMetric
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -48,6 +49,9 @@ def log_api_request(f):
         response_time = time.time() - start_time
         
         try:
+            # Import models here to avoid circular imports
+            from models import APIUsageLog, SystemMetric
+            
             # Create log entry
             log = APIUsageLog(
                 endpoint=request.path,
@@ -122,6 +126,9 @@ def setup_monitoring(app):
     @app.errorhandler(500)
     def internal_server_error(error):
         try:
+            # Import models here to avoid circular imports
+            from models import SystemMetric
+            
             # Record server error as a metric
             metric = SystemMetric(
                 metric_name="server_error",
