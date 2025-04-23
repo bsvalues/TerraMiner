@@ -907,6 +907,87 @@ def get_ai_agent_metrics():
             "message": str(e)
         }), 500
 
+@metrics_api.route('/ai-agent/daily-trend', methods=['GET'])
+def get_ai_agent_daily_trend():
+    """Get daily trend data for AI agents over time"""
+    try:
+        days = request.args.get('days', default=30, type=int)
+        agent_type = request.args.get('agent_type')
+        
+        # Calculate start date
+        start_date = date.today() - timedelta(days=days)
+        
+        # Build query
+        query = AIAgentMetrics.query.filter(AIAgentMetrics.date >= start_date)
+        
+        if agent_type:
+            query = query.filter(AIAgentMetrics.agent_type == agent_type)
+            
+        # Get data ordered by date
+        metrics = query.order_by(AIAgentMetrics.date.asc()).all()
+        
+        # Group metrics by date
+        trend_data = {}
+        for metric in metrics:
+            date_key = metric.date.strftime('%Y-%m-%d')
+            
+            if date_key not in trend_data:
+                trend_data[date_key] = {
+                    'date': date_key,
+                    'total_requests': 0,
+                    'total_tokens': 0,
+                    'avg_response_time': 0,
+                    'avg_rating': 0,
+                    'error_rate': 0,
+                    'request_count': 0,
+                    'response_time_total': 0,
+                    'rating_total': 0,
+                    'rating_count': 0,
+                    'error_count': 0
+                }
+            
+            # Aggregate data
+            trend_data[date_key]['total_requests'] += metric.requests
+            trend_data[date_key]['total_tokens'] += metric.tokens_used
+            trend_data[date_key]['response_time_total'] += metric.avg_response_time * metric.requests
+            trend_data[date_key]['request_count'] += metric.requests
+            
+            if metric.avg_rating > 0:
+                trend_data[date_key]['rating_total'] += metric.avg_rating * metric.feedback_count
+                trend_data[date_key]['rating_count'] += metric.feedback_count
+            
+            trend_data[date_key]['error_count'] += metric.error_count
+        
+        # Calculate averages for each day
+        result = []
+        for date_key, data in sorted(trend_data.items()):
+            if data['request_count'] > 0:
+                data['avg_response_time'] = data['response_time_total'] / data['request_count']
+                data['error_rate'] = (data['error_count'] / data['request_count']) * 100
+            
+            if data['rating_count'] > 0:
+                data['avg_rating'] = data['rating_total'] / data['rating_count']
+            
+            # Remove calculation fields
+            del data['response_time_total']
+            del data['request_count']
+            del data['rating_total']
+            del data['rating_count']
+            
+            result.append(data)
+        
+        return jsonify({
+            "status": "success",
+            "trend": result
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting AI agent daily trend: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
 @metrics_api.route('/ai-agent/summary', methods=['GET'])
 def get_ai_agent_metrics_summary():
     """Get summary of AI agent metrics grouped by agent type"""
