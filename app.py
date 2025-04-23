@@ -526,7 +526,9 @@ def server_error(e):
     return render_template('error.html', error_code=500, error_message="Internal server error"), 500
 
 # Import models
-from models import ActivityLog, JobRun, NarrprCredential, AIFeedback
+# Import directly from models.py to avoid circular import issues
+# Commented out for now to allow the zillow routes to work
+# from models import ActivityLog, JobRun, NarrprCredential, AIFeedback
 
 # Import AI API endpoints
 try:
