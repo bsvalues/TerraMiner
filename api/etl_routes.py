@@ -12,6 +12,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request, current_app
 
 from etl.manager import etl_manager
+from api.auth import api_key_required
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 etl_bp = Blueprint('etl', __name__, url_prefix='/api/etl')
 
 @etl_bp.route('/plugins', methods=['GET'])
+@api_key_required(['etl:read'])
 def get_plugins():
     """
     Get a list of available ETL plugins.
@@ -41,6 +43,7 @@ def get_plugins():
         }), 500
 
 @etl_bp.route('/jobs', methods=['POST'])
+@api_key_required(['etl:write'])
 def run_job():
     """
     Run an ETL job.
