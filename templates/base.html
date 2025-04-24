@@ -260,12 +260,12 @@
                 <h6 class="nav-divider">Configuration</h6>
                 <ul class="nav flex-column mb-5">
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'monitor.manage_alerts' %}active{% endif %}" href="{{ url_for('monitor.manage_alerts') }}">
+                        <a class="nav-link {% if request.endpoint == 'monitoring_alerts_active' %}active{% endif %}" href="{{ url_for('monitoring_alerts_active') }}">
                             <i class="bi bi-bell me-2"></i> Alert Rules
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'monitor.notification_channels' %}active{% endif %}" href="{{ url_for('monitor.notification_channels') }}">
+                        <a class="nav-link {% if request.endpoint == 'monitoring_alerts_history' %}active{% endif %}" href="{{ url_for('monitoring_alerts_history') }}">
                             <i class="bi bi-chat-square-text me-2"></i> Notification Channels
                         </a>
                     </li>

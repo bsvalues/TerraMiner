@@ -95,15 +95,15 @@ class ScheduledReport(db.Model):
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=True)
     report_type = db.Column(db.String(50), nullable=False)
-    schedule_type = db.Column(db.String(50), nullable=True)  # Type of schedule (daily, weekly, etc.)
-    cron_expression = db.Column(db.String(100), nullable=True)  # Custom cron expression if needed
-    parameters = db.Column(db.Text, nullable=True)  # JSON parameters for the report
-    format = db.Column(db.String(20), nullable=False, default='pdf')  # Format (pdf, csv, xlsx, html)
-    recipients = db.Column(db.Text, nullable=True)  # JSON array of recipients
-    is_active = db.Column(db.Boolean, nullable=False, default=True)  # Whether the report is active
+    schedule_type = db.Column(db.String(20), nullable=False)  # Type of schedule (daily, weekly, etc.)
+    recipients = db.Column(db.Text, nullable=False)  # JSON array of recipients
+    is_active = db.Column(db.Boolean, nullable=True)  # Whether the report is active
     last_run = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
+    cron_expression = db.Column(db.String(100), nullable=True)  # Custom cron expression if needed
+    parameters = db.Column(db.Text, nullable=True)  # JSON parameters for the report
+    format = db.Column(db.String(20), nullable=True)  # Format (pdf, csv, xlsx, html)
 
 class ReportExecution(db.Model):
     """Model for tracking report execution history."""
@@ -138,20 +138,23 @@ class ReportExecutionLog(db.Model):
 class PropertyLocation(db.Model):
     """Model for property location data."""
     id = db.Column(db.Integer, primary_key=True)
-    latitude = db.Column(db.Float, nullable=False)
-    longitude = db.Column(db.Float, nullable=False)
-    address = db.Column(db.String(255), nullable=True)
+    address = db.Column(db.String(255), nullable=False)
+    street = db.Column(db.String(100), nullable=True)
     city = db.Column(db.String(100), nullable=True)
     state = db.Column(db.String(50), nullable=True)
     zip_code = db.Column(db.String(20), nullable=True)
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
+    price = db.Column(db.String(50), nullable=True)
+    price_value = db.Column(db.Integer, nullable=True)
     property_type = db.Column(db.String(50), nullable=True)
-    price = db.Column(db.Float, nullable=True)
-    status = db.Column(db.String(20), nullable=True)  # For sale, sold, etc.
     bedrooms = db.Column(db.Integer, nullable=True)
     bathrooms = db.Column(db.Float, nullable=True)
     square_feet = db.Column(db.Integer, nullable=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
+    year_built = db.Column(db.Integer, nullable=True)
+    report_id = db.Column(db.Integer, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=True)
+    updated_at = db.Column(db.DateTime, nullable=True)
 
 class PriceTrend(db.Model):
     """Model for price trend data."""
