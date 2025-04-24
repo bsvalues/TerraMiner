@@ -12,10 +12,7 @@ from flask import (
 from sqlalchemy import func
 
 from app import db
-from models import (
-    MonitoringAlert, NotificationChannel, AlertRule, 
-    AlertNotificationMap, SystemMetric, APIUsageLog
-)
+# Import alert manager here but use models within functions to avoid circular imports
 from utils.alert_manager import AlertManager
 
 # Create a Blueprint for monitoring routes
@@ -31,6 +28,9 @@ logger = logging.getLogger(__name__)
 @monitor_bp.route('/alerts/manage', methods=['GET'])
 def manage_alerts():
     """Page for managing alerts and notification channels."""
+    # Import models locally to avoid circular imports
+    from models import AlertRule, NotificationChannel, AlertNotificationMap, MonitoringAlert
+    
     # Get active alert rules
     alert_rules = AlertRule.query.order_by(AlertRule.name).all()
     
@@ -57,6 +57,8 @@ def manage_alerts():
 @monitor_bp.route('/notification-channels', methods=['GET', 'POST'])
 def notification_channels():
     """Page for managing notification channels."""
+    # Import models locally to avoid circular imports
+    from models import NotificationChannel
     if request.method == 'POST':
         try:
             # Get form data
@@ -134,6 +136,9 @@ def notification_channels():
 @monitor_bp.route('/notification-channels/<int:channel_id>/edit', methods=['GET', 'POST'])
 def edit_notification_channel(channel_id):
     """Edit a notification channel."""
+    # Import models locally to avoid circular imports
+    from models import NotificationChannel
+    
     # Get channel
     channel = NotificationChannel.query.get_or_404(channel_id)
     

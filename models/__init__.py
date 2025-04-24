@@ -157,16 +157,26 @@ class PropertyLocation(db.Model):
     updated_at = db.Column(db.DateTime, nullable=True)
 
 class PriceTrend(db.Model):
-    """Model for price trend data."""
+    """Model for storing price trends by location over time."""
+    __tablename__ = 'price_trend'
+    
     id = db.Column(db.Integer, primary_key=True)
-    region = db.Column(db.String(100), nullable=False)  # City, state, zip code, etc.
-    region_type = db.Column(db.String(20), nullable=False)  # City, state, zip code, etc.
-    period = db.Column(db.String(20), nullable=False)  # Month, quarter, year
+    location_type = db.Column(db.String(20))  # city, state, zip, etc.
+    location_value = db.Column(db.String(100))  # actual city name, state code, zip code
+    city = db.Column(db.String(100))
+    state = db.Column(db.String(20))
+    zip_code = db.Column(db.String(20))
     date = db.Column(db.Date, nullable=False)
-    price = db.Column(db.Float, nullable=False)
-    change_from_prev = db.Column(db.Float, nullable=True)  # Percentage change from previous period
-    change_from_year_ago = db.Column(db.Float, nullable=True)  # Percentage change from same period last year
-    source = db.Column(db.String(50), nullable=False, default='zillow')  # Data source
+    median_price = db.Column(db.Integer)  # Stored as integer (cents)
+    avg_price = db.Column(db.Integer)  # Stored as integer (cents)
+    average_price = db.Column(db.Integer)
+    price_change = db.Column(db.Float)  # Percentage change from previous month
+    properties_sold = db.Column(db.Integer)
+    total_listings = db.Column(db.Integer)
+    new_listings = db.Column(db.Integer)
+    days_on_market = db.Column(db.Float)
+    price_per_sqft = db.Column(db.Integer)  # Stored as integer (cents)
+    created_at = db.Column(db.DateTime, default=datetime.now)
 
 class JobRun(db.Model):
     """Model for tracking execution of scheduled jobs."""
