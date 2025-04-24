@@ -2,7 +2,7 @@
 Database models for NARRPR data.
 """
 from datetime import datetime
-from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy import JSON
 
 from app import db
 

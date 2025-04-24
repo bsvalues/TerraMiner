@@ -175,6 +175,620 @@ class NarrprScraper:
             self.is_logged_in = False
             return False
     
+    def check_login_status(self):
+        """
+        Check if the scraper is currently logged in.
+        
+        Returns:
+            bool: True if logged in, False otherwise
+        """
+        if self.is_logged_in:
+            # Verify login status by checking current URL or cookies
+            try:
+                # Get current page to check login status
+                current_url = self.driver.current_url
+                
+                # If we're already on a NARRPR page, just check if we're logged in
+                if self.base_url in current_url:
+                    if "login" in current_url.lower():
+                        self.is_logged_in = False
+                    elif "dashboard" in current_url.lower() or "reports" in current_url.lower():
+                        self.is_logged_in = True
+                else:
+                    # Navigate to home page to check login status
+                    self.driver.get(f"{self.base_url}/home")
+                    time.sleep(3)  # Wait for page to load
+                    
+                    # Check if we were redirected to login
+                    if "login" in self.driver.current_url.lower():
+                        self.is_logged_in = False
+                    else:
+                        self.is_logged_in = True
+                
+                return self.is_logged_in
+                
+            except Exception as e:
+                logger.error(f"Error checking login status: {str(e)}")
+                return False
+        else:
+            return False
+    
+    def scrape_property_details(self, property_id):
+        """
+        Scrape details for a specific property.
+        
+        Args:
+            property_id (str): Property ID in NARRPR
+            
+        Returns:
+            dict: Dictionary containing property details
+        """
+        if not self.check_login_status():
+            logger.error("Not logged in. Cannot scrape property details.")
+            return {}
+        
+        try:
+            logger.info(f"Navigating to property details page for property ID: {property_id}")
+            self.driver.get(f"{self.base_url}/property/{property_id}")
+            
+            # Wait for property details to load
+            WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located((By.CLASS_NAME, "property-details"))
+            )
+            
+            # Extract property data
+            property_data = {
+                'property_id': property_id,
+                'address': {},
+                'property_type': '',
+                'beds': None,
+                'baths': None,
+                'square_feet': None,
+                'year_built': None,
+                'lot_size': None,
+                'estimated_value': None
+            }
+            
+            # Extract address
+            try:
+                address_element = self.driver.find_element(By.CLASS_NAME, "property-address")
+                full_address = address_element.text
+                address_parts = full_address.split(',')
+                
+                property_data['address']['full_address'] = full_address
+                property_data['address']['street'] = address_parts[0].strip() if len(address_parts) > 0 else ''
+                
+                if len(address_parts) > 1:
+                    city_state_zip = address_parts[1].strip().split(' ')
+                    property_data['address']['city'] = ' '.join(city_state_zip[:-2]).strip() if len(city_state_zip) > 2 else ''
+                    property_data['address']['state'] = city_state_zip[-2].strip() if len(city_state_zip) > 1 else ''
+                    property_data['address']['zip_code'] = city_state_zip[-1].strip() if len(city_state_zip) > 0 else ''
+            except Exception as e:
+                logger.warning(f"Error extracting address: {str(e)}")
+            
+            # Extract property details
+            try:
+                # Extract property type
+                property_type_element = self.driver.find_element(By.XPATH, "//div[contains(@class, 'property-type')]")
+                property_data['property_type'] = property_type_element.text.strip()
+            except Exception:
+                logger.warning("Property type not found")
+                
+            # Extract beds, baths, square feet
+            try:
+                specs_elements = self.driver.find_elements(By.XPATH, "//div[contains(@class, 'property-specs')]/div")
+                for spec in specs_elements:
+                    spec_text = spec.text.lower()
+                    
+                    if 'bed' in spec_text:
+                        try:
+                            property_data['beds'] = float(spec_text.split()[0])
+                        except (ValueError, IndexError):
+                            pass
+                    elif 'bath' in spec_text:
+                        try:
+                            property_data['baths'] = float(spec_text.split()[0])
+                        except (ValueError, IndexError):
+                            pass
+                    elif 'sq ft' in spec_text or 'sqft' in spec_text:
+                        try:
+                            # Remove commas and convert to integer
+                            sqft_text = spec_text.split()[0].replace(',', '')
+                            property_data['square_feet'] = int(sqft_text)
+                        except (ValueError, IndexError):
+                            pass
+            except Exception as e:
+                logger.warning(f"Error extracting property specs: {str(e)}")
+                
+            # Extract year built and lot size
+            try:
+                details_elements = self.driver.find_elements(By.XPATH, "//div[contains(@class, 'property-details-section')]//div[@class='detail-item']")
+                for detail in details_elements:
+                    detail_text = detail.text.lower()
+                    
+                    if 'year built' in detail_text:
+                        try:
+                            property_data['year_built'] = int(detail_text.split(':')[1].strip())
+                        except (ValueError, IndexError):
+                            pass
+                    elif 'lot size' in detail_text:
+                        try:
+                            lot_size_text = detail_text.split(':')[1].strip()
+                            # Extract numeric value, assuming it's in acres
+                            property_data['lot_size'] = float(lot_size_text.split()[0].replace(',', ''))
+                        except (ValueError, IndexError):
+                            pass
+            except Exception as e:
+                logger.warning(f"Error extracting additional property details: {str(e)}")
+                
+            # Extract estimated value
+            try:
+                value_element = self.driver.find_element(By.XPATH, "//div[contains(@class, 'estimated-value')]")
+                value_text = value_element.text.strip().replace('$', '').replace(',', '')
+                property_data['estimated_value'] = int(value_text)
+            except Exception:
+                logger.warning("Estimated value not found")
+                
+            return property_data
+            
+        except TimeoutException:
+            logger.error("Timed out waiting for property details to load")
+            return {}
+        except Exception as e:
+            logger.error(f"Error scraping property details: {str(e)}")
+            return {}
+    
+    def scrape_property_valuations(self, property_id):
+        """
+        Scrape valuation data for a specific property.
+        
+        Args:
+            property_id (str): Property ID in NARRPR
+            
+        Returns:
+            dict: Dictionary containing property valuation data
+        """
+        if not self.check_login_status():
+            logger.error("Not logged in. Cannot scrape property valuations.")
+            return {}
+        
+        try:
+            logger.info(f"Navigating to property valuation page for property ID: {property_id}")
+            self.driver.get(f"{self.base_url}/property/{property_id}/valuation")
+            
+            # Wait for valuation data to load
+            WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located((By.CLASS_NAME, "valuation-section"))
+            )
+            
+            # Extract valuation data
+            valuation_data = {
+                'property_id': property_id,
+                'estimated_value': None,
+                'value_range_low': None,
+                'value_range_high': None,
+                'confidence_score': None,
+                'valuation_date': None,
+                'historical_values': []
+            }
+            
+            # Extract current valuation
+            try:
+                current_value_element = self.driver.find_element(By.XPATH, "//div[contains(@class, 'current-value')]")
+                value_text = current_value_element.text.strip().replace('$', '').replace(',', '')
+                valuation_data['estimated_value'] = int(value_text)
+            except Exception as e:
+                logger.warning(f"Error extracting current value: {str(e)}")
+                
+            # Extract value range
+            try:
+                range_element = self.driver.find_element(By.XPATH, "//div[contains(@class, 'value-range')]")
+                range_text = range_element.text.strip()
+                
+                # Extract low and high values from range text like "$300,000 - $350,000"
+                range_parts = range_text.split('-')
+                if len(range_parts) == 2:
+                    low_text = range_parts[0].strip().replace('$', '').replace(',', '')
+                    high_text = range_parts[1].strip().replace('$', '').replace(',', '')
+                    
+                    valuation_data['value_range_low'] = int(low_text)
+                    valuation_data['value_range_high'] = int(high_text)
+            except Exception as e:
+                logger.warning(f"Error extracting value range: {str(e)}")
+                
+            # Extract confidence score
+            try:
+                confidence_element = self.driver.find_element(By.XPATH, "//div[contains(@class, 'confidence-score')]")
+                confidence_text = confidence_element.text.strip().replace('%', '')
+                valuation_data['confidence_score'] = int(confidence_text)
+            except Exception as e:
+                logger.warning(f"Error extracting confidence score: {str(e)}")
+                
+            # Extract valuation date
+            try:
+                date_element = self.driver.find_element(By.XPATH, "//div[contains(@class, 'valuation-date')]")
+                valuation_data['valuation_date'] = date_element.text.strip()
+            except Exception as e:
+                logger.warning(f"Error extracting valuation date: {str(e)}")
+                
+            # Extract historical values
+            try:
+                history_elements = self.driver.find_elements(By.XPATH, "//div[contains(@class, 'valuation-history')]/div[@class='history-item']")
+                
+                for item in history_elements:
+                    try:
+                        date_element = item.find_element(By.XPATH, ".//div[@class='history-date']")
+                        value_element = item.find_element(By.XPATH, ".//div[@class='history-value']")
+                        
+                        history_date = date_element.text.strip()
+                        history_value_text = value_element.text.strip().replace('$', '').replace(',', '')
+                        history_value = int(history_value_text)
+                        
+                        valuation_data['historical_values'].append({
+                            'date': history_date,
+                            'value': history_value
+                        })
+                    except Exception as e:
+                        logger.warning(f"Error extracting historical value item: {str(e)}")
+            except Exception as e:
+                logger.warning(f"Error extracting historical values: {str(e)}")
+                
+            return valuation_data
+            
+        except TimeoutException:
+            logger.error("Timed out waiting for property valuation data to load")
+            return {}
+        except Exception as e:
+            logger.error(f"Error scraping property valuations: {str(e)}")
+            return {}
+    
+    def scrape_comparable_properties(self, property_id):
+        """
+        Scrape comparable properties data for a specific property.
+        
+        Args:
+            property_id (str): Property ID in NARRPR
+            
+        Returns:
+            list: List of dictionaries containing comparable properties data
+        """
+        if not self.check_login_status():
+            logger.error("Not logged in. Cannot scrape comparable properties.")
+            return []
+        
+        try:
+            logger.info(f"Navigating to comparable properties page for property ID: {property_id}")
+            self.driver.get(f"{self.base_url}/property/{property_id}/comparables")
+            
+            # Wait for comparables data to load
+            WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located((By.CLASS_NAME, "comparables-section"))
+            )
+            
+            # Extract comparables data
+            comparables_data = []
+            comparable_items = self.driver.find_elements(By.XPATH, "//div[contains(@class, 'comparable-item')]")
+            
+            logger.info(f"Found {len(comparable_items)} comparable properties")
+            
+            for item in comparable_items:
+                try:
+                    comparable = {
+                        'id': '',
+                        'address': '',
+                        'distance': None,
+                        'price': None,
+                        'beds': None,
+                        'baths': None,
+                        'square_feet': None,
+                        'year_built': None,
+                        'sale_date': None
+                    }
+                    
+                    # Extract ID (if available)
+                    try:
+                        id_element = item.find_element(By.XPATH, ".//div[@class='comparable-id']")
+                        comparable['id'] = id_element.text.strip()
+                    except NoSuchElementException:
+                        # Try to extract from a data attribute or URL
+                        try:
+                            href_attr = item.find_element(By.TAG_NAME, "a").get_attribute("href")
+                            if href_attr and '/property/' in href_attr:
+                                comparable['id'] = href_attr.split('/property/')[1].split('/')[0]
+                        except:
+                            pass
+                    
+                    # Extract address
+                    try:
+                        address_element = item.find_element(By.XPATH, ".//div[contains(@class, 'comparable-address')]")
+                        comparable['address'] = address_element.text.strip()
+                    except NoSuchElementException:
+                        pass
+                        
+                    # Extract distance
+                    try:
+                        distance_element = item.find_element(By.XPATH, ".//div[contains(@class, 'comparable-distance')]")
+                        distance_text = distance_element.text.strip().replace('miles', '').strip()
+                        comparable['distance'] = float(distance_text)
+                    except (NoSuchElementException, ValueError):
+                        pass
+                        
+                    # Extract price
+                    try:
+                        price_element = item.find_element(By.XPATH, ".//div[contains(@class, 'comparable-price')]")
+                        price_text = price_element.text.strip().replace('$', '').replace(',', '')
+                        comparable['price'] = int(price_text)
+                    except (NoSuchElementException, ValueError):
+                        pass
+                        
+                    # Extract other details
+                    try:
+                        details_elements = item.find_elements(By.XPATH, ".//div[contains(@class, 'comparable-details')]/div")
+                        for detail in details_elements:
+                            detail_text = detail.text.lower()
+                            
+                            if 'bed' in detail_text:
+                                try:
+                                    comparable['beds'] = float(detail_text.split()[0])
+                                except (ValueError, IndexError):
+                                    pass
+                            elif 'bath' in detail_text:
+                                try:
+                                    comparable['baths'] = float(detail_text.split()[0])
+                                except (ValueError, IndexError):
+                                    pass
+                            elif 'sq ft' in detail_text or 'sqft' in detail_text:
+                                try:
+                                    sqft_text = detail_text.split()[0].replace(',', '')
+                                    comparable['square_feet'] = int(sqft_text)
+                                except (ValueError, IndexError):
+                                    pass
+                            elif 'year built' in detail_text:
+                                try:
+                                    comparable['year_built'] = int(detail_text.split(':')[1].strip())
+                                except (ValueError, IndexError):
+                                    pass
+                            elif 'sold' in detail_text or 'sale date' in detail_text:
+                                try:
+                                    comparable['sale_date'] = detail_text.split(':')[1].strip()
+                                except (IndexError):
+                                    pass
+                    except Exception as e:
+                        logger.warning(f"Error extracting comparable details: {str(e)}")
+                    
+                    comparables_data.append(comparable)
+                    
+                except Exception as e:
+                    logger.warning(f"Error extracting data from comparable: {str(e)}")
+                    continue
+            
+            return comparables_data
+            
+        except TimeoutException:
+            logger.error("Timed out waiting for comparable properties to load")
+            return []
+        except Exception as e:
+            logger.error(f"Error scraping comparable properties: {str(e)}")
+            return []
+            
+    def scrape_zip_market_activity(self, zip_code):
+        """
+        Scrape market activity data for a specific zip code.
+        
+        Args:
+            zip_code (str): Zip code to scrape market activity for
+            
+        Returns:
+            dict: Dictionary containing market activity data
+        """
+        if not self.check_login_status():
+            logger.error("Not logged in. Cannot scrape zip code market activity.")
+            return {}
+        
+        try:
+            logger.info(f"Navigating to market activity page for zip code: {zip_code}")
+            self.driver.get(f"{self.base_url}/market-activity/zip/{zip_code}")
+            
+            # Wait for market data to load
+            WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located((By.CLASS_NAME, "market-stats"))
+            )
+            
+            # Structure to store market activity data
+            market_data = {
+                'location_info': {
+                    'type': 'zip',
+                    'id': zip_code,
+                    'name': zip_code
+                },
+                'market_stats': {}
+            }
+            
+            # Get zip code name (city, state)
+            try:
+                location_element = self.driver.find_element(By.CLASS_NAME, "location-name")
+                market_data['location_info']['name'] = location_element.text.strip()
+            except NoSuchElementException:
+                pass
+                
+            # Extract market statistics
+            try:
+                # Get median list price
+                try:
+                    list_price_element = self.driver.find_element(By.XPATH, "//div[contains(@class, 'stat-item') and contains(., 'Median List Price')]")
+                    price_text = list_price_element.text.split('\n')[1].replace('$', '').replace(',', '')
+                    market_data['market_stats']['median_list_price'] = int(price_text)
+                except (NoSuchElementException, IndexError, ValueError):
+                    pass
+                    
+                # Get median sold price
+                try:
+                    sold_price_element = self.driver.find_element(By.XPATH, "//div[contains(@class, 'stat-item') and contains(., 'Median Sold Price')]")
+                    price_text = sold_price_element.text.split('\n')[1].replace('$', '').replace(',', '')
+                    market_data['market_stats']['median_sold_price'] = int(price_text)
+                except (NoSuchElementException, IndexError, ValueError):
+                    pass
+                    
+                # Get median days on market
+                try:
+                    dom_element = self.driver.find_element(By.XPATH, "//div[contains(@class, 'stat-item') and contains(., 'Median Days on Market')]")
+                    dom_text = dom_element.text.split('\n')[1].split()[0]
+                    market_data['market_stats']['median_days_on_market'] = int(dom_text)
+                except (NoSuchElementException, IndexError, ValueError):
+                    pass
+                    
+                # Get total properties
+                try:
+                    properties_element = self.driver.find_element(By.XPATH, "//div[contains(@class, 'stat-item') and contains(., 'Total Properties')]")
+                    properties_text = properties_element.text.split('\n')[1].replace(',', '')
+                    market_data['market_stats']['total_properties'] = int(properties_text)
+                except (NoSuchElementException, IndexError, ValueError):
+                    pass
+                    
+                # Get active listings
+                try:
+                    active_element = self.driver.find_element(By.XPATH, "//div[contains(@class, 'stat-item') and contains(., 'Active Listings')]")
+                    active_text = active_element.text.split('\n')[1].replace(',', '')
+                    market_data['market_stats']['active_listings'] = int(active_text)
+                except (NoSuchElementException, IndexError, ValueError):
+                    pass
+                    
+                # Get sold in last 6 months
+                try:
+                    sold_element = self.driver.find_element(By.XPATH, "//div[contains(@class, 'stat-item') and contains(., 'Sold Last 6 Months')]")
+                    sold_text = sold_element.text.split('\n')[1].replace(',', '')
+                    market_data['market_stats']['sold_last_6_months'] = int(sold_text)
+                except (NoSuchElementException, IndexError, ValueError):
+                    pass
+                    
+                # Get price per sqft
+                try:
+                    sqft_element = self.driver.find_element(By.XPATH, "//div[contains(@class, 'stat-item') and contains(., 'Price Per Sq Ft')]")
+                    sqft_text = sqft_element.text.split('\n')[1].replace('$', '').replace(',', '')
+                    market_data['market_stats']['price_per_sqft'] = int(sqft_text)
+                except (NoSuchElementException, IndexError, ValueError):
+                    pass
+            except Exception as e:
+                logger.warning(f"Error extracting market statistics: {str(e)}")
+                
+            return market_data
+            
+        except TimeoutException:
+            logger.error("Timed out waiting for market activity data to load")
+            return {}
+        except Exception as e:
+            logger.error(f"Error scraping zip code market activity: {str(e)}")
+            return {}
+            
+    def scrape_neighborhood_market_activity(self, neighborhood_id):
+        """
+        Scrape market activity data for a specific neighborhood.
+        
+        Args:
+            neighborhood_id (str): Neighborhood ID to scrape market activity for
+            
+        Returns:
+            dict: Dictionary containing market activity data
+        """
+        if not self.check_login_status():
+            logger.error("Not logged in. Cannot scrape neighborhood market activity.")
+            return {}
+        
+        try:
+            logger.info(f"Navigating to market activity page for neighborhood ID: {neighborhood_id}")
+            self.driver.get(f"{self.base_url}/market-activity/neighborhood/{neighborhood_id}")
+            
+            # Wait for market data to load
+            WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located((By.CLASS_NAME, "market-stats"))
+            )
+            
+            # Structure to store market activity data
+            market_data = {
+                'location_info': {
+                    'type': 'neighborhood',
+                    'id': neighborhood_id,
+                    'name': ''
+                },
+                'market_stats': {}
+            }
+            
+            # Get neighborhood name
+            try:
+                location_element = self.driver.find_element(By.CLASS_NAME, "location-name")
+                market_data['location_info']['name'] = location_element.text.strip()
+            except NoSuchElementException:
+                pass
+                
+            # Extract market statistics (same as zip code method)
+            try:
+                # Get median list price
+                try:
+                    list_price_element = self.driver.find_element(By.XPATH, "//div[contains(@class, 'stat-item') and contains(., 'Median List Price')]")
+                    price_text = list_price_element.text.split('\n')[1].replace('$', '').replace(',', '')
+                    market_data['market_stats']['median_list_price'] = int(price_text)
+                except (NoSuchElementException, IndexError, ValueError):
+                    pass
+                    
+                # Get median sold price
+                try:
+                    sold_price_element = self.driver.find_element(By.XPATH, "//div[contains(@class, 'stat-item') and contains(., 'Median Sold Price')]")
+                    price_text = sold_price_element.text.split('\n')[1].replace('$', '').replace(',', '')
+                    market_data['market_stats']['median_sold_price'] = int(price_text)
+                except (NoSuchElementException, IndexError, ValueError):
+                    pass
+                    
+                # Get median days on market
+                try:
+                    dom_element = self.driver.find_element(By.XPATH, "//div[contains(@class, 'stat-item') and contains(., 'Median Days on Market')]")
+                    dom_text = dom_element.text.split('\n')[1].split()[0]
+                    market_data['market_stats']['median_days_on_market'] = int(dom_text)
+                except (NoSuchElementException, IndexError, ValueError):
+                    pass
+                    
+                # Get total properties
+                try:
+                    properties_element = self.driver.find_element(By.XPATH, "//div[contains(@class, 'stat-item') and contains(., 'Total Properties')]")
+                    properties_text = properties_element.text.split('\n')[1].replace(',', '')
+                    market_data['market_stats']['total_properties'] = int(properties_text)
+                except (NoSuchElementException, IndexError, ValueError):
+                    pass
+                    
+                # Get active listings
+                try:
+                    active_element = self.driver.find_element(By.XPATH, "//div[contains(@class, 'stat-item') and contains(., 'Active Listings')]")
+                    active_text = active_element.text.split('\n')[1].replace(',', '')
+                    market_data['market_stats']['active_listings'] = int(active_text)
+                except (NoSuchElementException, IndexError, ValueError):
+                    pass
+                    
+                # Get sold in last 6 months
+                try:
+                    sold_element = self.driver.find_element(By.XPATH, "//div[contains(@class, 'stat-item') and contains(., 'Sold Last 6 Months')]")
+                    sold_text = sold_element.text.split('\n')[1].replace(',', '')
+                    market_data['market_stats']['sold_last_6_months'] = int(sold_text)
+                except (NoSuchElementException, IndexError, ValueError):
+                    pass
+                    
+                # Get price per sqft
+                try:
+                    sqft_element = self.driver.find_element(By.XPATH, "//div[contains(@class, 'stat-item') and contains(., 'Price Per Sq Ft')]")
+                    sqft_text = sqft_element.text.split('\n')[1].replace('$', '').replace(',', '')
+                    market_data['market_stats']['price_per_sqft'] = int(sqft_text)
+                except (NoSuchElementException, IndexError, ValueError):
+                    pass
+            except Exception as e:
+                logger.warning(f"Error extracting market statistics: {str(e)}")
+                
+            return market_data
+            
+        except TimeoutException:
+            logger.error("Timed out waiting for market activity data to load")
+            return {}
+        except Exception as e:
+            logger.error(f"Error scraping neighborhood market activity: {str(e)}")
+            return {}
+    
     def scrape_reports(self):
         """
         Navigate to the reports section and scrape report data.

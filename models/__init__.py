@@ -1,5 +1,6 @@
 # Import models from specific modules
 from models.zillow_data import ZillowMarketData, ZillowPriceTrend, ZillowProperty
+from models.narrpr_data import NarrprReport, NarrprProperty, NarrprComparableProperty, NarrprMarketActivity
 
 # Import directly from main models module
 from app import db
@@ -239,6 +240,9 @@ class AIFeedbackReportSettings(db.Model):
 __all__ = [
     # Zillow models
     'ZillowMarketData', 'ZillowPriceTrend', 'ZillowProperty',
+    
+    # NARRPR models
+    'NarrprReport', 'NarrprProperty', 'NarrprComparableProperty', 'NarrprMarketActivity',
     
     # Monitoring models
     'SystemMetric', 'APIUsageLog', 'MonitoringAlert', 'ScheduledReport',
