@@ -97,7 +97,7 @@ class ScheduledReport(db.Model):
     report_type = db.Column(db.String(50), nullable=False)
     schedule_type = db.Column(db.String(20), nullable=False)  # Type of schedule (daily, weekly, etc.)
     recipients = db.Column(db.Text, nullable=False)  # JSON array of recipients
-    is_active = db.Column(db.Boolean, nullable=True)  # Whether the report is active
+    is_active = db.Column(db.Boolean, default=True)  # Whether the report is active
     last_run = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)

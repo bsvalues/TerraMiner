@@ -209,6 +209,9 @@ def edit_notification_channel(channel_id):
 @monitor_bp.route('/notification-channels/<int:channel_id>/delete', methods=['POST'])
 def delete_notification_channel(channel_id):
     """Delete a notification channel."""
+    # Import models locally to avoid circular imports
+    from models import NotificationChannel, AlertNotificationMap
+    
     # Get channel
     channel = NotificationChannel.query.get_or_404(channel_id)
     
