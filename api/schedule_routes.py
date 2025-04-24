@@ -148,7 +148,7 @@ def create_schedule():
         day_of_week=data.get('day_of_week'),
         day_of_month=data.get('day_of_month'),
         cron_expression=data.get('cron_expression'),
-        created_by=request.api_key.get('name', 'Unknown')
+        created_by="API User"
     )
     
     # Calculate the next run time
@@ -372,7 +372,7 @@ def run_schedule_now(schedule_id):
     Returns:
         JSON: Job ID and status information
     """
-    from etl.manager import ETLJobManager
+    from etl.manager import etl_manager
     
     schedule = ETLSchedule.query.get(schedule_id)
     
@@ -382,11 +382,8 @@ def run_schedule_now(schedule_id):
             'error': f'Schedule with ID {schedule_id} not found'
         }), 404
     
-    # Get the ETL job manager
-    job_manager = ETLJobManager()
-    
     # Start the job with the schedule's configuration
-    job_id = job_manager.start_job(
+    job_id = etl_manager.start_job(
         plugin_name=schedule.plugin_name,
         config=schedule.config or {},
         async_execution=True,

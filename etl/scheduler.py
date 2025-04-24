@@ -11,7 +11,7 @@ import time
 from datetime import datetime, timedelta
 
 from app import db
-from etl.manager import ETLJobManager
+from etl.manager import etl_manager
 from models import ETLSchedule
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ class ETLScheduler:
         self.check_interval = check_interval
         self.running = False
         self.thread = None
-        self.job_manager = ETLJobManager()
+        self.job_manager = etl_manager
         logger.info("ETL Scheduler initialized")
     
     def start(self):
