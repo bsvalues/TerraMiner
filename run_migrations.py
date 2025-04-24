@@ -1,44 +1,24 @@
-#!/usr/bin/env python
 """
-Script to run database migrations.
+Script to run database migrations and create necessary tables.
 """
-import sys
 import logging
-from app import app
-from db.migrations import run_all_migrations
+from app import app, db
 
-# Setup logger
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
-)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def main():
-    """
-    Main function to run database migrations.
-    """
-    logger.info("Starting database migrations...")
-    
-    with app.app_context():
-        results = run_all_migrations()
-        
-        # Check if all migrations were successful
-        all_successful = all(results.values())
-        
-        if all_successful:
-            logger.info("All migrations completed successfully!")
-        else:
-            logger.error("Some migrations failed:")
-            for table, success in results.items():
-                if not success:
-                    logger.error(f"  - {table}")
-            sys.exit(1)
-    
-    logger.info("Migrations completed.")
+def run_migrations():
+    """Run migrations to create or update database tables."""
+    try:
+        logger.info("Starting database migrations...")
+        with app.app_context():
+            # Create tables that don't exist
+            db.create_all()
+            logger.info("Database tables created successfully")
+
+    except Exception as e:
+        logger.error(f"Error during migration: {str(e)}")
+        raise
 
 if __name__ == "__main__":
-    main()
+    run_migrations()

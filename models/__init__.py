@@ -95,10 +95,12 @@ class ScheduledReport(db.Model):
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=True)
     report_type = db.Column(db.String(50), nullable=False)
-    config = db.Column(db.Text, nullable=False)  # JSON configuration
-    schedule = db.Column(db.String(50), nullable=False)  # Cron expression
+    schedule_type = db.Column(db.String(50), nullable=True)  # Type of schedule (daily, weekly, etc.)
+    cron_expression = db.Column(db.String(100), nullable=True)  # Custom cron expression if needed
+    parameters = db.Column(db.Text, nullable=True)  # JSON parameters for the report
     format = db.Column(db.String(20), nullable=False, default='pdf')  # Format (pdf, csv, xlsx, html)
     recipients = db.Column(db.Text, nullable=True)  # JSON array of recipients
+    is_active = db.Column(db.Boolean, nullable=False, default=True)  # Whether the report is active
     last_run = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
@@ -116,6 +118,22 @@ class ReportExecution(db.Model):
     
     # Relationship
     report = db.relationship('ScheduledReport', backref=db.backref('executions', lazy=True))
+    
+class ReportExecutionLog(db.Model):
+    """Model for logging report execution history with more detailed information."""
+    id = db.Column(db.Integer, primary_key=True)
+    report_id = db.Column(db.Integer, db.ForeignKey('scheduled_report.id'), nullable=True)
+    report_type = db.Column(db.String(50), nullable=False)  # Type of report
+    execution_time = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    completion_time = db.Column(db.DateTime, nullable=True)
+    status = db.Column(db.String(20), nullable=False, default='processing')  # 'success', 'error', 'processing'
+    recipient_count = db.Column(db.Integer, default=0)  # Number of recipients
+    format = db.Column(db.String(20), nullable=True)  # Report format
+    error_message = db.Column(db.Text, nullable=True)  # Error message if status is 'error'
+    parameters = db.Column(db.Text, nullable=True)  # JSON of parameters used for the report
+    
+    # Relationship with report (if associated with a scheduled report)
+    report = db.relationship('ScheduledReport', backref=db.backref('execution_logs', lazy=True))
 
 class PropertyLocation(db.Model):
     """Model for property location data."""
@@ -147,6 +165,63 @@ class PriceTrend(db.Model):
     change_from_year_ago = db.Column(db.Float, nullable=True)  # Percentage change from same period last year
     source = db.Column(db.String(50), nullable=False, default='zillow')  # Data source
 
+class JobRun(db.Model):
+    """Model for tracking execution of scheduled jobs."""
+    id = db.Column(db.Integer, primary_key=True)
+    job_name = db.Column(db.String(100), nullable=False)  # Name of the job
+    status = db.Column(db.String(20), nullable=False)  # Status (running, success, failure)
+    start_time = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    end_time = db.Column(db.DateTime, nullable=True)
+    runtime_seconds = db.Column(db.Float, nullable=True)  # Runtime in seconds
+    error_message = db.Column(db.Text, nullable=True)  # Error message if failed
+    result_summary = db.Column(db.Text, nullable=True)  # Summary of results
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    
+    def __repr__(self):
+        return f"<JobRun id={self.id} job={self.job_name} status={self.status}>"
+
+class AIFeedbackReportSettings(db.Model):
+    """Model for storing AI feedback report settings."""
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Recipients
+    admin_email = db.Column(db.String(255), nullable=True)  # Primary admin email for reports
+    additional_recipients = db.Column(db.Text, nullable=True)  # JSON array of additional email addresses
+    
+    # Schedule settings
+    send_daily_reports = db.Column(db.Boolean, default=False)
+    send_weekly_reports = db.Column(db.Boolean, default=True)
+    send_monthly_reports = db.Column(db.Boolean, default=True)
+    
+    # Weekly report day (0-6, Monday to Sunday)
+    weekly_report_day = db.Column(db.Integer, default=0)
+    
+    # Monthly report day (1-31)
+    monthly_report_day = db.Column(db.Integer, default=1)
+    
+    # Report content settings
+    include_detailed_feedback = db.Column(db.Boolean, default=True)
+    include_csv_attachment = db.Column(db.Boolean, default=True)
+    include_excel_attachment = db.Column(db.Boolean, default=True)
+    
+    # Updated timestamp
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    def __repr__(self):
+        return f"<AIFeedbackReportSettings id={self.id}>"
+    
+    @staticmethod
+    def get_settings():
+        """Get the current settings, creating default settings if none exist."""
+        from app import db
+        
+        settings = AIFeedbackReportSettings.query.first()
+        if not settings:
+            settings = AIFeedbackReportSettings()
+            db.session.add(settings)
+            db.session.commit()
+        return settings
+
 # Re-export all models so they can be imported from models directly
 __all__ = [
     # Zillow models
@@ -154,7 +229,8 @@ __all__ = [
     
     # Monitoring models
     'SystemMetric', 'APIUsageLog', 'MonitoringAlert', 'ScheduledReport',
-    'ReportExecution', 'AIAgentMetrics',
+    'ReportExecution', 'AIAgentMetrics', 'JobRun', 'ReportExecutionLog',
+    'AIFeedbackReportSettings',
     
     # Geographical models
     'PropertyLocation', 'PriceTrend'
