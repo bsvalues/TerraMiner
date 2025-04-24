@@ -64,9 +64,14 @@ class ETLScheduler:
         """Main scheduler loop."""
         logger.info("Scheduler loop started")
         
+        # Import Flask app to get the application context
+        from app import app
+        
         while self.running:
             try:
-                self._run_due_jobs()
+                # Run within Flask application context
+                with app.app_context():
+                    self._run_due_jobs()
             except Exception as e:
                 logger.exception(f"Error in scheduler loop: {str(e)}")
             

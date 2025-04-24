@@ -1827,6 +1827,15 @@ def zillow_properties():
 with app.app_context():
     # Create tables
     db.create_all()
+    
+    # Import and start the ETL scheduler
+    try:
+        from etl.scheduler import start_scheduler
+        logger.info("Starting ETL job scheduler")
+        start_scheduler()
+        logger.info("ETL job scheduler started successfully")
+    except Exception as e:
+        logger.error(f"Failed to start ETL job scheduler: {str(e)}")
 
 # Main entry point
 if __name__ == "__main__":
