@@ -11,9 +11,16 @@ from flask import (
 )
 from sqlalchemy import func
 
-from app import db
-# Import alert manager here but use models within functions to avoid circular imports
+# Import alert manager but use models within functions to avoid circular imports
 from utils.alert_manager import AlertManager
+
+# Set up logger
+logger = logging.getLogger(__name__)
+
+# Helper function to get db session to avoid circular imports
+def get_db():
+    from app import db
+    return db
 
 # Create a Blueprint for monitoring routes
 monitor_bp = Blueprint('monitor', __name__, url_prefix='/monitor')
@@ -113,6 +120,7 @@ def notification_channels():
                 is_active=is_active
             )
             
+            db = get_db()
             db.session.add(channel)
             db.session.commit()
             
@@ -120,6 +128,7 @@ def notification_channels():
             return redirect(url_for('monitor.notification_channels'))
             
         except Exception as e:
+            db = get_db()
             db.session.rollback()
             logger.error(f"Error creating notification channel: {str(e)}")
             flash(f'Error creating notification channel: {str(e)}', 'danger')

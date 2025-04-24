@@ -1303,6 +1303,40 @@ def monitoring_alerts_active():
     return render_template('monitoring_alerts_active.html', 
                           alerts=alerts,
                           alerts_by_severity=alerts_by_severity)
+                          
+@app.route('/monitoring/alerts/<int:alert_id>/acknowledge', methods=['POST'])
+def acknowledge_alert(alert_id):
+    """Acknowledge an alert."""
+    from models import MonitoringAlert
+    
+    alert = MonitoringAlert.query.get_or_404(alert_id)
+    
+    if alert.status == 'resolved':
+        flash('This alert is already resolved.', 'warning')
+    else:
+        alert.status = 'acknowledged'
+        alert.acknowledged_at = datetime.now()
+        db.session.commit()
+        flash('Alert acknowledged successfully.', 'success')
+    
+    return redirect(url_for('monitoring_alerts_active'))
+
+@app.route('/monitoring/alerts/<int:alert_id>/resolve', methods=['POST'])
+def resolve_alert(alert_id):
+    """Resolve an alert."""
+    from models import MonitoringAlert
+    
+    alert = MonitoringAlert.query.get_or_404(alert_id)
+    
+    if alert.status == 'resolved':
+        flash('This alert is already resolved.', 'warning')
+    else:
+        alert.status = 'resolved'
+        alert.resolved_at = datetime.now()
+        db.session.commit()
+        flash('Alert resolved successfully.', 'success')
+    
+    return redirect(url_for('monitoring_alerts_active'))
     
 @app.route('/monitoring/alerts/history', methods=['GET'])
 def monitoring_alerts_history():
