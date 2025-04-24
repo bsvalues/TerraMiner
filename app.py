@@ -63,6 +63,14 @@ try:
 except ImportError:
     logger.warning("Could not import ETL API blueprint")
 
+# Register Authentication API blueprint
+try:
+    from api.auth import register_auth_blueprint
+    register_auth_blueprint(app)
+    logger.info("Registered authentication API blueprint")
+except ImportError:
+    logger.warning("Could not import authentication API blueprint")
+
 # Routes
 @app.route('/')
 def index():

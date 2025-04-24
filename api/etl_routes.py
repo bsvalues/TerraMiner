@@ -92,6 +92,7 @@ def run_job():
         }), 500
 
 @etl_bp.route('/jobs/<job_id>', methods=['GET'])
+@api_key_required(['etl:read'])
 def get_job_status(job_id):
     """
     Get the status of an ETL job.
@@ -121,6 +122,7 @@ def get_job_status(job_id):
         }), 500
 
 @etl_bp.route('/jobs/<job_id>/cancel', methods=['POST'])
+@api_key_required(['etl:write'])
 def cancel_job(job_id):
     """
     Cancel an ETL job.
@@ -151,6 +153,7 @@ def cancel_job(job_id):
         }), 500
 
 @etl_bp.route('/jobs', methods=['GET'])
+@api_key_required(['etl:read'])
 def get_jobs():
     """
     Get job history with optional filtering.
