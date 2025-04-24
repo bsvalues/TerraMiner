@@ -3,6 +3,8 @@ import logging
 from datetime import datetime
 from app import app
 from etl.narrpr_scraper import NarrprScraper
+from etl.zillow_scraper import ZillowScraper
+from etl.manager import etl_manager
 from db.database import save_to_database
 from utils.logger import setup_logger
 from utils.config import load_config

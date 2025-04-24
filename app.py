@@ -55,6 +55,14 @@ try:
 except ImportError:
     logger.warning("Could not import Zillow API blueprint")
 
+# Register ETL API blueprint
+try:
+    from api.etl_routes import register_etl_blueprint
+    register_etl_blueprint(app)
+    logger.info("Registered ETL API blueprint")
+except ImportError:
+    logger.warning("Could not import ETL API blueprint")
+
 # Routes
 @app.route('/')
 def index():
