@@ -63,6 +63,14 @@ try:
 except ImportError:
     logger.warning("Could not import ETL API blueprint")
 
+# Register ETL Schedule API blueprint
+try:
+    from api.schedule_routes import register_schedule_blueprint
+    register_schedule_blueprint(app)
+    logger.info("Registered ETL schedule API blueprint")
+except ImportError:
+    logger.warning("Could not import ETL schedule API blueprint")
+
 # Register Authentication API blueprint
 try:
     from api.auth import register_auth_blueprint

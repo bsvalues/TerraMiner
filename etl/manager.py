@@ -4,6 +4,11 @@ ETL job manager for coordinating ETL processes within the application.
 This module provides functionality to schedule and execute ETL jobs,
 track their status, and integrate with the application's monitoring system.
 """
+
+# Import SQL Alchemy utilities for database operations
+from sqlalchemy import create_engine, Column, Integer, String, JSON, DateTime, Boolean, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, sessionmaker
 import logging
 import threading
 import time
@@ -22,7 +27,7 @@ class JobStatus:
     COMPLETED = "completed"
     FAILED = "failed"
 
-class ETLManager:
+class ETLJobManager:
     """
     Manager for ETL job execution, scheduling, and status tracking.
     """
@@ -33,10 +38,96 @@ class ETLManager:
         self.job_history = []
         self.lock = threading.Lock()
         
+    def start_job(self, 
+                 plugin_name: str, 
+                 config: Optional[Dict[str, Any]] = None,
+                 async_execution: bool = True,
+                 callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+                 scheduled_id: Optional[int] = None) -> str:
+        """
+        Start an ETL job.
+        
+        Args:
+            plugin_name (str): Name of the ETL plugin to run
+            config (Dict[str, Any], optional): Configuration for the ETL plugin
+            async_execution (bool): Whether to run the job asynchronously
+            callback (Callable, optional): Function to call with results when job completes
+            scheduled_id (int, optional): ID of the scheduled job that triggered this execution
+            
+        Returns:
+            str: A job ID that can be used to check job status
+        """
+        if async_execution:
+            return self.run_job(plugin_name, config, callback, scheduled_id)
+        else:
+            # Run synchronously
+            job_id = f"{plugin_name}_{int(time.time())}"
+            
+            try:
+                # Create and run the ETL plugin
+                plugin = create_plugin_instance(plugin_name, config)
+                result = plugin.run()
+                
+                # Create job record and add to history
+                job_record = {
+                    "id": job_id,
+                    "plugin_name": plugin_name,
+                    "config": config or {},
+                    "status": JobStatus.COMPLETED,
+                    "start_time": datetime.now(),
+                    "end_time": datetime.now(),
+                    "result": result,
+                    "error": None,
+                    "scheduled_id": scheduled_id
+                }
+                
+                with self.lock:
+                    self.job_history.append(job_record)
+                
+                logger.info(f"ETL job {job_id} completed successfully (synchronous)")
+                
+                # Call callback if provided
+                if callback:
+                    try:
+                        callback(result)
+                    except Exception as e:
+                        logger.error(f"Error in ETL job callback: {str(e)}")
+                
+                return job_id
+                
+            except Exception as e:
+                logger.exception(f"Error running ETL job {job_id} (synchronous): {str(e)}")
+                
+                # Create failed job record and add to history
+                job_record = {
+                    "id": job_id,
+                    "plugin_name": plugin_name,
+                    "config": config or {},
+                    "status": JobStatus.FAILED,
+                    "start_time": datetime.now(),
+                    "end_time": datetime.now(),
+                    "result": None,
+                    "error": str(e),
+                    "scheduled_id": scheduled_id
+                }
+                
+                with self.lock:
+                    self.job_history.append(job_record)
+                
+                # Call callback if provided
+                if callback:
+                    try:
+                        callback({"success": False, "error": str(e)})
+                    except Exception as callback_error:
+                        logger.error(f"Error in ETL job callback: {str(callback_error)}")
+                
+                return job_id
+        
     def run_job(self, 
                plugin_name: str, 
                config: Optional[Dict[str, Any]] = None,
-               callback: Optional[Callable[[Dict[str, Any]], None]] = None) -> str:
+               callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+               scheduled_id: Optional[int] = None) -> str:
         """
         Run an ETL job asynchronously.
         
@@ -268,5 +359,5 @@ class ETLManager:
         
         return False
 
-# Create a singleton instance of the ETL manager
-etl_manager = ETLManager()
+# Create a singleton instance of the ETL job manager
+etl_manager = ETLJobManager()
