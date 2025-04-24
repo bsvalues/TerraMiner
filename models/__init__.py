@@ -2,6 +2,7 @@
 from models.zillow_data import ZillowMarketData, ZillowPriceTrend, ZillowProperty
 from models.narrpr_data import NarrprReport, NarrprProperty, NarrprComparableProperty, NarrprMarketActivity
 from models.api_keys import APIKey
+from models.schedule import ETLSchedule
 
 # Import directly from main models module
 from app import db
