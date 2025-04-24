@@ -436,20 +436,17 @@ class AIDataAnalyzerETL(BaseETL):
                 continue
             
             try:
-                # Call OpenAI API
+                # Use the ModelFactory to get the OpenAI client
+                model_factory = ModelFactory()
+                openai_client = model_factory.get_client("openai")
+                
+                # Call OpenAI API through the client
                 prompt = f"Analyze the sentiment of the following text. Provide a score from -1.0 (very negative) to 1.0 (very positive), and a confidence score between 0 and 1.\n\nText: {text_to_analyze}\n\nRespond with JSON in this format: {'{'}'sentiment': number, 'confidence': number{'}'}."
                 
-                response = openai.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[
-                        {"role": "system", "content": "You are a sentiment analysis expert."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    response_format={"type": "json_object"},
-                    max_tokens=150,
-                )
+                system_prompt = "You are a sentiment analysis expert."
+                response_text = openai_client.generate_structured_completion(system_prompt, prompt)
                 
-                result_json = json.loads(response.choices[0].message.content)
+                result_json = json.loads(response_text)
                 
                 # Add to results
                 result = {
@@ -514,20 +511,17 @@ class AIDataAnalyzerETL(BaseETL):
                 continue
             
             try:
-                # Call OpenAI API
+                # Use the ModelFactory to get the OpenAI client
+                model_factory = ModelFactory()
+                openai_client = model_factory.get_client("openai")
+                
+                # Call OpenAI API through the client
                 prompt = f"Extract the following entity types from this text: {entity_types_str}.\n\nText: {text_to_analyze}\n\nRespond with JSON in this format: {'{'}'entities': {'{'}'entity_type': [list of extracted entities]{'}'}{'}'}."
                 
-                response = openai.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[
-                        {"role": "system", "content": "You are an entity extraction expert."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    response_format={"type": "json_object"},
-                    max_tokens=300,
-                )
+                system_prompt = "You are an entity extraction expert."
+                response_text = openai_client.generate_structured_completion(system_prompt, prompt)
                 
-                result_json = json.loads(response.choices[0].message.content)
+                result_json = json.loads(response_text)
                 
                 # Add to results
                 result = {
