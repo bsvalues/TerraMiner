@@ -174,7 +174,7 @@ def delete_cma_report(report_id):
             'error': f"An error occurred: {str(e)}"
         }), 500
 
-@api_key_required
+@api_key_required()  # Call the function to get the decorator
 @cma_bp.route('/one-click', methods=['POST'])
 def one_click_cma():
     """

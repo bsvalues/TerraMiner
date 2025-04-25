@@ -1,762 +1,130 @@
 {% extends "base.html" %}
 
-{% block title %}Comparative Market Analysis Generator{% endblock %}
-
-{% block styles %}
-<style>
-    .cma-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 20px;
-    }
-    
-    .cma-input-form {
-        background-color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        padding: 20px;
-        margin-bottom: 30px;
-    }
-    
-    .cma-results {
-        background-color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        padding: 20px;
-        display: none;
-    }
-    
-    .cma-loading {
-        text-align: center;
-        margin: 40px 0;
-        display: none;
-    }
-    
-    .cma-loading .spinner {
-        width: 50px;
-        height: 50px;
-        border: 5px solid #f3f3f3;
-        border-top: 5px solid #3498db;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin: 0 auto 20px;
-    }
-    
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    
-    .property-card {
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        overflow: hidden;
-        transition: transform 0.2s ease;
-    }
-    
-    .property-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    }
-    
-    .property-card .card-header {
-        padding: 12px 15px;
-        background-color: #f8f9fa;
-        border-bottom: 1px solid #e0e0e0;
-        font-weight: 600;
-    }
-    
-    .property-image {
-        height: 200px;
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-    }
-    
-    .property-details {
-        padding: 15px;
-    }
-    
-    .property-price {
-        font-size: 1.4em;
-        font-weight: 600;
-        color: #2c3e50;
-        margin-bottom: 10px;
-    }
-    
-    .property-meta {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 10px;
-    }
-    
-    .property-meta-item {
-        display: flex;
-        align-items: center;
-    }
-    
-    .property-meta-item i {
-        margin-right: 5px;
-        color: #7f8c8d;
-    }
-    
-    .property-address {
-        color: #7f8c8d;
-        font-size: 0.9em;
-        margin-bottom: 10px;
-    }
-    
-    .insights-section {
-        margin-top: 30px;
-        padding: 20px;
-        background-color: #f8f9fa;
-        border-radius: 8px;
-    }
-    
-    .insights-header {
-        color: #2c3e50;
-        border-bottom: 1px solid #e0e0e0;
-        padding-bottom: 10px;
-        margin-bottom: 15px;
-    }
-    
-    .insights-list {
-        padding-left: 20px;
-    }
-    
-    .insights-list li {
-        margin-bottom: 8px;
-    }
-    
-    .price-recommendation {
-        background-color: #e8f4fd;
-        border-radius: 8px;
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-    
-    .price-range {
-        display: flex;
-        align-items: center;
-        margin-top: 15px;
-    }
-    
-    .price-range-bar {
-        flex-grow: 1;
-        height: 10px;
-        background: linear-gradient(to right, #3498db, #2ecc71);
-        border-radius: 5px;
-        margin: 0 10px;
-    }
-    
-    .confidence-meter {
-        width: 100%;
-        height: 10px;
-        background-color: #ecf0f1;
-        border-radius: 5px;
-        overflow: hidden;
-        margin-top: 10px;
-    }
-    
-    .confidence-value {
-        height: 100%;
-        background-color: #2ecc71;
-    }
-    
-    .market-indicators {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 20px;
-    }
-    
-    .market-indicator {
-        text-align: center;
-        padding: 15px;
-        background-color: #f8f9fa;
-        border-radius: 8px;
-        width: 30%;
-    }
-    
-    .market-indicator-value {
-        font-size: 1.5em;
-        font-weight: 600;
-        color: #2c3e50;
-        margin: 10px 0;
-    }
-    
-    .market-indicator-label {
-        color: #7f8c8d;
-        font-size: 0.9em;
-    }
-    
-    .market-trend {
-        display: inline-block;
-        padding: 5px 10px;
-        border-radius: 20px;
-        font-size: 0.8em;
-        font-weight: 600;
-        text-transform: uppercase;
-    }
-    
-    .market-trend.up {
-        background-color: #e8f8f5;
-        color: #27ae60;
-    }
-    
-    .market-trend.down {
-        background-color: #fdedeb;
-        color: #e74c3c;
-    }
-    
-    .market-trend.stable {
-        background-color: #f5f7fa;
-        color: #7f8c8d;
-    }
-    
-    .form-group {
-        margin-bottom: 20px;
-    }
-    
-    .form-control {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 16px;
-    }
-    
-    .btn-generate {
-        background-color: #3498db;
-        color: white;
-        border: none;
-        padding: 12px 20px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 16px;
-        font-weight: 600;
-        transition: background-color 0.3s;
-    }
-    
-    .btn-generate:hover {
-        background-color: #2980b9;
-    }
-    
-    .comp-slider {
-        margin: 40px 0;
-    }
-    
-    .slick-prev, .slick-next {
-        z-index: 10;
-    }
-    
-    .slick-prev:before, .slick-next:before {
-        color: #2c3e50;
-    }
-    
-    .similarity-score {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background-color: rgba(255, 255, 255, 0.9);
-        color: #2c3e50;
-        border-radius: 20px;
-        padding: 5px 10px;
-        font-size: 0.8em;
-        font-weight: 600;
-    }
-</style>
-{% endblock %}
+{% block title %}Generate CMA Report | TerraMiner{% endblock %}
 
 {% block content %}
-<div class="cma-container">
-    <h1 class="page-title">Comparative Market Analysis Generator</h1>
-    <p class="lead-text">Generate a detailed market analysis for any property in just one click</p>
-    
-    <div class="cma-input-form" id="cmaForm">
-        <h2>Enter Property Details</h2>
-        <form id="propertyDetailsForm">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="subject_address">Property Address</label>
-                        <input type="text" class="form-control" id="subject_address" name="subject_address" required placeholder="123 Main St">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="subject_city">City</label>
-                        <input type="text" class="form-control" id="subject_city" name="subject_city" required placeholder="San Francisco">
-                    </div>
-                </div>
-            </div>
+<div class="container mt-4">
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">
+                <i class="fas fa-chart-line mr-2"></i> Generate CMA Report
+            </h2>
+        </div>
+        <div class="card-body">
+            <p class="mb-4">Enter the subject property details below to generate a comprehensive comparative market analysis report.</p>
             
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label for="subject_state">State</label>
-                        <input type="text" class="form-control" id="subject_state" name="subject_state" required placeholder="CA">
+            <form method="post" action="{{ url_for('cma.cma_generator') }}">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h5 class="mb-3">Property Location</h5>
+                        <div class="form-group">
+                            <label for="subject_address">Address*</label>
+                            <input type="text" class="form-control" id="subject_address" name="subject_address" 
+                                   placeholder="123 Main St" value="{{ form_data.subject_address if form_data else '' }}" required>
+                        </div>
+                
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="subject_city">City*</label>
+                                <input type="text" class="form-control" id="subject_city" name="subject_city" 
+                                       placeholder="San Francisco" value="{{ form_data.subject_city if form_data else '' }}" required>
+                            </div>
+                            <div class="form-group col-md-3">
+                                <label for="subject_state">State*</label>
+                                <input type="text" class="form-control" id="subject_state" name="subject_state" 
+                                       placeholder="CA" maxlength="2" value="{{ form_data.subject_state if form_data else '' }}" required>
+                            </div>
+                            <div class="form-group col-md-3">
+                                <label for="subject_zip">ZIP Code*</label>
+                                <input type="text" class="form-control" id="subject_zip" name="subject_zip" 
+                                       placeholder="94105" value="{{ form_data.subject_zip if form_data else '' }}" required>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label for="subject_zip">ZIP Code</label>
-                        <input type="text" class="form-control" id="subject_zip" name="subject_zip" required placeholder="94105">
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label for="subject_property_type">Property Type</label>
-                        <select class="form-control" id="subject_property_type" name="subject_property_type">
-                            <option value="Single Family">Single Family</option>
-                            <option value="Condo">Condo</option>
-                            <option value="Townhouse">Townhouse</option>
-                            <option value="Multi-Family">Multi-Family</option>
-                            <option value="Land">Land</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-3">
-                    <div class="form-group">
-                        <label for="subject_price">Estimated Price ($)</label>
-                        <input type="number" class="form-control" id="subject_price" name="subject_price" placeholder="500000">
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="form-group">
-                        <label for="subject_sqft">Square Feet</label>
-                        <input type="number" class="form-control" id="subject_sqft" name="subject_sqft" placeholder="1500">
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="form-group">
-                        <label for="subject_beds">Bedrooms</label>
-                        <input type="number" class="form-control" id="subject_beds" name="subject_beds" placeholder="3">
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="form-group">
-                        <label for="subject_baths">Bathrooms</label>
-                        <input type="number" class="form-control" id="subject_baths" name="subject_baths" placeholder="2">
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="subject_year_built">Year Built</label>
-                        <input type="number" class="form-control" id="subject_year_built" name="subject_year_built" placeholder="1985">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="subject_lot_size">Lot Size (sq ft)</label>
-                        <input type="number" class="form-control" id="subject_lot_size" name="subject_lot_size" placeholder="5000">
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="search_radius_miles">Search Radius (miles)</label>
-                        <input type="number" class="form-control" id="search_radius_miles" name="search_radius_miles" value="1" min="0.1" step="0.1">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="max_days_on_market">Maximum Days on Market</label>
-                        <input type="number" class="form-control" id="max_days_on_market" name="max_days_on_market" value="180">
-                    </div>
-                </div>
-            </div>
-            
-            <div class="form-group text-center">
-                <button type="submit" class="btn-generate" id="generateCMA">
-                    <i class="fas fa-chart-line"></i> Generate Comparative Market Analysis
-                </button>
-            </div>
-        </form>
-    </div>
-    
-    <div class="cma-loading" id="cmaLoading">
-        <div class="spinner"></div>
-        <p>Analyzing market data and finding comparable properties...</p>
-        <p class="small text-muted">This may take a minute or two</p>
-    </div>
-    
-    <div class="cma-results" id="cmaResults">
-        <h2>Comparative Market Analysis</h2>
-        <p class="text-muted" id="cmaTimestamp"></p>
-        
-        <div class="price-recommendation">
-            <h3>Recommended Price</h3>
-            <div class="row">
-                <div class="col-md-8">
-                    <p id="recommendedPrice" class="h1 mb-2"></p>
-                    <p id="priceExplanation" class="text-muted"></p>
-                    
-                    <div class="price-range">
-                        <span id="priceLow"></span>
-                        <div class="price-range-bar"></div>
-                        <span id="priceHigh"></span>
-                    </div>
-                    
-                    <p class="mt-3">Confidence Score:</p>
-                    <div class="confidence-meter">
-                        <div class="confidence-value" id="confidenceValue"></div>
-                    </div>
-                    <p class="text-right" id="confidenceText"></p>
-                </div>
-                <div class="col-md-4">
-                    <div class="market-indicator">
-                        <div class="market-indicator-label">Price Per Sq Ft</div>
-                        <div class="market-indicator-value" id="pricePerSqFt"></div>
-                    </div>
-                    
-                    <div class="market-indicator mt-3">
-                        <div class="market-indicator-label">Market Trend</div>
-                        <div class="market-indicator-value">
-                            <span class="market-trend" id="marketTrend"></span>
+                    <div class="col-md-4">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body">
+                                <h6 class="card-title">Why this matters?</h6>
+                                <p class="card-text small">We use the property location to find comparable properties in the same area. Accurate location information helps ensure the most relevant comparable properties are included in your analysis.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        
-        <div class="market-indicators">
-            <div class="market-indicator">
-                <div class="market-indicator-label">Avg. Days on Market</div>
-                <div class="market-indicator-value" id="avgDaysOnMarket"></div>
-                <div class="market-indicator-description">Average days it takes to sell a property in this area</div>
-            </div>
-            
-            <div class="market-indicator">
-                <div class="market-indicator-label">Comparable Properties</div>
-                <div class="market-indicator-value" id="compCount"></div>
-                <div class="market-indicator-description">Number of similar properties used in this analysis</div>
-            </div>
-            
-            <div class="market-indicator">
-                <div class="market-indicator-label">Avg. Price Adjustment</div>
-                <div class="market-indicator-value" id="avgAdjustment"></div>
-                <div class="market-indicator-description">Average price adjustment applied to comparables</div>
-            </div>
-        </div>
-        
-        <h3 class="mt-5 mb-4">Comparable Properties</h3>
-        <div class="comp-slider" id="compSlider">
-            <!-- Comparable properties will be loaded dynamically -->
-        </div>
-        
-        <div class="insights-section">
-            <h3 class="insights-header">Property Insights</h3>
-            <div class="row">
-                <div class="col-md-6">
-                    <h4>Pricing Strategy</h4>
-                    <p id="pricingStrategy"></p>
+                
+                <hr class="my-4">
+                
+                <div class="row">
+                    <div class="col-md-8">
+                        <h5 class="mb-3">Property Details</h5>
+                        <div class="form-row">
+                            <div class="form-group col-md-3">
+                                <label for="subject_beds">Bedrooms</label>
+                                <input type="number" class="form-control" id="subject_beds" name="subject_beds" 
+                                       min="0" step="1" value="{{ form_data.subject_beds if form_data else '3' }}">
+                            </div>
+                            <div class="form-group col-md-3">
+                                <label for="subject_baths">Bathrooms</label>
+                                <input type="number" class="form-control" id="subject_baths" name="subject_baths" 
+                                       min="0" step="0.5" value="{{ form_data.subject_baths if form_data else '2' }}">
+                            </div>
+                            <div class="form-group col-md-3">
+                                <label for="subject_sqft">Square Footage</label>
+                                <input type="number" class="form-control" id="subject_sqft" name="subject_sqft" 
+                                       min="0" step="1" value="{{ form_data.subject_sqft if form_data else '1800' }}">
+                            </div>
+                            <div class="form-group col-md-3">
+                                <label for="subject_lot_size">Lot Size (sq ft)</label>
+                                <input type="number" class="form-control" id="subject_lot_size" name="subject_lot_size" 
+                                       min="0" step="1" value="{{ form_data.subject_lot_size if form_data else '5000' }}">
+                            </div>
+                        </div>
+                
+                        <div class="form-row">
+                            <div class="form-group col-md-4">
+                                <label for="subject_year_built">Year Built</label>
+                                <input type="number" class="form-control" id="subject_year_built" name="subject_year_built" 
+                                       min="1800" max="2025" step="1" value="{{ form_data.subject_year_built if form_data else '2000' }}">
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label for="subject_property_type">Property Type</label>
+                                <select class="form-control" id="subject_property_type" name="subject_property_type">
+                                    <option value="Single Family" {% if form_data and form_data.subject_property_type == 'Single Family' %}selected{% endif %}>Single Family</option>
+                                    <option value="Condo" {% if form_data and form_data.subject_property_type == 'Condo' %}selected{% endif %}>Condo</option>
+                                    <option value="Townhouse" {% if form_data and form_data.subject_property_type == 'Townhouse' %}selected{% endif %}>Townhouse</option>
+                                    <option value="Multi-Family" {% if form_data and form_data.subject_property_type == 'Multi-Family' %}selected{% endif %}>Multi-Family</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label for="subject_price">Current Price (optional)</label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">$</span>
+                                    </div>
+                                    <input type="number" class="form-control" id="subject_price" name="subject_price" 
+                                           min="0" step="1000" value="{{ form_data.subject_price if form_data else '' }}" placeholder="e.g., 750000">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body">
+                                <h6 class="card-title">Why these details matter?</h6>
+                                <p class="card-text small">We use these property characteristics to find the most similar comparable properties and make appropriate price adjustments. The more accurate these details are, the more precise your property valuation will be.</p>
+                                <p class="card-text small">Current price is optional and helps calibrate our AI recommendations.</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <h4>Property Strengths</h4>
-                    <ul class="insights-list" id="propertyStrengths"></ul>
+                
+                <div class="form-group mt-4 text-center">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-magic mr-2"></i> Generate Report
+                    </button>
+                    <a href="{{ url_for('cma.cma_home') }}" class="btn btn-secondary btn-lg ml-2">Cancel</a>
                 </div>
-            </div>
-            
-            <div class="row mt-4">
-                <div class="col-md-6">
-                    <h4>Property Weaknesses</h4>
-                    <ul class="insights-list" id="propertyWeaknesses"></ul>
-                </div>
-                <div class="col-md-6">
-                    <h4>Marketing Recommendations</h4>
-                    <ul class="insights-list" id="marketingRecommendations"></ul>
-                </div>
-            </div>
-            
-            <div class="row mt-4">
-                <div class="col-md-6">
-                    <h4>Negotiation Tips</h4>
-                    <ul class="insights-list" id="negotiationTips"></ul>
-                </div>
-                <div class="col-md-6">
-                    <h4>Improvement Recommendations</h4>
-                    <ul class="insights-list" id="improvementRecommendations"></ul>
-                </div>
-            </div>
-        </div>
-        
-        <div class="mt-5 text-center">
-            <button class="btn-generate" id="printCMA">
-                <i class="fas fa-print"></i> Print Report
-            </button>
-            <button class="btn-secondary ml-3" id="startNewCMA">
-                <i class="fas fa-redo"></i> Start New Analysis
-            </button>
+            </form>
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-    $(document).ready(function() {
-        let currentReport = null;
-        
-        // Initialize the form submission
-        $('#propertyDetailsForm').on('submit', function(e) {
-            e.preventDefault();
-            generateCMA();
-        });
-        
-        // Initialize the print button
-        $('#printCMA').on('click', function() {
-            window.print();
-        });
-        
-        // Initialize the start new button
-        $('#startNewCMA').on('click', function() {
-            $('#cmaResults').hide();
-            $('#cmaForm').show();
-            $('#propertyDetailsForm')[0].reset();
-        });
-        
-        function generateCMA() {
-            // Show loading indicator
-            $('#cmaForm').hide();
-            $('#cmaLoading').show();
-            
-            // Get form data
-            const formData = {};
-            $('#propertyDetailsForm').serializeArray().forEach(function(item) {
-                formData[item.name] = item.value;
-            });
-            
-            // Prepare title
-            formData.title = `CMA for ${formData.subject_address}, ${formData.subject_city}, ${formData.subject_state} ${formData.subject_zip}`;
-            
-            // Make API request
-            $.ajax({
-                url: '/api/cma/one-click',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(formData),
-                success: function(response) {
-                    if (response.success) {
-                        currentReport = response.report;
-                        displayCMAResults(currentReport);
-                    } else {
-                        alert('Error: ' + response.error);
-                        $('#cmaLoading').hide();
-                        $('#cmaForm').show();
-                    }
-                },
-                error: function(xhr) {
-                    let errorMessage = 'An error occurred while generating the CMA report.';
-                    if (xhr.responseJSON && xhr.responseJSON.error) {
-                        errorMessage = xhr.responseJSON.error;
-                    }
-                    alert('Error: ' + errorMessage);
-                    $('#cmaLoading').hide();
-                    $('#cmaForm').show();
-                }
-            });
-        }
-        
-        function displayCMAResults(report) {
-            // Hide loading and show results
-            $('#cmaLoading').hide();
-            $('#cmaResults').show();
-            
-            // Set timestamp
-            const timestamp = new Date(report.created_at || new Date());
-            $('#cmaTimestamp').text('Generated on ' + timestamp.toLocaleString());
-            
-            // Set recommended price
-            $('#recommendedPrice').text('$' + formatNumber(report.recommended_price || 0));
-            $('#priceExplanation').text(report.summary || '');
-            
-            // Set price range
-            $('#priceLow').text('$' + formatNumber(report.price_range_low || 0));
-            $('#priceHigh').text('$' + formatNumber(report.price_range_high || 0));
-            
-            // Set confidence score
-            const confidenceScore = report.confidence_score || 0;
-            $('#confidenceValue').css('width', confidenceScore + '%');
-            $('#confidenceText').text(confidenceScore + '% confidence');
-            
-            // Set market indicators
-            $('#pricePerSqFt').text('$' + (report.price_per_sqft || 0).toFixed(2));
-            
-            // Set market trend
-            const trendMap = {
-                'up': 'Rising',
-                'down': 'Declining',
-                'stable': 'Stable'
-            };
-            const trend = report.market_trend || 'stable';
-            $('#marketTrend').text(trendMap[trend] || 'Stable').addClass(trend);
-            
-            // Set other indicators
-            $('#avgDaysOnMarket').text(Math.round(report.avg_days_on_market || 0) + ' days');
-            $('#compCount').text((report.comparables || []).length);
-            
-            // Calculate average adjustment
-            let totalAdjustment = 0;
-            (report.comparables || []).forEach(function(comp) {
-                totalAdjustment += Math.abs(comp.total_adjustment || 0);
-            });
-            const avgAdjustment = report.comparables && report.comparables.length > 0 ? 
-                totalAdjustment / report.comparables.length : 0;
-            $('#avgAdjustment').text('$' + formatNumber(avgAdjustment));
-            
-            // Set insights
-            const insights = report.insights || {};
-            $('#pricingStrategy').text(insights.pricing_strategy || '');
-            
-            // Clear existing lists
-            $('#propertyStrengths').empty();
-            $('#propertyWeaknesses').empty();
-            $('#marketingRecommendations').empty();
-            $('#negotiationTips').empty();
-            $('#improvementRecommendations').empty();
-            
-            // Add items to lists
-            (insights.property_strengths || []).forEach(function(item) {
-                $('#propertyStrengths').append('<li>' + item + '</li>');
-            });
-            
-            (insights.property_weaknesses || []).forEach(function(item) {
-                $('#propertyWeaknesses').append('<li>' + item + '</li>');
-            });
-            
-            (insights.marketing_recommendations || []).forEach(function(item) {
-                $('#marketingRecommendations').append('<li>' + item + '</li>');
-            });
-            
-            (insights.negotiation_tips || []).forEach(function(item) {
-                $('#negotiationTips').append('<li>' + item + '</li>');
-            });
-            
-            (insights.improvement_recommendations || []).forEach(function(item) {
-                $('#improvementRecommendations').append('<li>' + item + '</li>');
-            });
-            
-            // Load comparable properties
-            loadComparables(report.comparables || []);
-        }
-        
-        function loadComparables(comparables) {
-            // Clear existing comps
-            $('#compSlider').empty();
-            
-            // Sort by similarity score (highest first)
-            comparables.sort(function(a, b) {
-                return (b.similarity_score || 0) - (a.similarity_score || 0);
-            });
-            
-            // Add each comparable property
-            comparables.forEach(function(comp) {
-                const imageUrl = comp.photos_url || 'https://via.placeholder.com/800x600?text=No+Image';
-                const originalPrice = comp.original_price ? `<span class="text-muted"><strike>$${formatNumber(comp.original_price)}</strike></span>` : '';
-                const adjustmentClass = comp.total_adjustment > 0 ? 'text-success' : comp.total_adjustment < 0 ? 'text-danger' : '';
-                const adjustmentSign = comp.total_adjustment > 0 ? '+' : '';
-                
-                const propertyCard = `
-                    <div class="property-card">
-                        <div class="similarity-score">${Math.round(comp.similarity_score || 0)}% Similar</div>
-                        <div class="property-image" style="background-image: url('${imageUrl}')"></div>
-                        <div class="property-details">
-                            <div class="property-price">
-                                $${formatNumber(comp.price || 0)} ${originalPrice}
-                            </div>
-                            <div class="property-address">
-                                ${comp.address || ''}, ${comp.city || ''}, ${comp.state || ''} ${comp.zip_code || ''}
-                            </div>
-                            <div class="property-meta">
-                                <div class="property-meta-item">
-                                    <i class="fas fa-bed"></i> ${comp.beds || 0} bd
-                                </div>
-                                <div class="property-meta-item">
-                                    <i class="fas fa-bath"></i> ${comp.baths || 0} ba
-                                </div>
-                                <div class="property-meta-item">
-                                    <i class="fas fa-expand"></i> ${formatNumber(comp.sqft || 0)} sqft
-                                </div>
-                                <div class="property-meta-item">
-                                    <i class="fas fa-calendar"></i> ${comp.year_built || 'N/A'}
-                                </div>
-                            </div>
-                            <div class="property-meta">
-                                <div class="property-meta-item">
-                                    <i class="fas fa-tag"></i> $${(comp.price_per_sqft || 0).toFixed(2)}/sqft
-                                </div>
-                                <div class="property-meta-item">
-                                    <i class="fas fa-map-marker-alt"></i> ${comp.distance_miles ? comp.distance_miles.toFixed(1) + ' mi' : 'N/A'}
-                                </div>
-                                <div class="property-meta-item">
-                                    <i class="fas fa-clock"></i> ${comp.days_on_market || 0} days
-                                </div>
-                            </div>
-                            <hr>
-                            <div class="adjustment-details">
-                                <p><strong>Adjustments:</strong></p>
-                                <div class="row">
-                                    <div class="col">Size: ${formatAdjustment(comp.size_adjustment)}</div>
-                                    <div class="col">Location: ${formatAdjustment(comp.location_adjustment)}</div>
-                                </div>
-                                <div class="row mt-2">
-                                    <div class="col">Features: ${formatAdjustment(comp.features_adjustment)}</div>
-                                    <div class="col">Condition: ${formatAdjustment(comp.condition_adjustment)}</div>
-                                </div>
-                                <div class="row mt-2">
-                                    <div class="col">Total Adjustment: <span class="${adjustmentClass}">${adjustmentSign}$${formatNumber(Math.abs(comp.total_adjustment || 0))}</span></div>
-                                    <div class="col">Adjusted Price: <strong>$${formatNumber(comp.adjusted_price || 0)}</strong></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                $('#compSlider').append(propertyCard);
-            });
-            
-            // Initialize the slider
-            $('#compSlider').slick({
-                dots: true,
-                infinite: false,
-                speed: 300,
-                slidesToShow: 3,
-                slidesToScroll: 1,
-                responsive: [
-                    {
-                        breakpoint: 992,
-                        settings: {
-                            slidesToShow: 2
-                        }
-                    },
-                    {
-                        breakpoint: 768,
-                        settings: {
-                            slidesToShow: 1
-                        }
-                    }
-                ]
-            });
-        }
-        
-        function formatNumber(num) {
-            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        }
-        
-        function formatAdjustment(adjustment) {
-            if (!adjustment) return '$0';
-            const formattedValue = formatNumber(Math.abs(adjustment));
-            return adjustment > 0 ? `+$${formattedValue}` : `-$${formattedValue}`;
-        }
-    });
-</script>
 {% endblock %}
