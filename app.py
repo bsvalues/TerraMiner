@@ -145,6 +145,22 @@ try:
 except ImportError:
     logger.warning("Could not import CMA controller blueprint")
 
+# Register Voice API blueprint
+try:
+    from api.voice_routes import register_voice_api_blueprint
+    register_voice_api_blueprint(app)
+    logger.info("Registered voice API blueprint")
+except ImportError:
+    logger.warning("Could not import voice API blueprint")
+    
+# Register Voice controller blueprint
+try:
+    from controllers.voice_controller import register_voice_blueprint
+    register_voice_blueprint(app)
+    logger.info("Registered voice controller blueprint")
+except ImportError:
+    logger.warning("Could not import voice controller blueprint")
+
 # Routes
 @app.route('/')
 def index():

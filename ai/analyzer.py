@@ -393,6 +393,211 @@ class ValueationModel(BaseModel):
             ]
         }
 
+class VoiceCommandModel(BaseModel):
+    """Model for analyzing voice commands and determining user intent."""
+    
+    def __init__(self):
+        """Initialize the voice command analyzer model."""
+        logger.info("Initializing VoiceCommandModel")
+        
+        # Initialize OpenAI client if API key is available
+        self.openai_client = None
+        self.anthropic_client = None
+        
+        if os.environ.get('OPENAI_API_KEY'):
+            try:
+                from openai import OpenAI
+                self.openai_client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+                logger.info("OpenAI client initialized for voice command analysis")
+            except ImportError:
+                logger.warning("OpenAI package not installed")
+            except Exception as e:
+                logger.error(f"Error initializing OpenAI client: {str(e)}")
+        
+        # Initialize Anthropic client if API key is available
+        if os.environ.get('ANTHROPIC_API_KEY'):
+            try:
+                from anthropic import Anthropic
+                self.anthropic_client = Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
+                logger.info("Anthropic client initialized for voice command analysis")
+            except ImportError:
+                logger.warning("Anthropic package not installed")
+            except Exception as e:
+                logger.error(f"Error initializing Anthropic client: {str(e)}")
+    
+    def analyze(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Analyze voice command to determine intent and parameters.
+        
+        Args:
+            data (Dict[str, Any]): Command data including:
+                - command: The voice command string
+                - system_prompt: Optional system prompt for the LLM
+                
+        Returns:
+            Dict[str, Any]: Analysis results including:
+                - intent: The detected intent (search, marketTrends, etc.)
+                - parameters: Extracted parameters from the command
+                - action: Suggested action to take
+        """
+        command = data.get('command', '')
+        system_prompt = data.get('system_prompt', '')
+        
+        logger.info(f"Analyzing voice command: {command}")
+        
+        # If system prompt is not provided, use a default one
+        if not system_prompt:
+            system_prompt = """
+            You are an AI assistant that analyzes real estate voice commands.
+            Extract the user's intent and all relevant parameters from their voice command.
+            Respond in JSON format with these fields:
+            {
+                "intent": "search" | "marketTrends" | "propertyDetails" | "unknown",
+                "action": "search" | "redirect" | null,
+                "params": {
+                    "location": string or null,
+                    "beds": number or null,
+                    "baths": number or null,
+                    "maxPrice": number or null,
+                    "propertyType": string or null
+                },
+                "url": string or null
+            }
+            """
+        
+        # Try to use OpenAI first if available
+        if self.openai_client:
+            try:
+                response = self.openai_client.chat.completions.create(
+                    model="gpt-4o",  # the newest OpenAI model is "gpt-4o" which was released May 13, 2024
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": f"Analyze this real estate voice command: '{command}'"}
+                    ],
+                    response_format={"type": "json_object"}
+                )
+                try:
+                    import json
+                    result = json.loads(response.choices[0].message.content)
+                    result['success'] = True
+                    return result
+                except json.JSONDecodeError:
+                    logger.error("Failed to parse OpenAI response as JSON")
+            except Exception as e:
+                logger.error(f"Error using OpenAI for voice analysis: {str(e)}")
+        
+        # Try to use Anthropic as a fallback
+        if self.anthropic_client:
+            try:
+                response = self.anthropic_client.messages.create(
+                    model="claude-3-opus-20240229",
+                    system=system_prompt,
+                    messages=[
+                        {"role": "user", "content": f"Analyze this real estate voice command: '{command}'"}
+                    ],
+                    max_tokens=1000
+                )
+                try:
+                    import json
+                    import re
+                    # Try to extract JSON from the response
+                    content = response.content[0].text
+                    json_match = re.search(r'({.*})', content.replace('\n', ' '))
+                    if json_match:
+                        result = json.loads(json_match.group(1))
+                        result['success'] = True
+                        return result
+                except Exception as e:
+                    logger.error(f"Failed to parse Anthropic response as JSON: {str(e)}")
+            except Exception as e:
+                logger.error(f"Error using Anthropic for voice analysis: {str(e)}")
+        
+        # If both methods fail, use simple regex-based parsing
+        return self._analyze_with_regex(command)
+    
+    def _analyze_with_regex(self, command: str) -> Dict[str, Any]:
+        """Fallback method to analyze commands with regex patterns."""
+        import re
+        
+        result = {
+            "intent": "unknown",
+            "action": None,
+            "params": {
+                "location": None,
+                "beds": None,
+                "baths": None,
+                "maxPrice": None,
+                "propertyType": None
+            },
+            "success": True
+        }
+        
+        # Search patterns
+        search_patterns = [
+            r'find (?:properties|homes|houses) in (.+)',
+            r'search (?:for )?(?:properties|homes|houses) in (.+)',
+            r'show (?:me )?(?:properties|homes|houses) in (.+)'
+        ]
+        
+        for pattern in search_patterns:
+            match = re.search(pattern, command, re.IGNORECASE)
+            if match:
+                result["intent"] = "search"
+                result["action"] = "search"
+                result["params"]["location"] = match.group(1)
+                break
+        
+        # Market trends patterns
+        market_patterns = [
+            r'(?:show|get|what are) (?:the )?market trends (?:for|in) (.+)',
+            r'market (?:data|analysis|info|information) (?:for|in) (.+)'
+        ]
+        
+        for pattern in market_patterns:
+            match = re.search(pattern, command, re.IGNORECASE)
+            if match:
+                result["intent"] = "marketTrends"
+                result["action"] = "redirect"
+                result["params"]["location"] = match.group(1)
+                break
+        
+        # Extract additional parameters if it's a search intent
+        if result["intent"] == "search":
+            # Bedrooms
+            bed_match = re.search(r'(\d+) (?:bed|bedroom|bedrooms)', command, re.IGNORECASE)
+            if bed_match:
+                result["params"]["beds"] = int(bed_match.group(1))
+            
+            # Bathrooms
+            bath_match = re.search(r'(\d+(?:\.\d+)?) (?:bath|bathroom|bathrooms)', command, re.IGNORECASE)
+            if bath_match:
+                result["params"]["baths"] = float(bath_match.group(1))
+            
+            # Price
+            price_match = re.search(r'under \$?(\d+(?:[,.]\d+)?)(?: ?k| ?thousand| ?million| ?m)?', command, re.IGNORECASE)
+            if price_match:
+                price_str = price_match.group(1).replace(',', '')
+                price = float(price_str)
+                
+                if 'million' in price_match.group(0).lower() or 'm' in price_match.group(0).lower():
+                    price *= 1000000
+                elif 'k' in price_match.group(0).lower() or 'thousand' in price_match.group(0).lower():
+                    price *= 1000
+                
+                result["params"]["maxPrice"] = int(price)
+            
+            # Property type
+            type_match = re.search(r'(?:type|property type)(?: of| is)? (house|condo|townhouse|apartment)', command, re.IGNORECASE)
+            if type_match:
+                property_type = type_match.group(1).lower()
+                if property_type == 'house':
+                    result["params"]["propertyType"] = 'Single Family'
+                else:
+                    result["params"]["propertyType"] = property_type.capitalize()
+        
+        return result
+
+
 class ModelFactory:
     """Factory for creating AI models."""
     
@@ -421,6 +626,8 @@ class ModelFactory:
                 self.models[model_type] = MarketAnalyzerModel()
             elif model_type == 'valuation':
                 self.models[model_type] = ValueationModel()
+            elif model_type == 'property-voice-analyzer':
+                self.models[model_type] = VoiceCommandModel()
             else:
                 raise ValueError(f"Unsupported model type: {model_type}")
         
