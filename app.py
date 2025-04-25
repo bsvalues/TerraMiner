@@ -147,7 +147,7 @@ except ImportError:
 
 # Register Voice API blueprint
 try:
-    from api.voice_routes import register_voice_api_blueprint
+    from api.voice.routes import register_voice_api_blueprint
     register_voice_api_blueprint(app)
     logger.info("Registered voice API blueprint")
 except ImportError:

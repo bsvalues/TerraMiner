@@ -1,11 +1,21 @@
 """
 AI-powered voice command analyzer module
+
+This module analyzes voice commands using NLP to determine
+the user's intent and extract relevant parameters.
 """
 import logging
 import re
 import os
 import json
-from ai.model_factory import ModelFactory
+from typing import Dict, Any, List
+
+# Import AI models
+try:
+    from ai.analyzer import ModelFactory
+    model_factory_available = True
+except ImportError:
+    model_factory_available = False
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -13,13 +23,22 @@ logger = logging.getLogger(__name__)
 class VoiceCommandAnalyzer:
     """
     Analyzes voice commands using natural language processing
-    to determine user intent and extract key parameters
+    to determine user intent and extract key parameters.
     """
     
     def __init__(self):
         logger.info("Initializing VoiceCommandAnalyzer")
-        self.model_factory = ModelFactory()
-        self.model = self.model_factory.get_model('property-voice-analyzer')
+        self.model = None
+        
+        # Try to initialize the model factory
+        if model_factory_available:
+            try:
+                from ai.analyzer import ModelFactory
+                model_factory = ModelFactory()
+                self.model = model_factory.get_model('property-voice-analyzer')
+                logger.info("Voice analyzer model initialized successfully")
+            except Exception as e:
+                logger.error(f"Error initializing voice analyzer model: {str(e)}")
         
         # Command patterns for regex-based matching
         self.command_patterns = {
@@ -56,7 +75,7 @@ class VoiceCommandAnalyzer:
             ]
         }
         
-    def analyze(self, command):
+    def analyze(self, command: str) -> Dict[str, Any]:
         """
         Analyze a voice command to determine intent and extract parameters.
         
@@ -68,17 +87,49 @@ class VoiceCommandAnalyzer:
         """
         logger.info(f"Analyzing voice command: {command}")
         
-        # Try regex-based matching first
-        result = self._analyze_with_regex(command)
+        # If we have an AI model, use it
+        if self.model:
+            try:
+                # Prepare data for the model
+                data = {
+                    'command': command,
+                    'system_prompt': """
+                    You are an AI assistant that analyzes real estate voice commands.
+                    Extract the user's intent and all relevant parameters from their voice command.
+                    Respond in JSON format with these fields:
+                    {
+                        "intent": "search" | "marketTrends" | "propertyDetails" | "unknown",
+                        "action": "search" | "redirect" | null,
+                        "params": {
+                            "location": string or null,
+                            "beds": number or null,
+                            "baths": number or null,
+                            "maxPrice": number or null,
+                            "propertyType": string or null
+                        },
+                        "url": string or null
+                    }
+                    """
+                }
+                
+                # Analyze with the model
+                result = self.model.analyze(data)
+                if result and isinstance(result, dict) and 'intent' in result:
+                    # Add URL if not present and we can construct it
+                    if ('url' not in result or not result['url']) and result.get('intent') == 'search':
+                        result['url'] = self._construct_search_url(result.get('params', {}))
+                    
+                    # Ensure the success field is present
+                    result['success'] = True
+                    return result
+            except Exception as e:
+                logger.error(f"Error using AI model for voice analysis: {str(e)}")
         
-        # If regex doesn't find a match, use OpenAI or other LLM models
-        if not result.get('intent'):
-            result = self._analyze_with_llm(command)
-        
-        logger.info(f"Analysis result: {result}")
-        return result
-        
-    def _analyze_with_regex(self, command):
+        # Fall back to regex-based pattern matching
+        logger.info("Using regex pattern matching for voice analysis")
+        return self._analyze_with_regex(command)
+    
+    def _analyze_with_regex(self, command: str) -> Dict[str, Any]:
         """
         Analyze the command using regex pattern matching.
         
@@ -88,12 +139,19 @@ class VoiceCommandAnalyzer:
         Returns:
             dict: Analysis result containing intent and extracted parameters
         """
-        result = {
+        result: Dict[str, Any] = {
             'success': True,
             'command': command,
-            'intent': None,
+            'intent': 'unknown',
             'action': None,
-            'params': {}
+            'params': {
+                'location': None,
+                'beds': None,
+                'baths': None,
+                'maxPrice': None,
+                'propertyType': None
+            },
+            'url': None
         }
         
         # Determine intent based on command patterns
@@ -105,32 +163,23 @@ class VoiceCommandAnalyzer:
             # Handle different intents
             if intent['type'] == 'search':
                 result['action'] = 'search'
-                result['params'] = self._extract_search_parameters(command)
-                
-                # Add route for redirect
-                result['url'] = f"/property/search?location={result['params'].get('location', '')}"
-                
-                # Add additional parameters to URL if available
-                if result['params'].get('beds'):
-                    result['url'] += f"&min_beds={result['params']['beds']}"
-                if result['params'].get('baths'):
-                    result['url'] += f"&min_baths={result['params']['baths']}"
-                if result['params'].get('maxPrice'):
-                    result['url'] += f"&max_price={result['params']['maxPrice']}"
-                if result['params'].get('propertyType'):
-                    result['url'] += f"&property_type={result['params']['propertyType']}"
+                params = self._extract_search_parameters(command)
+                result['params'] = params
+                result['url'] = self._construct_search_url(params)
                 
             elif intent['type'] == 'marketTrends':
                 result['action'] = 'redirect'
+                result['params']['location'] = intent['value']
                 result['url'] = f"/market/trends?location={intent['value']}"
                 
             elif intent['type'] == 'propertyDetails':
                 result['action'] = 'redirect'
+                result['params']['address'] = intent['value']
                 result['url'] = f"/property/details?address={intent['value']}"
         
         return result
     
-    def _determine_intent(self, command):
+    def _determine_intent(self, command: str) -> Dict[str, Any]:
         """
         Determine the intent of a command using regex pattern matching.
         
@@ -154,7 +203,7 @@ class VoiceCommandAnalyzer:
         
         return None
     
-    def _extract_search_parameters(self, command):
+    def _extract_search_parameters(self, command: str) -> Dict[str, Any]:
         """
         Extract search parameters from a property search command.
         
@@ -164,7 +213,7 @@ class VoiceCommandAnalyzer:
         Returns:
             dict: Extracted search parameters
         """
-        params = {
+        params: Dict[str, Any] = {
             'location': None,
             'beds': None,
             'baths': None,
@@ -231,90 +280,31 @@ class VoiceCommandAnalyzer:
         
         return params
     
-    def _analyze_with_llm(self, command):
+    def _construct_search_url(self, params: Dict[str, Any]) -> str:
         """
-        Analyze the command using a language model for more complex queries.
+        Construct a search URL from parameters.
         
         Args:
-            command (str): The voice command to analyze
+            params (dict): Search parameters
             
         Returns:
-            dict: Analysis result containing intent and extracted parameters
+            str: The constructed URL
         """
-        # Check if we have an OpenAI API key
-        if not os.environ.get('OPENAI_API_KEY'):
-            logger.warning("OpenAI API key not found, skipping LLM analysis")
-            return {
-                'success': True,
-                'command': command,
-                'intent': 'unknown',
-                'action': None,
-                'message': 'Could not understand the command. Please try again with a more specific property search or market query.'
-            }
+        url_parts = []
         
-        try:
-            # Prepare prompt for the LLM
-            system_prompt = """
-            You are an AI assistant that analyzes real estate voice commands.
-            Extract the user's intent and all relevant parameters from their voice command.
-            Respond in JSON format with these fields:
-            {
-                "intent": "search" | "marketTrends" | "propertyDetails" | "unknown",
-                "action": "search" | "redirect" | null,
-                "params": {
-                    "location": string or null,
-                    "beds": number or null,
-                    "baths": number or null,
-                    "maxPrice": number or null,
-                    "propertyType": string or null
-                },
-                "url": string or null
-            }
-            """
-            
-            user_prompt = f"Analyze this real estate voice command: '{command}'"
-            
-            # Get response from the model
-            response = self.model.analyze(
-                system_prompt=system_prompt,
-                user_prompt=user_prompt
-            )
-            
-            # Parse the response
-            try:
-                result = json.loads(response)
-                # Add success and original command to result
-                result['success'] = True
-                result['command'] = command
-                return result
-            except json.JSONDecodeError:
-                logger.error(f"Failed to parse LLM response as JSON: {response}")
-                # Try to extract JSON from the response if it's embedded in text
-                import re
-                json_match = re.search(r'({.*})', response.replace('\n', ' '))
-                if json_match:
-                    try:
-                        result = json.loads(json_match.group(1))
-                        result['success'] = True
-                        result['command'] = command
-                        return result
-                    except:
-                        pass
-                        
-                # Return a fallback result
-                return {
-                    'success': True,
-                    'command': command,
-                    'intent': 'unknown',
-                    'action': None,
-                    'message': 'Could not understand the command. Please try again with a more specific property search or market query.'
-                }
+        if params.get('location'):
+            url_parts.append(f"location={params['location']}")
         
-        except Exception as e:
-            logger.exception(f"Error in LLM analysis: {str(e)}")
-            return {
-                'success': False,
-                'command': command,
-                'error': str(e),
-                'message': 'Error analyzing voice command. Please try again.'
-            }
+        if params.get('beds'):
+            url_parts.append(f"min_beds={params['beds']}")
+        
+        if params.get('baths'):
+            url_parts.append(f"min_baths={params['baths']}")
+        
+        if params.get('maxPrice'):
+            url_parts.append(f"max_price={params['maxPrice']}")
+        
+        if params.get('propertyType'):
+            url_parts.append(f"property_type={params['propertyType']}")
+        
+        return "/property/search?" + "&".join(url_parts)
