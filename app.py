@@ -58,6 +58,34 @@ def format_datetime(value):
     except (ValueError, TypeError, AttributeError):
         return str(value)
 
+@app.template_filter('format_number')
+def format_number(value):
+    """Format a number with thousand separators."""
+    if value is None:
+        return ""
+    try:
+        return "{:,}".format(int(value))
+    except (ValueError, TypeError):
+        return str(value)
+
+@app.template_filter('format_date')
+def format_date(value):
+    """Format a date object to a readable string."""
+    if not value:
+        return ""
+    if isinstance(value, str):
+        try:
+            from datetime import datetime
+            value = datetime.fromisoformat(value.replace('Z', '+00:00'))
+        except (ValueError, TypeError):
+            return value
+    
+    try:
+        # Format: January 1, 2025
+        return value.strftime("%B %d, %Y")
+    except (ValueError, TypeError, AttributeError):
+        return str(value)
+
 # Register blueprints
 try:
     from app_monitor import monitor_bp
