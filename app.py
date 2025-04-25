@@ -41,6 +41,7 @@ config = load_config()
 
 # Register Jinja filters
 @app.template_filter('datetime')
+@app.template_filter('format_datetime')
 def format_datetime(value):
     """Format a datetime object to a readable string."""
     if not value:
@@ -58,16 +59,18 @@ def format_datetime(value):
     except (ValueError, TypeError, AttributeError):
         return str(value)
 
+@app.template_filter('number')
 @app.template_filter('format_number')
 def format_number(value):
     """Format a number with thousand separators."""
     if value is None:
         return ""
     try:
-        return "{:,}".format(int(value))
+        return "{:,}".format(int(float(value)))
     except (ValueError, TypeError):
         return str(value)
 
+@app.template_filter('date')
 @app.template_filter('format_date')
 def format_date(value):
     """Format a date object to a readable string."""
