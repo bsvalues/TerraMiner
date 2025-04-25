@@ -27,8 +27,9 @@ cma_service = CMAService()
 # Cache for in-progress operations
 report_generation_tasks = {}
 
+# Apply decorator before route to avoid name conflicts
+@api_key_required()  # Call the function to get the decorator
 @cma_bp.route('/reports', methods=['POST'])
-@api_key_required
 def create_cma_report():
     """Create a new CMA report."""
     try:
@@ -66,8 +67,8 @@ def create_cma_report():
             'error': f"An error occurred: {str(e)}"
         }), 500
 
+@api_key_required()  # Call the function to get the decorator
 @cma_bp.route('/reports/<int:report_id>/generate', methods=['POST'])
-@api_key_required
 def generate_cma_report(report_id):
     """Generate a CMA report."""
     try:
@@ -94,8 +95,8 @@ def generate_cma_report(report_id):
             'error': f"An error occurred: {str(e)}"
         }), 500
 
+@api_key_required()  # Call the function to get the decorator
 @cma_bp.route('/reports/<int:report_id>', methods=['GET'])
-@api_key_required
 def get_cma_report(report_id):
     """Get a CMA report by ID."""
     try:
@@ -121,8 +122,8 @@ def get_cma_report(report_id):
             'error': f"An error occurred: {str(e)}"
         }), 500
 
+@api_key_required()  # Call the function to get the decorator
 @cma_bp.route('/reports', methods=['GET'])
-@api_key_required
 def get_cma_reports():
     """Get a list of CMA reports."""
     try:
@@ -147,8 +148,8 @@ def get_cma_reports():
             'error': f"An error occurred: {str(e)}"
         }), 500
 
+@api_key_required()  # Call the function to get the decorator
 @cma_bp.route('/reports/<int:report_id>', methods=['DELETE'])
-@api_key_required
 def delete_cma_report(report_id):
     """Delete a CMA report."""
     try:
@@ -173,8 +174,8 @@ def delete_cma_report(report_id):
             'error': f"An error occurred: {str(e)}"
         }), 500
 
-@cma_bp.route('/one-click', methods=['POST'])
 @api_key_required
+@cma_bp.route('/one-click', methods=['POST'])
 def one_click_cma():
     """
     Generate a one-click CMA report.
