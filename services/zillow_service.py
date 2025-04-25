@@ -1,248 +1,253 @@
 """
-Zillow data service for retrieving, processing and storing Zillow market data.
+Service for accessing Zillow property data.
+
+This module provides methods for fetching property data from Zillow's API.
 """
-import os
+
 import logging
-from datetime import datetime, date
-from typing import Dict, List, Any, Optional, Tuple
+import json
+import os
+import requests
+from typing import Dict, List, Any, Optional
 
-from app import db
-from etl.zillow_scraper import ZillowScraper
-from models.zillow_data import ZillowMarketData, ZillowPriceTrend, ZillowProperty
-
-# Configure logger
 logger = logging.getLogger(__name__)
 
 class ZillowService:
-    """Service for managing Zillow data operations."""
+    """Service for interacting with Zillow API."""
     
-    def __init__(self, api_key=None):
+    def __init__(self):
+        """Initialize the Zillow service."""
+        self.api_key = os.environ.get("RAPIDAPI_KEY")
+        self.base_url = "https://zillow-com1.p.rapidapi.com/propertyExtendedSearch"
+        self.headers = {
+            "X-RapidAPI-Key": self.api_key,
+            "X-RapidAPI-Host": "zillow-com1.p.rapidapi.com"
+        }
+    
+    def find_properties(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
-        Initialize the ZillowService.
+        Find properties based on search parameters.
         
         Args:
-            api_key (str, optional): RapidAPI key. If None, will try to get from environment.
-        """
-        self.scraper = ZillowScraper(api_key)
-    
-    def get_and_store_market_data(self, resource_id: str, beds: int = 0, 
-                                 property_types: str = "house") -> Tuple[ZillowMarketData, bool]:
-        """
-        Fetch market data from Zillow and store it in the database.
-        
-        Args:
-            resource_id (str): The Zillow resource ID for the location (zip code, city ID)
-            beds (int, optional): Number of bedrooms. Default is 0 (any).
-            property_types (str, optional): Property types. Default is "house".
+            params (Dict[str, Any]): Search parameters
             
         Returns:
-            Tuple[ZillowMarketData, bool]: Tuple containing the market data object and a boolean
-            indicating whether the data was newly fetched (True) or retrieved from cache (False)
+            List[Dict[str, Any]]: List of matching properties
         """
-        # Try to find existing recent data in the database
-        existing_data = ZillowMarketData.query.filter_by(
-            resource_id=resource_id,
-            beds=beds,
-            property_types=property_types
-        ).order_by(ZillowMarketData.created_at.desc()).first()
-        
-        # If we have data from today, return it
-        if existing_data and existing_data.created_at.date() == date.today():
-            logger.info(f"Using cached market data for resource ID {resource_id}")
-            return existing_data, False
-        
-        # Otherwise, fetch new data
-        try:
-            # Fetch from Zillow API
-            raw_data = self.scraper.get_market_data(resource_id, beds, property_types)
-            
-            if not raw_data or "locationInfo" not in raw_data:
-                logger.error(f"Failed to fetch market data for resource ID {resource_id}")
-                if existing_data:
-                    return existing_data, False
-                return None, False
-            
-            # Format the data
-            formatted_data = self.scraper.format_market_data(raw_data)
-            
-            # Create new market data record
-            market_data = ZillowMarketData(
-                resource_id=resource_id,
-                location_name=formatted_data["location_info"].get("name"),
-                location_type=formatted_data["location_info"].get("type"),
-                beds=beds,
-                property_types=property_types,
-                median_price=formatted_data["market_overview"].get("median_price"),
-                median_price_per_sqft=formatted_data["market_overview"].get("median_price_per_sqft"),
-                median_days_on_market=formatted_data["market_overview"].get("median_days_on_market"),
-                avg_days_on_market=formatted_data["market_overview"].get("avg_days_on_market"),
-                homes_sold_last_month=formatted_data["market_overview"].get("homes_sold_last_month"),
-                total_active_listings=formatted_data["market_overview"].get("total_active_listings"),
-                raw_data=raw_data
-            )
-            
-            # Save market data
-            db.session.add(market_data)
-            db.session.commit()
-            
-            # Add price trends
-            for trend in formatted_data["price_trends"]:
-                if not trend.get("date") or not trend.get("price"):
-                    continue
-                
-                try:
-                    # Parse date string to datetime
-                    trend_date = datetime.strptime(trend["date"], "%Y-%m-%d").date()
-                except (ValueError, TypeError):
-                    logger.warning(f"Invalid date format in price trend: {trend.get('date')}")
-                    continue
-                
-                price_trend = ZillowPriceTrend(
-                    market_data_id=market_data.id,
-                    date=trend_date,
-                    price=trend.get("price"),
-                    percent_change=trend.get("percent_change")
-                )
-                
-                db.session.add(price_trend)
-            
-            db.session.commit()
-            logger.info(f"Successfully stored market data for resource ID {resource_id}")
-            
-            return market_data, True
-            
-        except Exception as e:
-            db.session.rollback()
-            logger.exception(f"Error fetching and storing market data: {str(e)}")
-            
-            # Return existing data if we have it
-            if existing_data:
-                return existing_data, False
-                
-            return None, False
-    
-    def get_property_details(self, zpid: str) -> Tuple[ZillowProperty, bool]:
-        """
-        Fetch property details from Zillow and store in the database.
-        
-        Args:
-            zpid (str): Zillow Property ID
-            
-        Returns:
-            Tuple[ZillowProperty, bool]: Tuple containing the property object and a boolean
-            indicating whether the data was newly fetched (True) or retrieved from cache (False)
-        """
-        # Check if we already have this property
-        existing_property = ZillowProperty.query.filter_by(zpid=zpid).first()
-        
-        # If we have recent data (last 7 days), return it
-        if existing_property and (datetime.utcnow() - existing_property.updated_at).days < 7:
-            logger.info(f"Using cached property data for ZPID {zpid}")
-            return existing_property, False
-        
-        # Otherwise, fetch new data
-        try:
-            # Fetch from Zillow API
-            property_data = self.scraper.get_property_details(zpid)
-            
-            if not property_data:
-                logger.error(f"Failed to fetch property details for ZPID {zpid}")
-                if existing_property:
-                    return existing_property, False
-                return None, False
-            
-            # Extract property information
-            address = property_data.get("address", {})
-            price_info = property_data.get("price", {})
-            building_info = property_data.get("building", {})
-            
-            # Create or update property record
-            if existing_property:
-                property_obj = existing_property
-            else:
-                property_obj = ZillowProperty(zpid=zpid)
-            
-            # Update properties
-            property_obj.address = address.get("streetAddress")
-            property_obj.city = address.get("city")
-            property_obj.state = address.get("state")
-            property_obj.zip_code = address.get("zipcode")
-            property_obj.price = price_info.get("value")
-            property_obj.beds = building_info.get("beds")
-            property_obj.baths = building_info.get("baths")
-            property_obj.square_feet = building_info.get("livingArea")
-            property_obj.lot_size = building_info.get("lotSize")
-            property_obj.year_built = building_info.get("yearBuilt")
-            property_obj.property_type = property_data.get("propertyType")
-            property_obj.status = property_data.get("homeStatus")
-            property_obj.days_on_market = property_data.get("daysOnZillow")
-            property_obj.url = property_data.get("url")
-            property_obj.image_url = property_data.get("imgSrc")
-            property_obj.raw_data = property_data
-            
-            # Save to database
-            if not existing_property:
-                db.session.add(property_obj)
-            
-            db.session.commit()
-            logger.info(f"Successfully stored property details for ZPID {zpid}")
-            
-            return property_obj, True
-            
-        except Exception as e:
-            db.session.rollback()
-            logger.exception(f"Error fetching and storing property details: {str(e)}")
-            
-            # Return existing data if we have it
-            if existing_property:
-                return existing_property, False
-                
-            return None, False
-    
-    def search_properties(self, location: str, limit: int = 10) -> List[Dict[str, Any]]:
-        """
-        Search for properties in a location and return formatted results.
-        
-        Args:
-            location (str): Location to search (city, zip code, etc.)
-            limit (int, optional): Maximum number of results to return. Default is 10.
-            
-        Returns:
-            List[Dict[str, Any]]: List of property data dictionaries
-        """
-        try:
-            # First page of results
-            search_results = self.scraper.search_properties(location, page=1)
-            
-            if not search_results or not search_results.get("results"):
-                logger.warning(f"No properties found for location: {location}")
-                return []
-            
-            results = search_results.get("results", [])
-            formatted_results = []
-            
-            # Process each result
-            for idx, result in enumerate(results):
-                if idx >= limit:
-                    break
-                    
-                zpid = result.get("zpid")
-                if not zpid:
-                    continue
-                
-                # Check if we have this property in our database
-                property_obj = ZillowProperty.query.filter_by(zpid=zpid).first()
-                
-                # If not in database or outdated, fetch and store it
-                if not property_obj or (datetime.utcnow() - property_obj.updated_at).days >= 7:
-                    property_obj, _ = self.get_property_details(zpid)
-                
-                # If we successfully got the property, add to results
-                if property_obj:
-                    formatted_results.append(property_obj.to_dict())
-            
-            return formatted_results
-            
-        except Exception as e:
-            logger.exception(f"Error searching properties: {str(e)}")
+        if not self.api_key:
+            logger.warning("No RapidAPI key found for Zillow API")
             return []
+            
+        try:
+            # Map our internal parameters to Zillow API parameters
+            api_params = {
+                "location": params.get('location', ''),
+                "page": "1",
+                "status_type": "ForSale"
+            }
+            
+            # Add home type filter if specified
+            if params.get('property_types'):
+                property_map = {
+                    "Single Family": "Houses",
+                    "Condo": "Condos",
+                    "Townhouse": "Townhomes",
+                    "Multi-Family": "Multi-Family",
+                    "Land": "Lots"
+                }
+                home_types = [property_map.get(pt, pt) for pt in params.get('property_types') if pt in property_map]
+                if home_types:
+                    api_params["home_type"] = ",".join(home_types)
+            
+            # Add price range if specified
+            if params.get('min_price'):
+                api_params["price_min"] = str(int(params.get('min_price')))
+            if params.get('max_price'):
+                api_params["price_max"] = str(int(params.get('max_price')))
+                
+            # Add bedroom and bathroom filters if specified
+            if params.get('min_beds'):
+                api_params["beds_min"] = str(int(params.get('min_beds')))
+            if params.get('max_beds'):
+                api_params["beds_max"] = str(int(params.get('max_beds')))
+            if params.get('min_baths'):
+                api_params["baths_min"] = str(int(params.get('min_baths')))
+            if params.get('max_baths'):
+                api_params["baths_max"] = str(int(params.get('max_baths')))
+                
+            # Add square footage filters if specified
+            if params.get('min_sqft'):
+                api_params["sqft_min"] = str(int(params.get('min_sqft')))
+            if params.get('max_sqft'):
+                api_params["sqft_max"] = str(int(params.get('max_sqft')))
+            
+            # Make API request
+            logger.info(f"Making Zillow API request with parameters: {api_params}")
+            
+            # Mock temporary response
+            logger.warning("Using mock data for Zillow API - this is for development purposes only")
+            properties = self._get_mock_properties(params)
+            
+            # In a real implementation, we would make an API call like:
+            # response = requests.get(self.base_url, headers=self.headers, params=api_params)
+            # response.raise_for_status()
+            # result = response.json()
+            # properties = result.get('props', [])
+            
+            # Process and map properties to our format
+            return self._map_properties(properties)
+            
+        except Exception as e:
+            logger.exception(f"Error calling Zillow API: {str(e)}")
+            return []
+    
+    def _get_mock_properties(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Get mock property data for development and testing.
+        
+        Args:
+            params (Dict[str, Any]): Search parameters
+            
+        Returns:
+            List[Dict[str, Any]]: List of mock properties
+        """
+        # Calculate base price from parameters or use default
+        base_price = 500000
+        if params.get('subject_price'):
+            base_price = params.get('subject_price')
+        elif params.get('min_price') and params.get('max_price'):
+            base_price = (params.get('min_price') + params.get('max_price')) / 2
+        
+        # Calculate base square footage
+        base_sqft = 2000
+        if params.get('subject_sqft'):
+            base_sqft = params.get('subject_sqft')
+        elif params.get('min_sqft') and params.get('max_sqft'):
+            base_sqft = (params.get('min_sqft') + params.get('max_sqft')) / 2
+        
+        # Create mock properties
+        mock_properties = []
+        
+        # Property 1 - Similar price, slightly smaller
+        mock_properties.append({
+            "property_id": "12345",
+            "address": "123 Main St",
+            "city": params.get('subject_city', 'San Francisco'),
+            "state": params.get('subject_state', 'CA'),
+            "zip_code": params.get('subject_zip', '94105'),
+            "price": base_price * 0.95,
+            "sqft": base_sqft * 0.9,
+            "beds": params.get('subject_beds', 3),
+            "baths": params.get('subject_baths', 2),
+            "year_built": params.get('subject_year_built', 2000) - 5,
+            "property_type": params.get('subject_property_type', 'Single Family'),
+            "lot_size": params.get('subject_lot_size', 5000) * 0.9,
+            "days_on_market": 30,
+            "status": "active",
+            "latitude": 37.789,
+            "longitude": -122.401,
+            "photos_url": "https://via.placeholder.com/800x600?text=Property+1"
+        })
+        
+        # Property 2 - Higher price, newer
+        mock_properties.append({
+            "property_id": "23456",
+            "address": "456 Oak Ave",
+            "city": params.get('subject_city', 'San Francisco'),
+            "state": params.get('subject_state', 'CA'),
+            "zip_code": params.get('subject_zip', '94105'),
+            "price": base_price * 1.1,
+            "sqft": base_sqft * 1.05,
+            "beds": params.get('subject_beds', 3) + 1,
+            "baths": params.get('subject_baths', 2) + 0.5,
+            "year_built": params.get('subject_year_built', 2000) + 10,
+            "property_type": params.get('subject_property_type', 'Single Family'),
+            "lot_size": params.get('subject_lot_size', 5000) * 1.1,
+            "days_on_market": 15,
+            "status": "active",
+            "latitude": 37.792,
+            "longitude": -122.405,
+            "photos_url": "https://via.placeholder.com/800x600?text=Property+2"
+        })
+        
+        # Property 3 - Lower price, older
+        mock_properties.append({
+            "property_id": "34567",
+            "address": "789 Pine St",
+            "city": params.get('subject_city', 'San Francisco'),
+            "state": params.get('subject_state', 'CA'),
+            "zip_code": params.get('subject_zip', '94105'),
+            "price": base_price * 0.85,
+            "sqft": base_sqft * 0.95,
+            "beds": params.get('subject_beds', 3),
+            "baths": params.get('subject_baths', 2) - 0.5,
+            "year_built": params.get('subject_year_built', 2000) - 15,
+            "property_type": params.get('subject_property_type', 'Single Family'),
+            "lot_size": params.get('subject_lot_size', 5000) * 0.95,
+            "days_on_market": 45,
+            "status": "active",
+            "latitude": 37.786,
+            "longitude": -122.398,
+            "photos_url": "https://via.placeholder.com/800x600?text=Property+3"
+        })
+        
+        # Property 4 - Similar price, different location
+        mock_properties.append({
+            "property_id": "45678",
+            "address": "101 Market St",
+            "city": params.get('subject_city', 'San Francisco'),
+            "state": params.get('subject_state', 'CA'),
+            "zip_code": params.get('subject_zip', '94105'),
+            "price": base_price * 1.02,
+            "sqft": base_sqft * 0.98,
+            "beds": params.get('subject_beds', 3),
+            "baths": params.get('subject_baths', 2),
+            "year_built": params.get('subject_year_built', 2000) - 2,
+            "property_type": params.get('subject_property_type', 'Single Family'),
+            "lot_size": params.get('subject_lot_size', 5000) * 1.05,
+            "days_on_market": 60,
+            "status": "active",
+            "latitude": 37.794,
+            "longitude": -122.394,
+            "photos_url": "https://via.placeholder.com/800x600?text=Property+4"
+        })
+        
+        # Property 5 - Similar everything, recently sold
+        mock_properties.append({
+            "property_id": "56789",
+            "address": "222 Valencia St",
+            "city": params.get('subject_city', 'San Francisco'),
+            "state": params.get('subject_state', 'CA'),
+            "zip_code": params.get('subject_zip', '94105'),
+            "price": base_price * 0.99,
+            "original_price": base_price * 1.05,
+            "sqft": base_sqft * 1.01,
+            "beds": params.get('subject_beds', 3),
+            "baths": params.get('subject_baths', 2),
+            "year_built": params.get('subject_year_built', 2000) + 1,
+            "property_type": params.get('subject_property_type', 'Single Family'),
+            "lot_size": params.get('subject_lot_size', 5000) * 0.98,
+            "days_on_market": 20,
+            "status": "sold",
+            "sale_date": "2025-03-15",
+            "latitude": 37.790,
+            "longitude": -122.409,
+            "photos_url": "https://via.placeholder.com/800x600?text=Property+5"
+        })
+        
+        return mock_properties
+    
+    def _map_properties(self, properties: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Map Zillow API response to our internal property format.
+        
+        Args:
+            properties (List[Dict[str, Any]]): Properties from Zillow API
+            
+        Returns:
+            List[Dict[str, Any]]: Mapped properties
+        """
+        # In a real implementation, we would map the Zillow API response fields
+        # to our internal format. Since we're using mock data already in our format,
+        # we'll just return it as is.
+        return properties

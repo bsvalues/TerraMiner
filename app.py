@@ -39,6 +39,25 @@ db.init_app(app)
 # Load configuration
 config = load_config()
 
+# Register Jinja filters
+@app.template_filter('datetime')
+def format_datetime(value):
+    """Format a datetime object to a readable string."""
+    if not value:
+        return ""
+    if isinstance(value, str):
+        try:
+            from datetime import datetime
+            value = datetime.fromisoformat(value.replace('Z', '+00:00'))
+        except (ValueError, TypeError):
+            return value
+    
+    try:
+        # Format: January 1, 2025 at 12:00 PM
+        return value.strftime("%B %d, %Y at %I:%M %p")
+    except (ValueError, TypeError, AttributeError):
+        return str(value)
+
 # Register blueprints
 try:
     from app_monitor import monitor_bp
@@ -78,6 +97,22 @@ try:
     logger.info("Registered authentication API blueprint")
 except ImportError:
     logger.warning("Could not import authentication API blueprint")
+    
+# Register CMA API blueprint
+try:
+    from api.cma_routes import register_routes as register_cma_api_routes
+    register_cma_api_routes(app)
+    logger.info("Registered CMA API blueprint")
+except ImportError:
+    logger.warning("Could not import CMA API blueprint")
+    
+# Register CMA controller blueprint
+try:
+    from controllers.cma_controller import register_routes as register_cma_controller_routes
+    register_cma_controller_routes(app)
+    logger.info("Registered CMA controller blueprint")
+except ImportError:
+    logger.warning("Could not import CMA controller blueprint")
 
 # Routes
 @app.route('/')

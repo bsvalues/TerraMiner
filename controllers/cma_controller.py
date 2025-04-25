@@ -60,6 +60,25 @@ def view_report(report_id):
         logger.exception(f"Error viewing CMA report: {str(e)}")
         flash(f"An error occurred: {str(e)}", 'error')
         return redirect(url_for('cma.list_reports'))
+        
+@cma_bp.route('/reports/<int:report_id>/generate', methods=['GET'])
+def generate_report(report_id):
+    """Generate a CMA report."""
+    try:
+        # Generate the report
+        report = cma_service.generate_report(report_id)
+        flash('Report generated successfully!', 'success')
+        return redirect(url_for('cma.view_report', report_id=report_id))
+        
+    except ValueError as e:
+        logger.warning(f"CMA report not found: {str(e)}")
+        flash(f"Report not found: {str(e)}", 'error')
+        return redirect(url_for('cma.list_reports'))
+        
+    except Exception as e:
+        logger.exception(f"Error generating CMA report: {str(e)}")
+        flash(f"An error occurred: {str(e)}", 'error')
+        return redirect(url_for('cma.list_reports'))
 
 def register_routes(app):
     """Register the CMA routes with the Flask app."""

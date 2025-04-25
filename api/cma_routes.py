@@ -19,7 +19,7 @@ from api.auth import api_key_required
 logger = logging.getLogger(__name__)
 
 # Create blueprint
-cma_bp = Blueprint('cma', __name__, url_prefix='/api/cma')
+cma_bp = Blueprint('cma_api', __name__, url_prefix='/api/cma')
 
 # Create CMA service
 cma_service = CMAService()
