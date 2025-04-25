@@ -1,55 +1,37 @@
 """
-Voice-activated property search controller
+Voice search controller module
 """
 import logging
-from flask import Blueprint, render_template, jsonify, url_for
-from werkzeug.exceptions import NotFound
+from flask import Blueprint, render_template, jsonify, request
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
 # Create blueprint
-voice_bp = Blueprint('voice', __name__)
+voice_blueprint = Blueprint('voice', __name__, template_folder='templates')
 
-@voice_bp.route('/voice-search')
+@voice_blueprint.route('/voice-search')
 def voice_search():
-    """Voice-activated property search page."""
-    return render_template('voice_search.html')
-
-@voice_bp.route('/property/search')
-def property_search():
-    """Property search results page."""
-    # This is a placeholder route that would normally
-    # fetch property search results based on query parameters.
-    # Redirect to voice search for now, this would be replaced
-    # in a real implementation with actual search functionality.
-    return render_template('voice_search.html', 
-                          search_active=True,
-                          message="This is a placeholder for the property search results page.")
-
-@voice_bp.route('/market/trends')
-def market_trends():
-    """Market trends page."""
-    # This is a placeholder route that would normally
-    # fetch market trends based on query parameters.
-    # Redirect to voice search for now, this would be replaced
-    # in a real implementation with actual market trends functionality.
-    return render_template('voice_search.html',
-                          market_active=True,
-                          message="This is a placeholder for the market trends page.")
-
-@voice_bp.route('/property/details')
-def property_details():
-    """Property details page."""
-    # This is a placeholder route that would normally
-    # fetch property details based on query parameters.
-    # Redirect to voice search for now, this would be replaced
-    # in a real implementation with actual property details functionality.
-    return render_template('voice_search.html',
-                          details_active=True,
-                          message="This is a placeholder for the property details page.")
+    """Render the voice search page."""
+    logger.info("Rendering voice search page")
+    
+    # Example voice commands for the UI
+    example_commands = [
+        "Find properties in Seattle with 3 bedrooms",
+        "Show homes in San Francisco under 750k",
+        "Search for houses in Austin with 2 bathrooms",
+        "Find condos in Chicago with 2 beds under 500k",
+        "Show market trends for Boston",
+        "Get property details at 123 Main Street"
+    ]
+    
+    return render_template(
+        'voice_search.html',
+        title="Voice-Activated Property Search",
+        example_commands=example_commands
+    )
 
 def register_voice_blueprint(app):
     """Register the voice blueprint with the app."""
-    app.register_blueprint(voice_bp)
+    app.register_blueprint(voice_blueprint)
     logger.info("Registered voice controller blueprint")

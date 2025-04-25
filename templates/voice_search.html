@@ -1,175 +1,69 @@
 {% extends "base.html" %}
 
-{% block title %}Voice-Activated Property Search{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 
-{% block head %}
-{{ super() }}
-<style>
-    .voice-search-container {
-        padding: 2rem;
-        background-color: #f8f9fa;
-        border-radius: 0.5rem;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-        margin-bottom: 2rem;
-    }
-    
-    .voice-button {
-        width: 5rem;
-        height: 5rem;
-        border-radius: 50%;
-        background-color: #4285f4;
-        border: none;
-        color: white;
-        font-size: 1.5rem;
-        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
-        transition: all 0.3s ease;
-        margin: 1rem auto;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .voice-button.listening {
-        animation: pulse 1.5s infinite;
-        background-color: #ea4335;
-    }
-    
-    .voice-button:hover {
-        transform: scale(1.05);
-        background-color: #1a73e8;
-    }
-    
-    .voice-button:active {
-        transform: scale(0.95);
-    }
-    
-    @keyframes pulse {
-        0% {
-            transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.7);
-        }
-        
-        70% {
-            transform: scale(1.05);
-            box-shadow: 0 0 0 0.625rem rgba(234, 67, 53, 0);
-        }
-        
-        100% {
-            transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(234, 67, 53, 0);
-        }
-    }
-    
-    .transcript {
-        min-height: 3rem;
-        padding: 0.75rem;
-        border-radius: 0.25rem;
-        background-color: white;
-        margin: 1rem 0;
-        font-size: 1.25rem;
-    }
-    
-    .commands-container {
-        background-color: white;
-        border-radius: 0.5rem;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    }
-    
-    .search-results {
-        margin-top: 2rem;
-    }
-    
-    .property-card {
-        border-radius: 0.5rem;
-        overflow: hidden;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-        transition: all 0.3s ease;
-        margin-bottom: 1.5rem;
-    }
-    
-    .property-card:hover {
-        transform: translateY(-0.25rem);
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    }
-    
-    .property-image {
-        height: 12rem;
-        background-position: center;
-        background-size: cover;
-    }
-    
-    .status-message {
-        color: #6c757d;
-        font-style: italic;
-        margin-top: 0.5rem;
-    }
-</style>
+{% block additional_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/voice-search.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="container my-4">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h1 class="h2 mb-3">Voice-Activated Property Search</h1>
-            <p class="lead">Use your voice to search for properties, get market trends, or find detailed information.</p>
+<div class="voice-search-container">
+    <div class="voice-search-header">
+        <h1 class="voice-search-title">Voice-Activated Property Search</h1>
+        <div class="voice-search-stats">
+            <span class="badge bg-primary">AI-Powered</span>
         </div>
     </div>
     
     <div class="row">
-        <div class="col-lg-8">
-            <div class="voice-search-container">
-                <div class="d-flex flex-column align-items-center">
-                    <button id="voiceButton" class="voice-button">
-                        <i class="fas fa-microphone"></i>
-                    </button>
-                    <p id="statusMessage" class="status-message">Click the microphone to start speaking</p>
-                </div>
-                
-                <div class="transcript border" id="transcript"></div>
-                
-                <div class="text-center my-3">
-                    <button id="searchButton" class="btn btn-primary" disabled>Search Properties</button>
+        <div class="col-md-8 offset-md-2">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title text-center">Speak to Search</h2>
+                    <p class="card-text text-center">Click the microphone button and speak your real estate search query.</p>
+                    
+                    <!-- Browser support warning (shown only if needed) -->
+                    <div id="browser-warning" class="browser-support-warning d-none">
+                        <strong>Warning:</strong> Voice search requires a modern browser like Chrome or Edge.
+                    </div>
+                    
+                    <!-- Microphone button -->
+                    <div class="voice-mic-container">
+                        <button id="voice-search-mic" class="voice-search-mic" aria-label="Start voice search" disabled>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                <line x1="12" y1="19" x2="12" y2="23"></line>
+                                <line x1="8" y1="23" x2="16" y2="23"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Status area -->
+                    <div class="voice-status-container">
+                        <p id="voice-status" class="voice-status">Ready. Click the microphone to start.</p>
+                    </div>
+                    
+                    <!-- Processing indicator -->
+                    <div id="processing-indicator" class="processing-indicator"></div>
                 </div>
             </div>
             
-            <div class="search-results" id="searchResults">
-                <!-- Search results will be displayed here -->
-            </div>
-        </div>
-        
-        <div class="col-lg-4">
-            <div class="commands-container">
-                <h3 class="h5 mb-3">Example Voice Commands</h3>
-                <ul class="list-group">
-                    <li class="list-group-item">
-                        <strong>Property Search:</strong>
-                        <div>"Find properties in San Francisco"</div>
-                    </li>
-                    <li class="list-group-item">
-                        <strong>Specific Requirements:</strong>
-                        <div>"Show houses in Seattle with 3 bedrooms under 800k"</div>
-                    </li>
-                    <li class="list-group-item">
-                        <strong>Market Trends:</strong>
-                        <div>"Show market trends for Chicago"</div>
-                    </li>
-                    <li class="list-group-item">
-                        <strong>Property Details:</strong>
-                        <div>"Tell me about the property at 123 Main St"</div>
-                    </li>
-                    <li class="list-group-item">
-                        <strong>Property Type:</strong>
-                        <div>"Find condos in Miami with 2 bedrooms"</div>
-                    </li>
-                </ul>
+            <!-- Results area -->
+            <div class="voice-results-container">
+                <h3 class="voice-results-title">Results</h3>
+                <div id="voice-results" class="voice-results">
+                    <div class="no-results">
+                        <p>Your voice command results will appear here.</p>
+                    </div>
+                </div>
             </div>
             
-            <div class="commands-container">
-                <h3 class="h5 mb-3">Current Search Parameters</h3>
-                <div id="searchParams">
-                    <div class="text-muted">No search parameters yet. Try using voice commands to set search criteria.</div>
+            <!-- Examples area -->
+            <div class="voice-examples-container">
+                <h3 class="voice-examples-title">Example Commands (click to try)</h3>
+                <div id="voice-examples" class="voice-examples">
+                    <!-- Examples will be inserted here by JavaScript -->
                 </div>
             </div>
         </div>
@@ -177,208 +71,6 @@
 </div>
 {% endblock %}
 
-{% block scripts %}
-{{ super() }}
+{% block additional_js %}
 <script src="{{ url_for('static', filename='js/voice-search.js') }}"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const voiceButton = document.getElementById('voiceButton');
-        const transcript = document.getElementById('transcript');
-        const statusMessage = document.getElementById('statusMessage');
-        const searchButton = document.getElementById('searchButton');
-        const searchParams = document.getElementById('searchParams');
-        const searchResults = document.getElementById('searchResults');
-        
-        let currentParams = {};
-        let voiceSearch = null;
-        let commandProcessor = null;
-        
-        try {
-            // Initialize voice search
-            voiceSearch = new VoiceSearch({
-                language: 'en-US',
-                continuous: false
-            });
-            
-            // Initialize command processor
-            commandProcessor = new PropertyVoiceCommandProcessor({
-                apiEndpoint: '/api/voice/process',
-                statusCallback: updateStatus
-            });
-            
-            // Connect the command processor to voice search
-            voiceSearch.setCommandProcessor(commandProcessor);
-            
-            // Voice button click handler
-            voiceButton.addEventListener('click', function() {
-                if (voiceSearch.isListening) {
-                    voiceSearch.stop();
-                    voiceButton.classList.remove('listening');
-                    statusMessage.textContent = 'Stopped listening';
-                } else {
-                    startListening();
-                }
-            });
-            
-            // Search button click handler
-            searchButton.addEventListener('click', function() {
-                if (Object.keys(currentParams).length === 0) {
-                    updateStatus('Please specify search parameters first');
-                    return;
-                }
-                
-                searchProperties(currentParams);
-            });
-            
-        } catch (error) {
-            console.error('Error initializing voice search:', error);
-            updateStatus('Voice search is not available in this browser');
-            voiceButton.disabled = true;
-        }
-        
-        function startListening() {
-            updateStatus('Listening...');
-            voiceButton.classList.add('listening');
-            
-            voiceSearch.start(
-                // Success callback
-                function(result) {
-                    transcript.textContent = result;
-                    updateStatus('Processing command...');
-                    setTimeout(() => {
-                        processVoiceCommand(result);
-                    }, 500);
-                },
-                // Error callback
-                function(error) {
-                    updateStatus('Error: ' + error);
-                    voiceButton.classList.remove('listening');
-                }
-            );
-        }
-        
-        function processVoiceCommand(command) {
-            voiceButton.classList.remove('listening');
-            
-            // Send command to server for processing
-            fetch('/api/voice/process', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ command: command })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    handleCommandResult(data);
-                } else {
-                    updateStatus('Error: ' + (data.message || 'Failed to process command'));
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                updateStatus('Server error: ' + error.message);
-            });
-        }
-        
-        function handleCommandResult(result) {
-            updateStatus('Command processed: ' + result.intent);
-            
-            if (result.intent === 'search') {
-                // Update current parameters
-                currentParams = result.params || {};
-                updateSearchParamsDisplay();
-                
-                // Enable search button
-                searchButton.disabled = false;
-                
-                if (result.action === 'search' && result.url) {
-                    // Auto search if we have a URL
-                    window.location.href = result.url;
-                }
-            } else if (result.intent === 'marketTrends' && result.url) {
-                updateStatus('Redirecting to market trends...');
-                window.location.href = result.url;
-            } else if (result.intent === 'propertyDetails' && result.url) {
-                updateStatus('Redirecting to property details...');
-                window.location.href = result.url;
-            } else if (result.intent === 'unknown') {
-                updateStatus('I didn\'t understand that command. Please try again.');
-            }
-        }
-        
-        function updateSearchParamsDisplay() {
-            if (Object.keys(currentParams).length === 0) {
-                searchParams.innerHTML = '<div class="text-muted">No search parameters yet. Try using voice commands to set search criteria.</div>';
-                return;
-            }
-            
-            let html = '<ul class="list-group">';
-            
-            if (currentParams.location) {
-                html += `<li class="list-group-item"><strong>Location:</strong> ${currentParams.location}</li>`;
-            }
-            
-            if (currentParams.beds) {
-                html += `<li class="list-group-item"><strong>Bedrooms:</strong> ${currentParams.beds}+</li>`;
-            }
-            
-            if (currentParams.baths) {
-                html += `<li class="list-group-item"><strong>Bathrooms:</strong> ${currentParams.baths}+</li>`;
-            }
-            
-            if (currentParams.maxPrice) {
-                html += `<li class="list-group-item"><strong>Max Price:</strong> $${currentParams.maxPrice.toLocaleString()}</li>`;
-            }
-            
-            if (currentParams.propertyType) {
-                html += `<li class="list-group-item"><strong>Property Type:</strong> ${currentParams.propertyType}</li>`;
-            }
-            
-            html += '</ul>';
-            searchParams.innerHTML = html;
-        }
-        
-        function searchProperties(params) {
-            updateStatus('Searching for properties...');
-            
-            // Construct search URL
-            let searchUrl = '/property/search?';
-            let queryParams = [];
-            
-            if (params.location) {
-                queryParams.push(`location=${encodeURIComponent(params.location)}`);
-            }
-            
-            if (params.beds) {
-                queryParams.push(`min_beds=${params.beds}`);
-            }
-            
-            if (params.baths) {
-                queryParams.push(`min_baths=${params.baths}`);
-            }
-            
-            if (params.maxPrice) {
-                queryParams.push(`max_price=${params.maxPrice}`);
-            }
-            
-            if (params.propertyType) {
-                queryParams.push(`property_type=${encodeURIComponent(params.propertyType)}`);
-            }
-            
-            searchUrl += queryParams.join('&');
-            
-            // In a real app, we'd redirect to the search page
-            // For demo purposes, let's simulate it with an AJAX request
-            updateStatus('Redirecting to search results...');
-            window.location.href = searchUrl;
-        }
-        
-        function updateStatus(message) {
-            statusMessage.textContent = message;
-            console.log('Status:', message);
-        }
-    });
-</script>
 {% endblock %}

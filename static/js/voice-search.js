@@ -1,363 +1,429 @@
 /**
- * Voice-activated property search and market queries
- * This module handles voice recognition and natural language processing for property search
+ * Voice-activated property search JavaScript module
+ * 
+ * This module handles voice recognition, command processing,
+ * and UI interactions for the voice search feature.
  */
 
-class VoiceSearch {
-    constructor(options = {}) {
-        this.options = {
-            language: 'en-US',
-            continuous: false,
-            interimResults: false,
-            maxAlternatives: 1,
-            ...options
-        };
-        
-        this.recognition = null;
-        this.isListening = false;
-        this.resultCallback = null;
-        this.errorCallback = null;
-        this.commandProcessor = null;
-        
-        this.initSpeechRecognition();
+// State variables
+let isListening = false;
+let recognition = null;
+let commandsList = [];
+let animationTimeout = null;
+
+// Elements
+let micButton = null;
+let statusElement = null;
+let resultsElement = null;
+let examplesElement = null;
+let processingIndicator = null;
+
+// Constants
+const API_ENDPOINT = '/api/voice/process';
+const LANG = 'en-US';
+const LISTENING_TIMEOUT = 10000; // 10 seconds
+
+/**
+ * Initialize the voice search feature
+ */
+function initVoiceSearch() {
+    // Get UI elements
+    micButton = document.getElementById('voice-search-mic');
+    statusElement = document.getElementById('voice-status');
+    resultsElement = document.getElementById('voice-results');
+    examplesElement = document.getElementById('voice-examples');
+    processingIndicator = document.getElementById('processing-indicator');
+    
+    // Check if browser supports speech recognition
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        showBrowserNotSupported();
+        return;
     }
     
-    initSpeechRecognition() {
-        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            console.error('Speech recognition not supported in this browser');
-            return;
-        }
-        
-        // Initialize speech recognition
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        this.recognition = new SpeechRecognition();
-        
-        // Set recognition options
-        this.recognition.lang = this.options.language;
-        this.recognition.continuous = this.options.continuous;
-        this.recognition.interimResults = this.options.interimResults;
-        this.recognition.maxAlternatives = this.options.maxAlternatives;
-        
-        // Set up event handlers
-        this.recognition.onresult = (event) => this.handleResult(event);
-        this.recognition.onerror = (event) => this.handleError(event);
-        this.recognition.onend = () => this.handleEnd();
+    // Set up speech recognition
+    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = LANG;
+    
+    // Set up event listeners
+    recognition.onstart = handleRecognitionStart;
+    recognition.onresult = handleRecognitionResult;
+    recognition.onerror = handleRecognitionError;
+    recognition.onend = handleRecognitionEnd;
+    
+    // Set up UI elements
+    if (micButton) {
+        micButton.addEventListener('click', toggleListening);
+        micButton.disabled = false;
     }
     
-    start(resultCallback, errorCallback) {
-        if (!this.recognition) {
-            if (errorCallback) {
-                errorCallback('Speech recognition not supported');
-            }
-            return false;
-        }
-        
-        this.resultCallback = resultCallback;
-        this.errorCallback = errorCallback;
-        
-        try {
-            this.recognition.start();
-            this.isListening = true;
-            return true;
-        } catch (error) {
-            console.error('Error starting speech recognition:', error);
-            if (errorCallback) {
-                errorCallback(error.message || 'Failed to start speech recognition');
-            }
-            return false;
-        }
-    }
+    // Load example commands
+    loadExampleCommands();
     
-    stop() {
-        if (this.recognition && this.isListening) {
-            this.recognition.stop();
-            this.isListening = false;
-        }
-    }
-    
-    handleResult(event) {
-        if (event.results.length > 0) {
-            const result = event.results[event.results.length - 1];
-            if (result.isFinal) {
-                const transcript = result[0].transcript.trim();
-                console.log('Voice recognition result:', transcript);
-                
-                if (this.resultCallback) {
-                    this.resultCallback(transcript);
-                }
-                
-                if (this.commandProcessor) {
-                    this.commandProcessor.processCommand(transcript);
-                }
-            }
-        }
-    }
-    
-    handleError(event) {
-        console.error('Speech recognition error:', event.error);
-        this.isListening = false;
-        
-        if (this.errorCallback) {
-            this.errorCallback(event.error);
-        }
-    }
-    
-    handleEnd() {
-        this.isListening = false;
-    }
-    
-    setCommandProcessor(processor) {
-        this.commandProcessor = processor;
+    console.log('Voice search initialized');
+}
+
+/**
+ * Toggle listening state
+ */
+function toggleListening() {
+    if (isListening) {
+        stopListening();
+    } else {
+        startListening();
     }
 }
 
-class PropertyVoiceCommandProcessor {
-    constructor(options = {}) {
-        this.options = {
-            apiEndpoint: '/api/voice/process',
-            searchCallback: null,
-            statusCallback: null,
-            ...options
-        };
-        
-        // Common property search command patterns
-        this.commandPatterns = {
-            search: [
-                /find (?:properties|homes|houses) in (.+)/i,
-                /search (?:for )?(?:properties|homes|houses) in (.+)/i,
-                /show (?:me )?(?:properties|homes|houses) in (.+)/i,
-                /properties in (.+)/i
-            ],
-            bedrooms: [
-                /with (\d+) bedrooms/i,
-                /(\d+) (?:bed|bedroom|bedrooms)/i
-            ],
-            bathrooms: [
-                /with (\d+(?:\.\d+)?) bathrooms/i,
-                /(\d+(?:\.\d+)?) (?:bath|bathroom|bathrooms)/i
-            ],
-            price: [
-                /under \$?(\d+(?:[,.]\d+)?)(?: ?k| ?thousand| ?million| ?m)?/i,
-                /less than \$?(\d+(?:[,.]\d+)?)(?: ?k| ?thousand| ?million| ?m)?/i,
-                /max(?:imum)? price (?:of )?\$?(\d+(?:[,.]\d+)?)(?: ?k| ?thousand| ?million| ?m)?/i,
-                /price under \$?(\d+(?:[,.]\d+)?)(?: ?k| ?thousand| ?million| ?m)?/i
-            ],
-            propertyType: [
-                /(?:type|property type|home type)(?: of| is)? (house|condo|townhouse|apartment|single family|multi family)/i
-            ],
-            marketTrends: [
-                /(?:show|get|what are) (?:the )?market trends (?:for|in) (.+)/i,
-                /market (?:data|analysis|info|information) (?:for|in) (.+)/i
-            ],
-            propertyDetails: [
-                /(?:show|get|tell me about) (?:property|home) (?:at|on) (.+)/i,
-                /details (?:for|about) (?:property|home) (?:at|on) (.+)/i
-            ]
-        };
+/**
+ * Start listening for voice commands
+ */
+function startListening() {
+    if (isListening) return;
+    
+    try {
+        recognition.start();
+    } catch (e) {
+        console.error('Error starting speech recognition:', e);
+        updateStatus('Error starting speech recognition. Please try again.');
+    }
+}
+
+/**
+ * Stop listening for voice commands
+ */
+function stopListening() {
+    if (!isListening) return;
+    
+    try {
+        recognition.stop();
+    } catch (e) {
+        console.error('Error stopping speech recognition:', e);
+    }
+}
+
+/**
+ * Handle recognition start event
+ */
+function handleRecognitionStart() {
+    isListening = true;
+    updateStatus('Listening...');
+    updateMicButton(true);
+    
+    // Set timeout to stop listening after a period
+    if (animationTimeout) {
+        clearTimeout(animationTimeout);
     }
     
-    processCommand(command) {
-        // First, update status
-        this.updateStatus('Processing command: ' + command);
+    animationTimeout = setTimeout(() => {
+        if (isListening) {
+            stopListening();
+        }
+    }, LISTENING_TIMEOUT);
+}
+
+/**
+ * Handle recognition result event
+ * @param {SpeechRecognitionEvent} event - The speech recognition event
+ */
+function handleRecognitionResult(event) {
+    const command = event.results[0][0].transcript;
+    console.log('Voice command recognized:', command);
+    
+    updateStatus('Processing command...');
+    
+    // Process command
+    processCommand(command);
+}
+
+/**
+ * Handle recognition error event
+ * @param {SpeechRecognitionError} event - The speech recognition error event
+ */
+function handleRecognitionError(event) {
+    console.error('Speech recognition error:', event.error);
+    
+    let errorMessage = 'Speech recognition error';
+    
+    switch (event.error) {
+        case 'no-speech':
+            errorMessage = 'No speech detected. Please try again.';
+            break;
+        case 'aborted':
+            errorMessage = 'Speech recognition aborted.';
+            break;
+        case 'audio-capture':
+            errorMessage = 'Could not capture audio. Please check your microphone.';
+            break;
+        case 'network':
+            errorMessage = 'Network error. Please try again.';
+            break;
+        case 'not-allowed':
+            errorMessage = 'Microphone access denied. Please allow microphone access.';
+            break;
+        case 'service-not-allowed':
+            errorMessage = 'Speech recognition service not allowed.';
+            break;
+        case 'bad-grammar':
+            errorMessage = 'Bad grammar configuration.';
+            break;
+        case 'language-not-supported':
+            errorMessage = 'Language not supported.';
+            break;
+    }
+    
+    updateStatus(errorMessage);
+    updateMicButton(false);
+    isListening = false;
+}
+
+/**
+ * Handle recognition end event
+ */
+function handleRecognitionEnd() {
+    isListening = false;
+    updateMicButton(false);
+    
+    if (animationTimeout) {
+        clearTimeout(animationTimeout);
+        animationTimeout = null;
+    }
+}
+
+/**
+ * Process a voice command
+ * @param {string} command - The voice command to process
+ */
+function processCommand(command) {
+    // Show processing indicator
+    if (processingIndicator) {
+        processingIndicator.style.display = 'block';
+    }
+    
+    // Add command to history
+    commandsList.unshift(command);
+    if (commandsList.length > 5) {
+        commandsList.pop();
+    }
+    
+    // Make API request to process the command
+    fetch(API_ENDPOINT, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ command: command })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Command processing result:', data);
         
-        // Analyze the command to determine intent
-        const intent = this.determineIntent(command);
+        // Hide processing indicator
+        if (processingIndicator) {
+            processingIndicator.style.display = 'none';
+        }
         
-        if (intent) {
-            this.updateStatus('Detected intent: ' + intent.type);
+        // Handle the response
+        handleCommandResponse(data, command);
+    })
+    .catch(error => {
+        console.error('Error processing command:', error);
+        
+        // Hide processing indicator
+        if (processingIndicator) {
+            processingIndicator.style.display = 'none';
+        }
+        
+        updateStatus('Error processing command. Please try again.');
+    });
+}
+
+/**
+ * Handle the command response from the API
+ * @param {Object} data - The response data
+ * @param {string} command - The original command
+ */
+function handleCommandResponse(data, command) {
+    if (!data || !data.success) {
+        updateStatus('Could not understand the command. Please try again.');
+        showCommandResult(command, 'Error processing command');
+        return;
+    }
+    
+    let responseText = '';
+    
+    switch (data.intent) {
+        case 'search':
+            responseText = `Searching for properties in ${data.params.location || 'the selected area'}`;
             
-            // Handle the intent based on its type
-            if (intent.type === 'search') {
-                this.handleSearchIntent(intent, command);
-            } else if (intent.type === 'marketTrends') {
-                this.handleMarketTrendsIntent(intent, command);
-            } else if (intent.type === 'propertyDetails') {
-                this.handlePropertyDetailsIntent(intent, command);
-            }
-        } else {
-            // If we couldn't determine the intent, send to server for processing
-            this.sendToServer(command);
-        }
-    }
-    
-    determineIntent(command) {
-        // Check each intent pattern
-        for (const [intentType, patterns] of Object.entries(this.commandPatterns)) {
-            for (const pattern of patterns) {
-                const match = command.match(pattern);
-                if (match) {
-                    return {
-                        type: intentType,
-                        value: match[1],
-                        match: match
-                    };
-                }
-            }
-        }
-        
-        return null;
-    }
-    
-    handleSearchIntent(intent, command) {
-        const searchParams = this.extractSearchParameters(command);
-        
-        this.updateStatus('Searching for properties with parameters: ' + 
-                        JSON.stringify(searchParams));
-        
-        if (this.options.searchCallback) {
-            this.options.searchCallback(searchParams);
-        } else {
-            // Default behavior: redirect to search page with parameters
-            const queryParams = new URLSearchParams();
-            
-            for (const [key, value] of Object.entries(searchParams)) {
-                if (value !== null && value !== undefined) {
-                    queryParams.append(key, value);
-                }
+            if (data.params.beds) {
+                responseText += ` with ${data.params.beds} bedrooms`;
             }
             
-            window.location.href = `/property/search?${queryParams.toString()}`;
-        }
-    }
-    
-    handleMarketTrendsIntent(intent, command) {
-        const location = intent.value;
-        this.updateStatus('Getting market trends for: ' + location);
-        
-        // Redirect to market trends page
-        window.location.href = `/market/trends?location=${encodeURIComponent(location)}`;
-    }
-    
-    handlePropertyDetailsIntent(intent, command) {
-        const address = intent.value;
-        this.updateStatus('Getting property details for: ' + address);
-        
-        // Extract address and search
-        window.location.href = `/property/details?address=${encodeURIComponent(address)}`;
-    }
-    
-    extractSearchParameters(command) {
-        const params = {
-            location: null,
-            beds: null,
-            baths: null,
-            maxPrice: null,
-            propertyType: null
-        };
-        
-        // Extract location
-        for (const pattern of this.commandPatterns.search) {
-            const match = command.match(pattern);
-            if (match) {
-                params.location = match[1];
-                break;
+            if (data.params.baths) {
+                responseText += `, ${data.params.baths} bathrooms`;
             }
-        }
-        
-        // Extract bedrooms
-        for (const pattern of this.commandPatterns.bedrooms) {
-            const match = command.match(pattern);
-            if (match) {
-                params.beds = parseInt(match[1], 10);
-                break;
-            }
-        }
-        
-        // Extract bathrooms
-        for (const pattern of this.commandPatterns.bathrooms) {
-            const match = command.match(pattern);
-            if (match) {
-                params.baths = parseFloat(match[1]);
-                break;
-            }
-        }
-        
-        // Extract price
-        for (const pattern of this.commandPatterns.price) {
-            const match = command.match(pattern);
-            if (match) {
-                let price = match[1].replace(/[,.]/g, '');
-                if (match[0].includes('million') || match[0].includes('m')) {
-                    price = parseInt(price, 10) * 1000000;
-                } else if (match[0].includes('k') || match[0].includes('thousand')) {
-                    price = parseInt(price, 10) * 1000;
-                } else {
-                    price = parseInt(price, 10);
-                }
-                params.maxPrice = price;
-                break;
-            }
-        }
-        
-        // Extract property type
-        for (const pattern of this.commandPatterns.propertyType) {
-            const match = command.match(pattern);
-            if (match) {
-                params.propertyType = match[1].toLowerCase();
-                // Normalize property type
-                if (params.propertyType === 'house' || params.propertyType === 'single family') {
-                    params.propertyType = 'Single Family';
-                } else if (params.propertyType === 'condo' || params.propertyType === 'apartment') {
-                    params.propertyType = 'Condo';
-                } else if (params.propertyType === 'townhouse') {
-                    params.propertyType = 'Townhouse';
-                } else if (params.propertyType === 'multi family') {
-                    params.propertyType = 'Multi-Family';
-                }
-                break;
-            }
-        }
-        
-        return params;
-    }
-    
-    sendToServer(command) {
-        this.updateStatus('Sending command to server for processing...');
-        
-        fetch(this.options.apiEndpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ command })
-        })
-        .then(response => response.json())
-        .then(data => {
-            this.updateStatus('Server response: ' + JSON.stringify(data));
             
-            if (data.action === 'search' && data.params) {
-                if (this.options.searchCallback) {
-                    this.options.searchCallback(data.params);
-                } else {
-                    // Redirect to search page with parameters
-                    const queryParams = new URLSearchParams();
-                    
-                    for (const [key, value] of Object.entries(data.params)) {
-                        if (value !== null && value !== undefined) {
-                            queryParams.append(key, value);
-                        }
-                    }
-                    
-                    window.location.href = `/property/search?${queryParams.toString()}`;
-                }
-            } else if (data.action === 'redirect' && data.url) {
-                window.location.href = data.url;
+            if (data.params.maxPrice) {
+                responseText += `, under $${formatPrice(data.params.maxPrice)}`;
             }
-        })
-        .catch(error => {
-            console.error('Error sending command to server:', error);
-            this.updateStatus('Error processing command: ' + error.message);
+            
+            if (data.params.propertyType) {
+                responseText += `, type: ${data.params.propertyType}`;
+            }
+            
+            updateStatus('Search command recognized');
+            break;
+            
+        case 'marketTrends':
+            responseText = `Showing market trends for ${data.params.location || 'the selected area'}`;
+            updateStatus('Market trends command recognized');
+            break;
+            
+        case 'propertyDetails':
+            responseText = `Showing property details for ${data.params.address || 'the selected property'}`;
+            updateStatus('Property details command recognized');
+            break;
+            
+        default:
+            responseText = 'Command recognized but the intent is unknown';
+            updateStatus('Unknown command type');
+            break;
+    }
+    
+    // Show the result
+    showCommandResult(command, responseText);
+    
+    // Redirect if needed
+    if (data.action === 'redirect' && data.url) {
+        setTimeout(() => {
+            window.location.href = data.url;
+        }, 1500);
+    }
+}
+
+/**
+ * Show command result in the UI
+ * @param {string} command - The original command
+ * @param {string} response - The response text
+ */
+function showCommandResult(command, response) {
+    if (!resultsElement) return;
+    
+    const resultItem = document.createElement('div');
+    resultItem.className = 'voice-result-item';
+    
+    const commandEl = document.createElement('div');
+    commandEl.className = 'voice-command';
+    commandEl.innerHTML = `<strong>You said:</strong> "${command}"`;
+    
+    const responseEl = document.createElement('div');
+    responseEl.className = 'voice-response';
+    responseEl.innerHTML = `<strong>Response:</strong> ${response}`;
+    
+    resultItem.appendChild(commandEl);
+    resultItem.appendChild(responseEl);
+    
+    // Add to results container
+    resultsElement.insertBefore(resultItem, resultsElement.firstChild);
+    
+    // Limit the number of results shown
+    if (resultsElement.children.length > 5) {
+        resultsElement.removeChild(resultsElement.lastChild);
+    }
+}
+
+/**
+ * Format price for display
+ * @param {number} price - The price to format
+ * @returns {string} - The formatted price
+ */
+function formatPrice(price) {
+    if (!price) return '0';
+    
+    if (price >= 1000000) {
+        return (price / 1000000).toFixed(1) + 'M';
+    } else if (price >= 1000) {
+        return (price / 1000).toFixed(0) + 'K';
+    }
+    
+    return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+/**
+ * Update microphone button state
+ * @param {boolean} isActive - Whether the microphone is active
+ */
+function updateMicButton(isActive) {
+    if (!micButton) return;
+    
+    if (isActive) {
+        micButton.classList.add('active');
+        micButton.setAttribute('aria-label', 'Stop listening');
+    } else {
+        micButton.classList.remove('active');
+        micButton.setAttribute('aria-label', 'Start voice search');
+    }
+}
+
+/**
+ * Update status message
+ * @param {string} message - The status message
+ */
+function updateStatus(message) {
+    if (!statusElement) return;
+    
+    statusElement.textContent = message;
+}
+
+/**
+ * Show browser not supported message
+ */
+function showBrowserNotSupported() {
+    if (!statusElement) return;
+    
+    statusElement.textContent = 'Voice search is not supported in your browser. Please try Chrome or Edge.';
+    
+    if (micButton) {
+        micButton.disabled = true;
+        micButton.title = 'Voice search not supported in this browser';
+    }
+}
+
+/**
+ * Load example commands
+ */
+function loadExampleCommands() {
+    if (!examplesElement) return;
+    
+    const examples = [
+        'Find homes in Seattle with 3 bedrooms',
+        'Show properties in San Francisco under 750k',
+        'Search for houses in Austin with 2 bathrooms',
+        'Find condos in Chicago with 2 beds under 500k',
+        'Show market trends for Boston',
+        'Get property details at 123 Main Street'
+    ];
+    
+    const examplesList = document.createElement('ul');
+    examplesList.className = 'examples-list';
+    
+    examples.forEach(example => {
+        const item = document.createElement('li');
+        item.textContent = example;
+        item.addEventListener('click', () => {
+            processCommand(example);
         });
-    }
+        examplesList.appendChild(item);
+    });
     
-    updateStatus(status) {
-        console.log(status);
-        if (this.options.statusCallback) {
-            this.options.statusCallback(status);
-        }
-    }
+    examplesElement.appendChild(examplesList);
 }
 
-// Make classes available globally
-window.VoiceSearch = VoiceSearch;
-window.PropertyVoiceCommandProcessor = PropertyVoiceCommandProcessor;
+// Initialize on document load
+document.addEventListener('DOMContentLoaded', initVoiceSearch);
