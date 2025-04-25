@@ -108,8 +108,8 @@ except ImportError:
     
 # Register CMA controller blueprint
 try:
-    from controllers.cma_controller import register_routes as register_cma_controller_routes
-    register_cma_controller_routes(app)
+    from controllers.cma_controller import register_cma_blueprint
+    register_cma_blueprint(app)
     logger.info("Registered CMA controller blueprint")
 except ImportError:
     logger.warning("Could not import CMA controller blueprint")
