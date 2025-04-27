@@ -1,0 +1,117 @@
+{% macro loading_indicator(size="medium", message="Loading...") %}
+<div class="loading-indicator text-center p-3">
+  <div class="spinner-border text-primary {% if size == 'small' %}spinner-border-sm{% elif size == 'large' %}spinner-border-lg{% endif %}" role="status">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+  {% if message %}
+  <p class="mt-2 text-muted">{{ message }}</p>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro error_message(title="An error occurred", message="Please try again later.", icon="exclamation-triangle", retry_button=true, retry_function="window.location.reload()") %}
+<div class="error-message text-center p-4">
+  <i class="bi bi-{{ icon }} text-danger mb-3" style="font-size: 2.5rem;"></i>
+  <h5>{{ title }}</h5>
+  <p class="text-muted">{{ message }}</p>
+  {% if retry_button %}
+  <button class="btn btn-outline-primary btn-sm" onclick="{{ retry_function }}">
+    <i class="bi bi-arrow-clockwise me-1"></i> Retry
+  </button>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro empty_state(title="No data available", message="There is no data to display at this time.", icon="clipboard-x", action_button=true, action_text="Refresh Data", action_url="#", action_onclick="") %}
+<div class="empty-state text-center p-4">
+  <i class="bi bi-{{ icon }} text-muted mb-3" style="font-size: 2.5rem;"></i>
+  <h5>{{ title }}</h5>
+  <p class="text-muted">{{ message }}</p>
+  {% if action_button %}
+  <a href="{{ action_url }}" class="btn btn-primary btn-sm" {% if action_onclick %}onclick="{{ action_onclick }}"{% endif %}>
+    {{ action_text }}
+  </a>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro data_status_pill(status, text="") %}
+{% if status == 'loading' %}
+<span class="badge bg-secondary d-inline-flex align-items-center">
+  <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+  Loading...
+</span>
+{% elif status == 'success' %}
+<span class="badge bg-success">
+  <i class="bi bi-check-circle me-1"></i> {{ text if text else 'Success' }}
+</span>
+{% elif status == 'error' %}
+<span class="badge bg-danger">
+  <i class="bi bi-exclamation-triangle me-1"></i> {{ text if text else 'Error' }}
+</span>
+{% elif status == 'warning' %}
+<span class="badge bg-warning text-dark">
+  <i class="bi bi-exclamation-circle me-1"></i> {{ text if text else 'Warning' }}
+</span>
+{% elif status == 'info' %}
+<span class="badge bg-info text-dark">
+  <i class="bi bi-info-circle me-1"></i> {{ text if text else 'Info' }}
+</span>
+{% elif status == 'na' %}
+<span class="badge bg-secondary">
+  <i class="bi bi-dash-circle me-1"></i> N/A
+</span>
+{% endif %}
+{% endmacro %}
+
+{% macro metric_card(title, value, unit="", status=None, tooltip="", icon=None, trend=None, trend_value=None, is_loading=false) %}
+<div class="metric-card card h-100 border-0 shadow-sm position-relative">
+  {% if is_loading %}
+  <div class="position-absolute w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75" style="z-index: 1;">
+    {{ loading_indicator(size="small", message="") }}
+  </div>
+  {% endif %}
+  <div class="card-body">
+    <div class="d-flex justify-content-between mb-2">
+      <h6 class="card-subtitle text-muted" {% if tooltip %}data-bs-toggle="tooltip" title="{{ tooltip }}"{% endif %}>
+        {% if icon %}<i class="bi bi-{{ icon }} me-2"></i>{% endif %}
+        {{ title }}
+      </h6>
+      {% if status %}
+      <div>
+        {{ data_status_pill(status) }}
+      </div>
+      {% endif %}
+    </div>
+    
+    <div class="d-flex align-items-baseline">
+      <h3 class="card-title mb-0">
+        {% if value is none or value == 'N/A' %}
+        <span class="text-muted">N/A</span>
+        {% else %}
+        {{ value }} 
+        {% endif %}
+        <small class="text-muted">{{ unit }}</small>
+      </h3>
+      
+      {% if trend and trend_value %}
+      <div class="ms-3">
+        {% if trend == 'up' %}
+        <span class="badge bg-success">
+          <i class="bi bi-arrow-up"></i> {{ trend_value }}
+        </span>
+        {% elif trend == 'down' %}
+        <span class="badge bg-danger">
+          <i class="bi bi-arrow-down"></i> {{ trend_value }}
+        </span>
+        {% elif trend == 'stable' %}
+        <span class="badge bg-secondary">
+          <i class="bi bi-dash"></i> {{ trend_value }}
+        </span>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endmacro %}
