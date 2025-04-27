@@ -358,22 +358,81 @@ def get_queries_per_minute(conn=None):
         logger.error(f"Error estimating queries per minute: {e}")
         return 120  # Representative value
 
+def check_pg_stat_statements():
+    """Check if pg_stat_statements extension is properly installed and enabled."""
+    conn = get_db_connection()
+    if not conn:
+        return False
+    
+    try:
+        cursor = conn.cursor()
+        # Check if extension exists
+        cursor.execute("SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements'")
+        extension_exists = bool(cursor.fetchone())
+        
+        # Check if we can query it (sometimes it exists but isn't working properly)
+        if extension_exists:
+            try:
+                cursor.execute("SELECT count(*) FROM pg_stat_statements LIMIT 1")
+                cursor.fetchone()
+                can_query = True
+            except Exception:
+                can_query = False
+        else:
+            can_query = False
+            
+        cursor.close()
+        conn.close()
+        return extension_exists and can_query
+    except Exception as e:
+        logger.error(f"Error checking pg_stat_statements: {e}")
+        try:
+            conn.close()
+        except:
+            pass
+        return False
+
 def get_all_db_metrics():
     """Get comprehensive database metrics."""
     start_time = time.time()
+    
+    # Check if pg_stat_statements is available
+    pg_stat_statements_enabled = check_pg_stat_statements()
     
     # Use the decorated functions directly without passing a connection
     # Each decorated function will create its own connection
     metrics = {
         'active_connections': get_active_connections(),
         'db_size': get_database_size(),
-        'avg_query_time': get_avg_query_time(),
-        'queries_per_min': get_queries_per_minute(),
-        'slow_queries': get_slow_queries(),
+        'pg_stat_statements_enabled': pg_stat_statements_enabled
+    }
+    
+    # Add metrics that depend on pg_stat_statements only if it's available
+    # to avoid filling logs with errors
+    if pg_stat_statements_enabled:
+        metrics.update({
+            'avg_query_time': get_avg_query_time(),
+            'queries_per_min': get_queries_per_minute(),
+            'slow_queries': get_slow_queries()
+        })
+    else:
+        # Provide default values
+        metrics.update({
+            'avg_query_time': 0.0,
+            'queries_per_min': 0,
+            'slow_queries': []
+        })
+    
+    # These metrics don't require pg_stat_statements
+    metrics.update({
         'table_stats': get_table_stats(),
         'query_types': get_query_types_distribution(),
         'recent_operations': get_recent_operations()
-    }
+    })
+    
+    # Add collection metadata
+    metrics['collection_time'] = round(time.time() - start_time, 2)
+    metrics['timestamp'] = datetime.now().isoformat()
     
     logger.debug(f"Database metrics collected in {time.time() - start_time:.2f} seconds")
     return metrics

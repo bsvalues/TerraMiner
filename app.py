@@ -1109,21 +1109,69 @@ def api_price_trends():
 def monitoring_database():
     """Database performance monitoring page"""
     from utils.db_metrics import get_all_db_metrics
+    import time
     
-    # Get real database metrics
-    db_metrics = get_all_db_metrics()
+    start_time = time.time()
+    # Get real database metrics with error handling
+    try:
+        db_metrics = get_all_db_metrics()
+        error_message = None
+        
+        # Check if pg_stat_statements extension is missing
+        if db_metrics.get('pg_stat_statements_enabled') is False:
+            error_message = {
+                "title": "Database Extension Missing",
+                "message": "The pg_stat_statements extension is not enabled. Some detailed metrics are unavailable.",
+                "action": "The extension has been installed but may require a database restart to take full effect."
+            }
+        
+        # Add instrumentation data
+        metrics_load_time = round(time.time() - start_time, 2)
+        logger.info(f"Database metrics loaded in {metrics_load_time}s")
+        
+    except Exception as e:
+        logger.exception("Error getting database metrics")
+        db_metrics = {}
+        error_message = {
+            "title": "Database Metrics Error",
+            "message": f"Unable to fetch metrics: {str(e)}",
+            "action": "Check database connectivity and configuration."
+        }
     
-    return render_template('monitoring_database.html', db_metrics=db_metrics)
+    return render_template(
+        'monitoring_database.html', 
+        db_metrics=db_metrics,
+        error_message=error_message,
+        metrics_load_time=locals().get('metrics_load_time', 0)
+    )
 
 @app.route('/monitoring/api/database-metrics', methods=['GET'])
 def api_database_metrics():
     """API endpoint for fetching database metrics"""
     from utils.db_metrics import get_all_db_metrics
+    import time
     
-    # Get real database metrics
-    db_metrics = get_all_db_metrics()
+    start_time = time.time()
+    response = {"success": True, "data": {}, "error": None}
     
-    return jsonify(db_metrics)
+    # Get real database metrics with error handling
+    try:
+        db_metrics = get_all_db_metrics()
+        
+        # Check if pg_stat_statements extension is missing
+        if db_metrics.get('pg_stat_statements_enabled') is False:
+            response["warning"] = "The pg_stat_statements extension is not fully enabled. Some metrics are unavailable."
+            
+        response["data"] = db_metrics
+        response["metrics_load_time"] = round(time.time() - start_time, 2)
+        
+    except Exception as e:
+        logger.exception("Error getting database metrics for API")
+        response["success"] = False
+        response["error"] = str(e)
+        response["metrics_load_time"] = round(time.time() - start_time, 2)
+    
+    return jsonify(response)
     
 @app.route('/monitoring/ai', methods=['GET'])
 def monitoring_ai():
