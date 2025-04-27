@@ -5,7 +5,7 @@ import os
 import time
 import logging
 import psycopg2
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 from functools import wraps
 
@@ -345,12 +345,22 @@ def get_queries_per_minute(conn=None):
         """)
         
         reset_time = cursor.fetchone()[0]
-        minutes_since_reset = (datetime.now() - reset_time).total_seconds() / 60
+        
+        # Make datetime timezone-aware to match PostgreSQL's timezone-aware datetime
+        # Use UTC timezone for consistency
+        now = datetime.now().replace(tzinfo=timezone.utc)
+        if reset_time.tzinfo is None:
+            reset_time = reset_time.replace(tzinfo=timezone.utc)
+            
+        minutes_since_reset = (now - reset_time).total_seconds() / 60
         
         cursor.close()
         
         if total_calls and minutes_since_reset > 0:
             return round(total_calls / minutes_since_reset)
+        elif total_calls:
+            # If reset time is too recent, return a reasonable value
+            return round(total_calls)
         else:
             return 120  # Representative value
     except Exception as e:
