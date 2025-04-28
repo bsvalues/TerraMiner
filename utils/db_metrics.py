@@ -357,10 +357,13 @@ def get_queries_per_minute(conn=None):
         cursor.close()
         
         if total_calls and minutes_since_reset > 0:
-            return round(total_calls / minutes_since_reset)
+            # Convert Decimal to float for division
+            total_calls_float = float(total_calls) if total_calls else 0
+            return round(total_calls_float / minutes_since_reset)
         elif total_calls:
             # If reset time is too recent, return a reasonable value
-            return round(total_calls)
+            # Convert Decimal to float before rounding
+            return round(float(total_calls))
         else:
             return 120  # Representative value
     except Exception as e:
