@@ -1,0 +1,269 @@
+{# Standardized UI Components Library #}
+
+{# ==== Loading States ==== #}
+
+{# Standard Loading Spinner for async content #}
+{% macro loading_spinner(size="medium", text="Loading data...", container_class="my-4") %}
+<div class="loading-container d-flex flex-column align-items-center justify-content-center {{ container_class }}">
+    <div class="spinner-border text-primary {% if size == 'small' %}spinner-border-sm{% elif size == 'large' %}fs-1{% endif %}" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    {% if text %}
+    <div class="mt-2 text-muted">{{ text }}</div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# Inline Loading Spinner #}
+{% macro inline_spinner(text="Loading...") %}
+<span class="d-inline-flex align-items-center">
+    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+    {{ text }}
+</span>
+{% endmacro %}
+
+{# Skeleton Loading Placeholder for cards #}
+{% macro skeleton_card() %}
+<div class="card loading-skeleton h-100">
+    <div class="card-body">
+        <div class="skeleton-line skeleton-title mb-3"></div>
+        <div class="skeleton-line w-75 mb-2"></div>
+        <div class="skeleton-line w-50 mb-4"></div>
+        <div class="skeleton-block mb-3"></div>
+    </div>
+</div>
+{% endmacro %}
+
+{# ==== Error States ==== #}
+
+{# Unified Error Message #}
+{% macro error_message(title="Error", message="An unexpected error occurred.", icon="exclamation-triangle", action_text=None, action_url=None, action_function=None, error_details=None) %}
+<div class="error-container text-center py-4">
+    <div class="error-icon mb-3">
+        <i class="bi bi-{{ icon }} text-danger" style="font-size: 3rem;"></i>
+    </div>
+    <h4 class="error-title mb-2">{{ title }}</h4>
+    <p class="error-message text-muted mb-3">{{ message }}</p>
+    
+    {% if error_details %}
+    <div class="error-details mb-4">
+        <div class="d-grid gap-2 col-md-6 mx-auto">
+            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#errorDetails" aria-expanded="false" aria-controls="errorDetails">
+                Show Technical Details
+            </button>
+        </div>
+        <div class="collapse mt-2" id="errorDetails">
+            <div class="card card-body text-start bg-dark">
+                <pre class="mb-0 text-danger"><code>{{ error_details }}</code></pre>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if action_text and action_url %}
+    <a href="{{ action_url }}" class="btn btn-primary">{{ action_text }}</a>
+    {% elif action_text and action_function %}
+    <button type="button" class="btn btn-primary" onclick="{{ action_function }}">{{ action_text }}</button>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# API Error Message for data loading failures #}
+{% macro api_error(message="Unable to load data from API.", retry_function=None) %}
+<div class="api-error alert alert-danger d-flex align-items-center" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2 flex-shrink-0"></i>
+    <div>
+        {{ message }}
+        {% if retry_function %}
+        <button type="button" class="btn btn-sm btn-outline-danger ms-3" onclick="{{ retry_function }}">
+            <i class="bi bi-arrow-clockwise me-1"></i> Retry
+        </button>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{# ==== Empty States ==== #}
+
+{# Standard Empty State #}
+{% macro empty_state(title="No Data Available", message="There are no items to display at this time.", icon="folder", action_text=None, action_url=None, action_function=None) %}
+<div class="empty-state text-center py-5">
+    <div class="empty-state-icon mb-3">
+        <i class="bi bi-{{ icon }} text-muted" style="font-size: 3rem; opacity: 0.5;"></i>
+    </div>
+    <h5 class="empty-state-title mb-2">{{ title }}</h5>
+    <p class="empty-state-message text-muted mb-4">{{ message }}</p>
+    {% if action_text and action_url %}
+    <a href="{{ action_url }}" class="btn btn-primary">{{ action_text }}</a>
+    {% elif action_text and action_function %}
+    <button type="button" class="btn btn-primary" onclick="{{ action_function }}">{{ action_text }}</button>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# Compact Empty State for tables or lists #}
+{% macro compact_empty_state(message="No items found", icon="folder") %}
+<div class="text-center text-muted py-3">
+    <i class="bi bi-{{ icon }} me-2"></i> {{ message }}
+</div>
+{% endmacro %}
+
+{# ==== Data Visualization ==== #}
+
+{# Standard Metric Card #}
+{% macro metric_card(value, label, icon=None, trend=None, trend_value=None, color="primary", size="md") %}
+<div class="metric-card h-100">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="text-{{ color }} {% if size == 'sm' %}fs-6{% elif size == 'lg' %}fs-4{% else %}fs-5{% endif %}">{{ label }}</div>
+            {% if icon %}
+            <div class="metric-icon">
+                <i class="bi bi-{{ icon }} {% if size == 'sm' %}fs-4{% elif size == 'lg' %}fs-2{% else %}fs-3{% endif %} text-{{ color }}" style="opacity: 0.8;"></i>
+            </div>
+            {% endif %}
+        </div>
+        <div class="metric-value {% if size == 'sm' %}fs-4{% elif size == 'lg' %}display-4{% else %}display-5{% endif %} fw-bold">{{ value }}</div>
+        {% if trend and trend_value %}
+        <div class="metric-trend mt-2">
+            <span class="badge {% if trend == 'up' %}bg-success{% elif trend == 'down' %}bg-danger{% else %}bg-secondary{% endif %}">
+                <i class="bi bi-{% if trend == 'up' %}arrow-up{% elif trend == 'down' %}arrow-down{% else %}dash{% endif %}"></i>
+                {{ trend_value }}
+            </span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{# Chart Container with loading state and error handling #}
+{% macro chart_container(id, height="300px", loading=false, error=false, error_message="Failed to load chart data") %}
+<div class="chart-wrapper">
+    {% if loading %}
+    <div class="chart-loading" id="{{ id }}-loading">
+        {{ loading_spinner(size="medium", text="Loading chart data...") }}
+    </div>
+    {% endif %}
+    
+    {% if error %}
+    <div class="chart-error d-none" id="{{ id }}-error">
+        {{ api_error(message=error_message, retry_function="loadChart_" + id + "()") }}
+    </div>
+    {% endif %}
+    
+    <div class="chart-container" {% if loading %}style="display: none;"{% endif %} id="{{ id }}-container">
+        <canvas id="{{ id }}" style="height: {{ height }};"></canvas>
+    </div>
+</div>
+{% endmacro %}
+
+{# ==== Status Indicators ==== #}
+
+{# Status Badge #}
+{% macro status_badge(status, text=None) %}
+{% set status_map = {
+    'success': {'class': 'bg-success', 'icon': 'check-circle-fill', 'text': 'Success'},
+    'warning': {'class': 'bg-warning', 'icon': 'exclamation-triangle-fill', 'text': 'Warning'},
+    'error': {'class': 'bg-danger', 'icon': 'x-circle-fill', 'text': 'Error'},
+    'info': {'class': 'bg-info', 'icon': 'info-circle-fill', 'text': 'Info'},
+    'pending': {'class': 'bg-secondary', 'icon': 'hourglass-split', 'text': 'Pending'},
+    'active': {'class': 'bg-success', 'icon': 'check-circle-fill', 'text': 'Active'},
+    'inactive': {'class': 'bg-light text-dark', 'icon': 'dash-circle-fill', 'text': 'Inactive'},
+    'critical': {'class': 'bg-danger', 'icon': 'exclamation-octagon-fill', 'text': 'Critical'}
+} %}
+
+{% set data = status_map[status] if status in status_map else {'class': 'bg-secondary', 'icon': 'question-circle-fill', 'text': status} %}
+<span class="badge {{ data.class }} d-inline-flex align-items-center">
+    <i class="bi bi-{{ data.icon }} me-1"></i>
+    {{ text if text else data.text }}
+</span>
+{% endmacro %}
+
+{# Health Status Indicator #}
+{% macro health_status(status, score=null) %}
+{% set status_map = {
+    'excellent': {'class': 'success', 'text': 'Excellent'},
+    'good': {'class': 'info', 'text': 'Good'},
+    'fair': {'class': 'warning', 'text': 'Fair'},
+    'poor': {'class': 'danger', 'text': 'Poor'},
+    'critical': {'class': 'danger', 'text': 'Critical'}
+} %}
+
+{% set data = status_map[status] if status in status_map else {'class': 'secondary', 'text': status} %}
+<span class="badge bg-{{ data.class }}">
+    {{ data.text }}{% if score %} ({{ score }}%){% endif %}
+</span>
+{% endmacro %}
+
+{# ==== Tables ==== #}
+
+{# Table Filter Input #}
+{% macro table_filter(target_id, placeholder="Search...", classes="mb-3") %}
+<div class="input-group {{ classes }}">
+    <span class="input-group-text"><i class="bi bi-search"></i></span>
+    <input type="text" class="form-control table-search" placeholder="{{ placeholder }}" data-table="{{ target_id }}">
+</div>
+{% endmacro %}
+
+{# Table with loading and empty states #}
+{% macro responsive_table(id, headers=[], loading=false, empty=false, empty_message="No data available") %}
+<div class="table-responsive">
+    {% if loading %}
+    <div id="{{ id }}-loading" class="py-4">
+        {{ loading_spinner(size="medium", text="Loading data...") }}
+    </div>
+    {% endif %}
+    
+    <table class="table table-striped table-hover" id="{{ id }}" {% if loading %}style="display: none;"{% endif %}>
+        <thead>
+            <tr>
+                {% for header in headers %}
+                <th>{{ header }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody id="{{ id }}-body">
+            {% if empty %}
+            <tr>
+                <td colspan="{{ headers|length }}" class="text-center py-4">
+                    {{ compact_empty_state(message=empty_message) }}
+                </td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}
+
+{# Table Row Actions #}
+{% macro row_actions(buttons) %}
+<div class="d-flex justify-content-end">
+    {% for button in buttons %}
+    <button 
+        type="button" 
+        class="btn btn-sm {{ button.class|default('btn-outline-secondary') }} me-1" 
+        {% if button.tooltip %}data-bs-toggle="tooltip" title="{{ button.tooltip }}"{% endif %}
+        {% if button.action %}onclick="{{ button.action }}"{% endif %}
+        {% if button.id %}id="{{ button.id }}"{% endif %}
+    >
+        {% if button.icon %}<i class="bi bi-{{ button.icon }}"></i>{% endif %}
+        {% if button.icon and button.text %} {% endif %}
+        {% if button.text %}{{ button.text }}{% endif %}
+    </button>
+    {% endfor %}
+</div>
+{% endmacro %}
+
+{# ==== Form Elements ==== #}
+
+{# Date Range Picker #}
+{% macro date_range_picker(start_id, end_id, label="Date Range") %}
+<div class="mb-3">
+    <label class="form-label">{{ label }}</label>
+    <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-calendar-range"></i></span>
+        <input type="date" class="form-control" id="{{ start_id }}" name="{{ start_id }}">
+        <span class="input-group-text">to</span>
+        <input type="date" class="form-control" id="{{ end_id }}" name="{{ end_id }}">
+    </div>
+</div>
+{% endmacro %}

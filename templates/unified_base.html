@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TerraMiner{% endblock %} | TerraFusion</title>
+    
+    <!-- CSS -->
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/static/css/terraminer.css" rel="stylesheet">
+    
+    <!-- JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --sidebar-width: 260px;
+        }
+        
+        body {
+            min-height: 100vh;
+        }
+        
+        .navbar-brand {
+            font-weight: 600;
+            letter-spacing: 0.05rem;
+        }
+        
+        .sidebar {
+            width: var(--sidebar-width);
+            position: fixed;
+            top: 56px;
+            bottom: 0;
+            left: 0;
+            padding: 1rem 0;
+            overflow-y: auto;
+            border-right: 1px solid var(--tf-border-color);
+        }
+        
+        .sidebar .nav-link {
+            font-weight: 500;
+            padding: 0.75rem 1.5rem;
+            color: var(--tf-text-secondary);
+        }
+        
+        .sidebar .nav-link.active {
+            color: var(--tf-light-teal);
+            background-color: rgba(0, 191, 179, 0.2);
+            border-left: 3px solid var(--tf-teal);
+        }
+        
+        .sidebar .nav-link:hover {
+            color: var(--tf-white);
+            background-color: rgba(0, 191, 179, 0.1);
+        }
+        
+        .sidebar .nav-item {
+            margin-bottom: 0.25rem;
+        }
+        
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 1.5rem;
+        }
+        
+        @media (max-width: 991.98px) {
+            .sidebar {
+                top: 56px;
+                width: 100%;
+                height: auto;
+                position: relative;
+                border-right: 0;
+                border-bottom: 1px solid var(--tf-border-color);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+        }
+        
+        .nav-divider {
+            color: var(--tf-text-secondary);
+            opacity: 0.7;
+            padding: 0.5rem 1.5rem;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05rem;
+            margin-top: 1rem;
+        }
+        
+        .alert-badge {
+            position: relative;
+        }
+        
+        .alert-badge .badge {
+            position: absolute;
+            top: 0;
+            right: 10px;
+            font-size: 0.7rem;
+        }
+        
+        /* Dashboard components */
+        .metric-card {
+            text-align: center;
+            border-radius: 0.5rem;
+            background-color: var(--tf-bg-secondary);
+            border: 1px solid var(--tf-border-color);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            height: 100%;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--tf-light-teal);
+        }
+        
+        .metric-label {
+            font-size: 0.875rem;
+            color: var(--tf-text-secondary);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+            background-color: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+        
+        /* Loading states */
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+        }
+        
+        /* Empty states */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            color: var(--tf-text-secondary);
+            opacity: 0.7;
+        }
+    </style>
+    
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+                <i class="bi bi-gem me-2"></i>
+                <span class="text-white">Terra</span><span class="text-accent">Miner</span>
+                <span class="badge ms-2 rounded-pill" style="background-color: var(--tf-dark-gray); font-size: 0.65rem; color: var(--tf-teal);">
+                    TerraFusion
+                </span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="bi bi-house-door me-1"></i> Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('monitoring_dashboard') }}">
+                            <i class="bi bi-speedometer2 me-1"></i> Monitoring
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('ai_demo') }}">
+                            <i class="bi bi-robot me-1"></i> AI Demo
+                        </a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center">
+                    <span class="navbar-text me-3" id="system-status">
+                        <i class="bi bi-circle-fill text-success"></i> System Operational
+                    </span>
+                    <a href="{{ url_for('settings') }}" class="btn btn-outline-light btn-sm">
+                        <i class="bi bi-gear"></i> Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                {% block sidebar %}
+                <h6 class="nav-divider">Monitoring</h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'monitoring_dashboard' %}active{% endif %}" href="{{ url_for('monitoring_dashboard') }}">
+                            <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link alert-badge {% if request.endpoint == 'monitoring_alerts_active' %}active{% endif %}" href="{{ url_for('monitoring_alerts_active') }}">
+                            <i class="bi bi-exclamation-triangle me-2"></i> Active Alerts
+                            {% if alerts_badge and alerts_badge > 0 %}
+                            <span class="badge bg-danger">{{ alerts_badge }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'monitoring_alerts_history' %}active{% endif %}" href="{{ url_for('monitoring_alerts_history') }}">
+                            <i class="bi bi-clock-history me-2"></i> Alert History
+                        </a>
+                    </li>
+                </ul>
+                
+                <h6 class="nav-divider">System</h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'monitoring_system' %}active{% endif %}" href="{{ url_for('monitoring_system') }}">
+                            <i class="bi bi-cpu me-2"></i> System Performance
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'monitoring_api' %}active{% endif %}" href="{{ url_for('monitoring_api') }}">
+                            <i class="bi bi-hdd-network me-2"></i> API Performance
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'monitoring_database' %}active{% endif %}" href="{{ url_for('monitoring_database') }}">
+                            <i class="bi bi-database me-2"></i> Database
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'monitoring_ai' %}active{% endif %}" href="{{ url_for('monitoring_ai') }}">
+                            <i class="bi bi-robot me-2"></i> AI Performance
+                        </a>
+                    </li>
+                </ul>
+                
+                <h6 class="nav-divider">Real Estate Data</h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'monitoring_locations' %}active{% endif %}" href="{{ url_for('monitoring_locations') }}">
+                            <i class="bi bi-geo-alt me-2"></i> Property Locations
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'property_comparison' %}active{% endif %}" href="{{ url_for('property_comparison') }}">
+                            <i class="bi bi-buildings me-2"></i> Property Comparison
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'monitoring_price_trends' %}active{% endif %}" href="{{ url_for('monitoring_price_trends') }}">
+                            <i class="bi bi-graph-up me-2"></i> Price Trends
+                        </a>
+                    </li>
+                </ul>
+                
+                <h6 class="nav-divider">Reports</h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'monitoring_reports_scheduled' %}active{% endif %}" href="{{ url_for('monitoring_reports_scheduled') }}">
+                            <i class="bi bi-calendar-check me-2"></i> Scheduled Reports
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'monitoring_reports_create' %}active{% endif %}" href="{{ url_for('monitoring_reports_create') }}">
+                            <i class="bi bi-plus-circle me-2"></i> Create Report
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'monitoring_reports_history' %}active{% endif %}" href="{{ url_for('monitoring_reports_history') }}">
+                            <i class="bi bi-file-earmark-text me-2"></i> Report History
+                        </a>
+                    </li>
+                </ul>
+
+                <h6 class="nav-divider">AI Capabilities</h6>
+                <ul class="nav flex-column mb-5">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'ai_demo' %}active{% endif %}" href="{{ url_for('ai_demo') }}">
+                            <i class="bi bi-robot me-2"></i> AI Demo
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'ai_feedback_analytics' %}active{% endif %}" href="{{ url_for('ai_feedback_analytics') }}">
+                            <i class="bi bi-bar-chart me-2"></i> AI Feedback
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'ai_integration_automation' %}active{% endif %}" href="{{ url_for('ai_integration_automation') }}">
+                            <i class="bi bi-gear me-2"></i> AI Automation
+                        </a>
+                    </li>
+                </ul>
+                {% endblock %}
+            </nav>
+            
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                {% block page_header %}
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">{% block page_title %}Dashboard{% endblock %}</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        {% block page_actions %}
+                        <div class="btn-group me-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="refresh-btn">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="export-btn">
+                                <i class="bi bi-download"></i> Export
+                            </button>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="timerangeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-calendar3"></i> Last 7 Days
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="timerangeDropdown">
+                                <li><a class="dropdown-item" href="#" data-range="1">Last 24 Hours</a></li>
+                                <li><a class="dropdown-item" href="#" data-range="7">Last 7 Days</a></li>
+                                <li><a class="dropdown-item" href="#" data-range="30">Last 30 Days</a></li>
+                                <li><a class="dropdown-item" href="#" data-range="90">Last 90 Days</a></li>
+                            </ul>
+                        </div>
+                        {% endblock %}
+                    </div>
+                </div>
+                {% endblock %}
+                
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Shared JavaScript functions -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            })
+            
+            // Initialize popovers
+            var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+            var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+                return new bootstrap.Popover(popoverTriggerEl)
+            })
+            
+            // Time range selection
+            const timerangeDropdown = document.getElementById('timerangeDropdown');
+            const timerangeItems = document.querySelectorAll('[data-range]');
+            
+            if (timerangeDropdown && timerangeItems.length > 0) {
+                timerangeItems.forEach(item => {
+                    item.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const days = this.getAttribute('data-range');
+                        const text = this.textContent;
+                        
+                        // Update dropdown button text
+                        timerangeDropdown.innerHTML = `<i class="bi bi-calendar3"></i> ${text}`;
+                        
+                        // Trigger data refresh with new time range
+                        if (typeof updateDashboardData === 'function') {
+                            updateDashboardData(days);
+                        }
+                    });
+                });
+            }
+            
+            // Refresh button
+            const refreshBtn = document.getElementById('refresh-btn');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', function() {
+                    if (typeof updateDashboardData === 'function') {
+                        updateDashboardData();
+                    }
+                });
+            }
+            
+            // System status check
+            function checkSystemStatus() {
+                fetch('/api/monitoring/health')
+                    .then(response => response.json())
+                    .then(data => {
+                        const statusElement = document.getElementById('system-status');
+                        if (statusElement) {
+                            if (data.status === 'operational') {
+                                statusElement.innerHTML = '<i class="bi bi-circle-fill text-success"></i> System Operational';
+                            } else {
+                                statusElement.innerHTML = '<i class="bi bi-circle-fill text-danger"></i> System Degraded';
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        const statusElement = document.getElementById('system-status');
+                        if (statusElement) {
+                            statusElement.innerHTML = '<i class="bi bi-circle-fill text-danger"></i> Monitoring Error';
+                        }
+                    });
+            }
+            
+            // Check active alerts
+            function checkActiveAlerts() {
+                fetch('/api/alerts?status=active')
+                    .then(response => response.json())
+                    .then(data => {
+                        const alertCountElement = document.getElementById('active-alerts-count');
+                        if (alertCountElement && data.status === 'success' && data.alerts) {
+                            alertCountElement.textContent = data.alerts.length;
+                            
+                            if (data.alerts.length > 0) {
+                                alertCountElement.classList.add('bg-danger');
+                                alertCountElement.classList.remove('bg-secondary');
+                            } else {
+                                alertCountElement.classList.remove('bg-danger');
+                                alertCountElement.classList.add('bg-secondary');
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error checking alerts:', error);
+                    });
+            }
+            
+            // Initial check
+            checkSystemStatus();
+            checkActiveAlerts();
+            
+            // Schedule periodic checks
+            setInterval(checkSystemStatus, 60000); // Every minute
+            setInterval(checkActiveAlerts, 30000); // Every 30 seconds
+        });
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>
