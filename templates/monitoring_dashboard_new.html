@@ -1,0 +1,525 @@
+{% extends "unified_base.html" %}
+{% from "components/ui_components.html" import metric_card, loading_spinner, empty_state, error_message, chart_container, health_status, status_badge %}
+
+{% block title %}Monitoring Dashboard{% endblock %}
+
+{% block page_title %}System Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Health Overview Card -->
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-md-6">
+              <h2 class="card-title">System Health</h2>
+              <p class="text-muted">Real-time health status and metrics</p>
+            </div>
+            <div class="col-md-6 text-end">
+              <h3 class="mb-0">
+                {{ health_status(health_status, health_score) }}
+              </h3>
+              <p class="text-muted mt-2">Last updated: {{ current_time }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metrics and Stats Row -->
+  <div class="row mb-4">
+    <!-- Active Alerts Card -->
+    <div class="col-md-4 mb-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0">
+          <h4 class="card-title">Active Alerts</h4>
+        </div>
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div class="alert-stats">
+              <div class="alert-count mb-3">
+                <h5>Total Active: {{ alerts_summary.active.total }}</h5>
+              </div>
+              <div class="alert-breakdown">
+                <div class="mb-2 d-flex justify-content-between">
+                  <span class="text-danger">Critical:</span> 
+                  <span class="badge bg-danger">{{ alerts_summary.active.critical }}</span>
+                </div>
+                <div class="mb-2 d-flex justify-content-between">
+                  <span class="text-danger">Error:</span> 
+                  <span class="badge bg-danger">{{ alerts_summary.active.error }}</span>
+                </div>
+                <div class="mb-2 d-flex justify-content-between">
+                  <span class="text-warning">Warning:</span> 
+                  <span class="badge bg-warning">{{ alerts_summary.active.warning }}</span>
+                </div>
+                <div class="mb-2 d-flex justify-content-between">
+                  <span class="text-info">Info:</span> 
+                  <span class="badge bg-info">{{ alerts_summary.active.info }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="stats-period">
+              <p class="text-muted">Last 24h: {{ alerts_summary.last_24h }}</p>
+              <p class="text-muted">Last 7d: {{ alerts_summary.last_7d }}</p>
+            </div>
+          </div>
+          <hr>
+          {% if alerts_summary.latest %}
+          <h6>Latest Alerts</h6>
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Severity</th>
+                  <th>Message</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for alert in alerts_summary.latest %}
+                <tr>
+                  <td>{{ status_badge(alert.severity) }}</td>
+                  <td>{{ alert.message }}</td>
+                  <td>{{ alert.created_at.strftime('%H:%M:%S') }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          {{ empty_state(title="No Recent Alerts", message="There are no active alerts at this time.", icon="check-circle") }}
+          {% endif %}
+          <div class="mt-3">
+            <a href="{{ url_for('monitoring_alerts_active') }}" class="btn btn-outline-primary btn-sm">View All Alerts</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- System Performance Card -->
+    <div class="col-md-4 mb-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0">
+          <h4 class="card-title">System Performance</h4>
+        </div>
+        <div class="card-body">
+          <div class="performance-metrics">
+            <!-- CPU Usage -->
+            <div class="mb-3">
+              <div class="d-flex justify-content-between mb-1">
+                <span>CPU Usage</span>
+                <span class="
+                  {% if system_metrics.performance.cpu and system_metrics.performance.cpu.metric_value > 90 %}text-danger
+                  {% elif system_metrics.performance.cpu and system_metrics.performance.cpu.metric_value > 70 %}text-warning
+                  {% else %}text-success{% endif %}
+                ">
+                  {{ system_metrics.performance.cpu.metric_value|round(1) if system_metrics.performance.cpu else 'N/A' }}%
+                </span>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar 
+                  {% if system_metrics.performance.cpu and system_metrics.performance.cpu.metric_value > 90 %}bg-danger
+                  {% elif system_metrics.performance.cpu and system_metrics.performance.cpu.metric_value > 70 %}bg-warning
+                  {% else %}bg-success{% endif %}" 
+                  role="progressbar" 
+                  style="width: {{ system_metrics.performance.cpu.metric_value if system_metrics.performance.cpu else 0 }}%;" 
+                  aria-valuenow="{{ system_metrics.performance.cpu.metric_value if system_metrics.performance.cpu else 0 }}" 
+                  aria-valuemin="0" 
+                  aria-valuemax="100">
+                </div>
+              </div>
+            </div>
+            
+            <!-- Memory Usage -->
+            <div class="mb-3">
+              <div class="d-flex justify-content-between mb-1">
+                <span>Memory Usage</span>
+                <span class="
+                  {% if system_metrics.performance.memory and system_metrics.performance.memory.metric_value > 90 %}text-danger
+                  {% elif system_metrics.performance.memory and system_metrics.performance.memory.metric_value > 70 %}text-warning
+                  {% else %}text-success{% endif %}
+                ">
+                  {{ system_metrics.performance.memory.metric_value|round(1) if system_metrics.performance.memory else 'N/A' }}%
+                </span>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar 
+                  {% if system_metrics.performance.memory and system_metrics.performance.memory.metric_value > 90 %}bg-danger
+                  {% elif system_metrics.performance.memory and system_metrics.performance.memory.metric_value > 70 %}bg-warning
+                  {% else %}bg-success{% endif %}" 
+                  role="progressbar" 
+                  style="width: {{ system_metrics.performance.memory.metric_value if system_metrics.performance.memory else 0 }}%;" 
+                  aria-valuenow="{{ system_metrics.performance.memory.metric_value if system_metrics.performance.memory else 0 }}" 
+                  aria-valuemin="0" 
+                  aria-valuemax="100">
+                </div>
+              </div>
+            </div>
+            
+            <!-- Disk Usage -->
+            <div class="mb-3">
+              <div class="d-flex justify-content-between mb-1">
+                <span>Disk Usage</span>
+                <span class="
+                  {% if system_metrics.performance.disk and system_metrics.performance.disk.metric_value > 90 %}text-danger
+                  {% elif system_metrics.performance.disk and system_metrics.performance.disk.metric_value > 70 %}text-warning
+                  {% else %}text-success{% endif %}
+                ">
+                  {{ system_metrics.performance.disk.metric_value|round(1) if system_metrics.performance.disk else 'N/A' }}%
+                </span>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar 
+                  {% if system_metrics.performance.disk and system_metrics.performance.disk.metric_value > 90 %}bg-danger
+                  {% elif system_metrics.performance.disk and system_metrics.performance.disk.metric_value > 70 %}bg-warning
+                  {% else %}bg-success{% endif %}" 
+                  role="progressbar" 
+                  style="width: {{ system_metrics.performance.disk.metric_value if system_metrics.performance.disk else 0 }}%;" 
+                  aria-valuenow="{{ system_metrics.performance.disk.metric_value if system_metrics.performance.disk else 0 }}" 
+                  aria-valuemin="0" 
+                  aria-valuemax="100">
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <hr>
+          
+          <!-- Database Metrics -->
+          <h6>Database Metrics</h6>
+          <div class="db-metrics">
+            <div class="mb-2 d-flex justify-content-between">
+              <span>Connections:</span> 
+              <span>{{ database_metrics.connection_count.metric_value|int if database_metrics.connection_count else 'N/A' }}</span>
+            </div>
+            <div class="mb-2 d-flex justify-content-between">
+              <span>Avg Query Time:</span> 
+              <span>{{ database_metrics.query_time_avg.metric_value|round(3) if database_metrics.query_time_avg else 'N/A' }} s</span>
+            </div>
+          </div>
+          
+          <div class="mt-3">
+            <a href="{{ url_for('monitoring_system') }}" class="btn btn-outline-primary btn-sm">View System Details</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- API Performance Card -->
+    <div class="col-md-4 mb-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0">
+          <h4 class="card-title">API Performance</h4>
+        </div>
+        <div class="card-body">
+          <div class="api-stats">
+            <div class="mb-3">
+              <h5>Last 24 Hours</h5>
+              <div class="row">
+                <div class="col-6">
+                  <div class="api-stat-item mb-3">
+                    <h6 class="text-muted">Total Requests</h6>
+                    <h3>{{ api_metrics.total_requests_24h|int }}</h3>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="api-stat-item mb-3">
+                    <h6 class="text-muted">Avg Response Time</h6>
+                    <h3>{{ api_metrics.avg_response_time|round(3) }} s</h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Error Rate -->
+            <div class="mb-4">
+              <div class="d-flex justify-content-between mb-1">
+                <span>Error Rate (24h)</span>
+                <span class="
+                  {% if api_metrics.error_rate_24h > 5 %}text-danger
+                  {% elif api_metrics.error_rate_24h > 2 %}text-warning
+                  {% else %}text-success{% endif %}
+                ">
+                  {{ api_metrics.error_rate_24h|round(2) }}%
+                </span>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar 
+                  {% if api_metrics.error_rate_24h > 5 %}bg-danger
+                  {% elif api_metrics.error_rate_24h > 2 %}bg-warning
+                  {% else %}bg-success{% endif %}" 
+                  role="progressbar" 
+                  style="width: {{ api_metrics.error_rate_24h }}%;" 
+                  aria-valuenow="{{ api_metrics.error_rate_24h }}" 
+                  aria-valuemin="0" 
+                  aria-valuemax="100">
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <hr>
+          
+          <!-- AI Performance -->
+          <h6>AI Performance</h6>
+          <div class="ai-metrics">
+            <div class="mb-2 d-flex justify-content-between">
+              <span>Requests (24h):</span> 
+              <span>{{ ai_metrics.total_requests_24h|int }}</span>
+            </div>
+            <div class="mb-2 d-flex justify-content-between">
+              <span>Avg Rating:</span> 
+              <span>
+                {{ ai_metrics.avg_rating|round(2) if ai_metrics.avg_rating else 'N/A' }}
+                {% if ai_metrics.avg_rating %}
+                  <small class="text-muted">(out of 5)</small>
+                {% endif %}
+              </span>
+            </div>
+          </div>
+          
+          <div class="mt-3">
+            <a href="{{ url_for('monitoring_api') }}" class="btn btn-outline-primary btn-sm me-2">View API Details</a>
+            <a href="{{ url_for('monitoring_ai') }}" class="btn btn-outline-primary btn-sm">View AI Details</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property Data Analysis Row -->
+  <div class="row mb-4">
+    <!-- Property Locations Map Card -->
+    <div class="col-md-6 mb-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0">
+          <h4 class="card-title">Property Locations</h4>
+        </div>
+        <div class="card-body">
+          <div class="property-location-preview">
+            <div class="text-center mb-3">
+              <svg width="100%" height="180" style="background-color: rgba(0, 0, 0, 0.2); border-radius: 8px;">
+                <path d="M50,90 L70,50 L90,90 Z" fill="#00BCD4" stroke="#0097A7" stroke-width="2"></path>
+                <path d="M150,70 L170,30 L190,70 Z" fill="#00BCD4" stroke="#0097A7" stroke-width="2"></path>
+                <path d="M250,110 L270,70 L290,110 Z" fill="#00BCD4" stroke="#0097A7" stroke-width="2"></path>
+                <circle cx="70" cy="120" r="10" fill="#0097A7" opacity="0.8"></circle>
+                <circle cx="170" cy="100" r="10" fill="#0097A7" opacity="0.8"></circle>
+                <circle cx="270" cy="140" r="10" fill="#0097A7" opacity="0.8"></circle>
+                <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="14" fill="#d1d5db">Property Map</text>
+              </svg>
+            </div>
+            <div class="property-stats mt-3">
+              <div class="row">
+                <div class="col-6">
+                  <div class="stat-item">
+                    <h6 class="text-muted">Total Properties</h6>
+                    <h3>{{ location_stats.total_properties|default('120') }}</h3>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="stat-item">
+                    <h6 class="text-muted">Cities</h6>
+                    <h3>{{ location_stats.distinct_cities|default('10') }}</h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-3 text-center">
+              <a href="{{ url_for('monitoring_locations') }}" class="btn btn-primary">View Property Map</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Price Trends Card -->
+    <div class="col-md-6 mb-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0">
+          <h4 class="card-title">Price Trends</h4>
+        </div>
+        <div class="card-body">
+          <div class="price-trend-preview">
+            <div id="price-trends-loading" class="loading-container" style="display: none;">
+              {{ loading_spinner(size="medium", text="Loading price trend data...") }}
+            </div>
+            <div id="price-trends-error" class="error-container d-none">
+              {{ error_message(title="Error Loading Data", message="Unable to load price trend data. Please try again later.", icon="exclamation-triangle") }}
+            </div>
+            <div id="price-trends-container">
+              <div class="chart-container">
+                <canvas id="price-trends-chart" style="height: 180px;"></canvas>
+              </div>
+            </div>
+            <div class="price-trend-stats mt-3">
+              <div class="row">
+                <div class="col-6">
+                  <div class="stat-item">
+                    <h6 class="text-muted">Median Price</h6>
+                    <h3>${{ price_trend_stats.median_price|default('450,000') }}</h3>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="stat-item">
+                    <h6 class="text-muted">YoY Change</h6>
+                    <h3 class="{% if price_trend_stats.yoy_change and price_trend_stats.yoy_change < 0 %}text-danger{% else %}text-success{% endif %}">
+                      {{ price_trend_stats.yoy_change|default('+5.2') }}%
+                    </h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-3 text-center">
+              <a href="{{ url_for('monitoring_price_trends') }}" class="btn btn-primary">View Price Trends</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reports and Jobs Row -->
+  <div class="row mb-4">
+    <!-- Scheduled Reports Card -->
+    <div class="col-md-6 mb-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+          <h4 class="card-title mb-0">Scheduled Reports</h4>
+          <a href="{{ url_for('monitoring_reports_create') }}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-plus-circle me-1"></i> New Report
+          </a>
+        </div>
+        <div class="card-body">
+          {% if scheduled_reports %}
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Frequency</th>
+                  <th>Status</th>
+                  <th>Last Run</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for report in scheduled_reports %}
+                <tr>
+                  <td>{{ report.name }}</td>
+                  <td>{{ report.frequency }}</td>
+                  <td>{{ status_badge('active' if report.is_active else 'inactive') }}</td>
+                  <td>{{ report.last_run.strftime('%Y-%m-%d %H:%M') if report.last_run else 'Never' }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          {{ empty_state(title="No Scheduled Reports", message="You haven't set up any scheduled reports yet.", icon="calendar", action_text="Create Report", action_url=url_for('monitoring_reports_create')) }}
+          {% endif %}
+          <div class="mt-3">
+            <a href="{{ url_for('monitoring_reports_scheduled') }}" class="btn btn-outline-primary btn-sm">View All Reports</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent ETL Jobs Card -->
+    <div class="col-md-6 mb-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0">
+          <h4 class="card-title">Recent ETL Jobs</h4>
+        </div>
+        <div class="card-body">
+          {% if recent_jobs %}
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Job ID</th>
+                  <th>Status</th>
+                  <th>Started</th>
+                  <th>Duration</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for job in recent_jobs %}
+                <tr>
+                  <td>{{ job.id }}</td>
+                  <td>
+                    {% if job.status == 'completed' %}
+                    {{ status_badge('success', 'Completed') }}
+                    {% elif job.status == 'failed' %}
+                    {{ status_badge('error', 'Failed') }}
+                    {% elif job.status == 'running' %}
+                    {{ status_badge('info', 'Running') }}
+                    {% else %}
+                    {{ status_badge('pending', job.status|capitalize) }}
+                    {% endif %}
+                  </td>
+                  <td>{{ job.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                  <td>
+                    {% if job.end_time %}
+                    {{ (job.end_time - job.start_time).total_seconds()|round }}s
+                    {% elif job.status == 'running' %}
+                    Running
+                    {% else %}
+                    -
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          {{ empty_state(title="No Recent Jobs", message="No ETL jobs have been executed recently.", icon="database") }}
+          {% endif %}
+          <div class="mt-3">
+            <a href="{{ url_for('reports') }}" class="btn btn-outline-primary btn-sm">View All Jobs</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/ui_utilities.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize price trends chart
+    const priceCtx = document.getElementById('price-trends-chart');
+    if (priceCtx) {
+      const priceChart = createChart('price-trends-chart', 'line', {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        datasets: [{
+          label: 'Median Price',
+          data: [420000, 425000, 430000, 428000, 435000, 442000, 450000, 452000, 449000, 451000, 455000, 460000],
+          borderColor: 'rgba(0, 191, 179, 1)',
+          backgroundColor: 'rgba(0, 191, 179, 0.1)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4
+        }]
+      }, {
+        plugins: {
+          legend: {
+            display: false
+          }
+        }
+      });
+    }
+    
+    // Auto-refresh data every 60 seconds
+    setInterval(function() {
+      // This would be replaced with actual fetch calls in production
+      console.log('Auto-refreshing dashboard data...');
+    }, 60000);
+  });
+</script>
+{% endblock %}
