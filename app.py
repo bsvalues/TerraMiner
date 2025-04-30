@@ -853,6 +853,7 @@ def ai_integration_automation():
     
 # Monitoring routes
 @app.route('/monitoring/dashboard', methods=['GET'])
+@template_preference_decorator
 def monitoring_dashboard():
     """Monitoring dashboard overview page"""
     # Import locally to avoid circular import issues
