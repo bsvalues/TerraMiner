@@ -52,14 +52,50 @@ def format_datetime(value):
     except (ValueError, TypeError, AttributeError):
         return str(value)
 
+@app.template_filter('wrap_in_li')
+def wrap_in_li(text):
+    """Wrap text in an HTML li element."""
+    return f'<li>{text}</li>'
+    
+@app.template_filter('format_tax_row')
+def format_tax_row(tax):
+    """Format a tax history row as HTML."""
+    return f'''
+        <tr>
+            <td>{tax['year']}</td>
+            <td>${tax['amount']:,}</td>
+            <td class="{'text-success' if tax['change'] > 0 else 'text-danger' if tax['change'] < 0 else ''}">
+                {'+' if tax['change'] > 0 else ''}{tax['change']}%
+            </td>
+        </tr>
+    '''
+    
+@app.template_filter('format_price_row')
+def format_price_row(price):
+    """Format a price history row as HTML."""
+    return f'''
+        <tr>
+            <td>{price['date']}</td>
+            <td>${price['price']:,}</td>
+            <td>{price['event']}</td>
+        </tr>
+    '''
+
 @app.template_filter('number')
 @app.template_filter('format_number')
 def format_number(value):
     """Format a number with thousand separators."""
     if value is None:
         return ""
+    if isinstance(value, str):
+        try:
+            value = float(value.replace(',', ''))
+        except (ValueError, TypeError):
+            return value
     try:
-        return "{:,}".format(int(float(value)))
+        if isinstance(value, (int, float)):
+            return "{:,}".format(int(value) if value == int(value) else value)
+        return str(value)
     except (ValueError, TypeError):
         return str(value)
 

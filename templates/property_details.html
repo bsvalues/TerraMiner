@@ -1,575 +1,500 @@
-{% extends "unified_base.html" if ui_template == "unified" else "base.html" %}
+{% extends 'unified_base.html' if ui_template == 'unified' else 'base.html' %}
 
-{% block title %}{{ property.address }}{% endblock %}
+{% block title %}{{ property.address if property else 'Property Details' }}{% endblock %}
 
-{% if ui_template == "unified" %}
-    {# Import unified UI components #}
-    {% from "components/ui_components.html" import card, action_button, status_badge, data_table, tab_nav %}
-    {% from "components/loading_states.html" import data_loading_container %}
-    {% from "components/error_states.html" import empty_state, error_alert %}
-{% endif %}
+{% block styles %}
+{{ super() }}
+<style>
+    .feature-badge {
+        background-color: {% if ui_template == 'unified' %}#1e3958{% else %}#f0f0f0{% endif %};
+        color: {% if ui_template == 'unified' %}#fff{% else %}#333{% endif %};
+        border-radius: 20px;
+        padding: 6px 12px;
+        margin: 5px;
+        display: inline-block;
+        font-size: 0.85rem;
+    }
+    
+    .school-rating {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: white;
+    }
+    
+    .rating-high {
+        background-color: #28a745;
+    }
+    
+    .rating-medium {
+        background-color: #ffc107;
+        color: #212529;
+    }
+    
+    .rating-low {
+        background-color: #dc3545;
+    }
+    
+    .property-section {
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 24px;
+        {% if ui_template == 'unified' %}
+        background-color: #142239;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border: none;
+        {% else %}
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+        {% endif %}
+    }
+    
+    .property-section-header {
+        padding: 12px 16px;
+        border-bottom: 1px solid {% if ui_template == 'unified' %}#1e3958{% else %}#dee2e6{% endif %};
+        {% if ui_template == 'unified' %}
+        background-color: #1e3958;
+        {% else %}
+        background-color: #f8f9fa;
+        {% endif %}
+    }
+    
+    .property-section-body {
+        padding: 16px;
+    }
+    
+    .image-gallery {
+        position: relative;
+        height: 400px;
+        overflow: hidden;
+        border-radius: 8px;
+    }
+    
+    .image-gallery img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    /* Value trend chart wrapper */
+    .chart-wrapper {
+        height: 300px;
+        position: relative;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container mt-4">
     {% if error %}
-        {% if ui_template == "unified" %}
-            {{ error_alert(error, title="Property Not Found") }}
-            <div class="text-center mt-4">
-                {{ action_button("Return to Search", "secondary", "arrow-left", url=url_for('property_search')) }}
-            </div>
-        {% else %}
-            <div class="alert alert-danger" role="alert">
-                <h4 class="alert-heading">Property Not Found</h4>
-                <p>{{ error }}</p>
-            </div>
-            <div class="text-center mt-4">
-                <a href="{{ url_for('property_search') }}" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left me-1"></i> Return to Search
-                </a>
-            </div>
-        {% endif %}
-    {% else %}
-    <div class="mb-4">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
-                <li class="breadcrumb-item"><a href="{{ url_for('property_search') }}">Property Search</a></li>
-                <li class="breadcrumb-item active" aria-current="page">{{ property.address }}</li>
-            </ol>
-        </nav>
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+        <a href="{{ url_for('property_search') }}" class="btn btn-sm {% if ui_template == 'unified' %}btn-teal{% else %}btn-primary{% endif %} ms-3">Back to Search</a>
     </div>
-    
-    <div class="property-header d-flex justify-content-between align-items-start mb-4">
-        <div>
-            <h1 class="h2 mb-1">{{ property.address }}</h1>
-            <p class="h5 text-muted mb-2">{{ property.city }}, {{ property.state }} {{ property.zip_code }}</p>
-            {% if ui_template == "unified" %}
-                {{ status_badge(property.status) }}
-            {% else %}
-                <span class="badge {{ 
-                    'bg-success' if property.status == 'active' 
-                    else 'bg-danger' if property.status == 'sold' 
-                    else 'bg-warning' if property.status == 'pending' 
-                    else 'bg-info' 
-                }}">
-                    {{ property.status | capitalize }}
-                </span>
-            {% endif %}
-        </div>
-        <div class="property-actions">
-            {% if ui_template == "unified" %}
-                {{ action_button("Generate CMA", "primary", "file-earmark-text", url=url_for('cma.cma_generator', property_id=property.id)) }}
-                {{ action_button("Print", "outline-secondary", "printer", js_action="window.print()") }}
-            {% else %}
-                <a href="{{ url_for('cma.cma_generator', property_id=property.id) }}" class="btn btn-primary me-2">
-                    <i class="bi bi-file-earmark-text me-1"></i> Generate CMA
-                </a>
-                <button class="btn btn-outline-secondary" onclick="window.print()">
-                    <i class="bi bi-printer me-1"></i> Print
-                </button>
-            {% endif %}
-        </div>
-    </div>
-    
+    {% elif property %}
     <div class="row mb-4">
-        <div class="col-lg-8">
-            {% if property.image_url %}
-            <div class="property-images mb-4">
-                <img src="{{ property.image_url }}" class="img-fluid rounded shadow-sm" alt="{{ property.address }}">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0 {% if ui_template == 'unified' %}text-white{% endif %}">{{ property.address }}</h2>
+                <a href="{{ url_for('property_search') }}" class="btn btn-sm {% if ui_template == 'unified' %}btn-dark-teal{% else %}btn-outline-primary{% endif %}">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Search
+                </a>
             </div>
-            {% endif %}
-            
-            {% if ui_template == "unified" %}
-                {% call card(title="Property Details", icon="house-door") %}
-                    <div class="row">
-                        <div class="col-md-6">
-                            <ul class="list-group list-group-flush">
-                                <li class="list-group-item d-flex justify-content-between">
-                                    <span>Property Type:</span>
-                                    <span class="fw-bold">{{ property.property_type | capitalize }}</span>
-                                </li>
-                                {% if property.bedrooms is defined %}
-                                <li class="list-group-item d-flex justify-content-between">
-                                    <span>Bedrooms:</span>
-                                    <span class="fw-bold">{{ property.bedrooms }}</span>
-                                </li>
-                                {% endif %}
-                                {% if property.bathrooms is defined %}
-                                <li class="list-group-item d-flex justify-content-between">
-                                    <span>Bathrooms:</span>
-                                    <span class="fw-bold">{{ property.bathrooms }}</span>
-                                </li>
-                                {% endif %}
-                                {% if property.sqft is defined %}
-                                <li class="list-group-item d-flex justify-content-between">
-                                    <span>Square Footage:</span>
-                                    <span class="fw-bold">{{ property.sqft | format_number }} sq ft</span>
-                                </li>
-                                {% endif %}
-                                {% if property.year_built is defined %}
-                                <li class="list-group-item d-flex justify-content-between">
-                                    <span>Year Built:</span>
-                                    <span class="fw-bold">{{ property.year_built }}</span>
-                                </li>
-                                {% endif %}
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <ul class="list-group list-group-flush">
-                                {% if property.lot_size is defined %}
-                                <li class="list-group-item d-flex justify-content-between">
-                                    <span>Lot Size:</span>
-                                    <span class="fw-bold">{{ property.lot_size }}</span>
-                                </li>
-                                {% endif %}
-                                {% if property.zoning is defined %}
-                                <li class="list-group-item d-flex justify-content-between">
-                                    <span>Zoning:</span>
-                                    <span class="fw-bold">{{ property.zoning }}</span>
-                                </li>
-                                {% endif %}
-                                {% if property.parcel_number is defined %}
-                                <li class="list-group-item d-flex justify-content-between">
-                                    <span>Parcel Number:</span>
-                                    <span class="fw-bold">{{ property.parcel_number }}</span>
-                                </li>
-                                {% endif %}
-                                {% if property.last_sold_date is defined %}
-                                <li class="list-group-item d-flex justify-content-between">
-                                    <span>Last Sold Date:</span>
-                                    <span class="fw-bold">{{ property.last_sold_date }}</span>
-                                </li>
-                                {% endif %}
-                                {% if property.last_sold_price is defined %}
-                                <li class="list-group-item d-flex justify-content-between">
-                                    <span>Last Sold Price:</span>
-                                    <span class="fw-bold">${{ property.last_sold_price | format_number }}</span>
-                                </li>
-                                {% endif %}
-                            </ul>
-                        </div>
-                    </div>
-                {% endcall %}
-            {% else %}
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <i class="bi bi-house-door me-2"></i>
-                            Property Details
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <ul class="list-group list-group-flush">
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Property Type:</span>
-                                        <span class="fw-bold">{{ property.property_type | capitalize }}</span>
-                                    </li>
-                                    {% if property.bedrooms is defined %}
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Bedrooms:</span>
-                                        <span class="fw-bold">{{ property.bedrooms }}</span>
-                                    </li>
-                                    {% endif %}
-                                    {% if property.bathrooms is defined %}
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Bathrooms:</span>
-                                        <span class="fw-bold">{{ property.bathrooms }}</span>
-                                    </li>
-                                    {% endif %}
-                                    {% if property.sqft is defined %}
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Square Footage:</span>
-                                        <span class="fw-bold">{{ property.sqft }} sq ft</span>
-                                    </li>
-                                    {% endif %}
-                                    {% if property.year_built is defined %}
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Year Built:</span>
-                                        <span class="fw-bold">{{ property.year_built }}</span>
-                                    </li>
-                                    {% endif %}
-                                </ul>
-                            </div>
-                            <div class="col-md-6">
-                                <ul class="list-group list-group-flush">
-                                    {% if property.lot_size is defined %}
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Lot Size:</span>
-                                        <span class="fw-bold">{{ property.lot_size }}</span>
-                                    </li>
-                                    {% endif %}
-                                    {% if property.zoning is defined %}
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Zoning:</span>
-                                        <span class="fw-bold">{{ property.zoning }}</span>
-                                    </li>
-                                    {% endif %}
-                                    {% if property.parcel_number is defined %}
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Parcel Number:</span>
-                                        <span class="fw-bold">{{ property.parcel_number }}</span>
-                                    </li>
-                                    {% endif %}
-                                    {% if property.last_sold_date is defined %}
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Last Sold Date:</span>
-                                        <span class="fw-bold">{{ property.last_sold_date }}</span>
-                                    </li>
-                                    {% endif %}
-                                    {% if property.last_sold_price is defined %}
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Last Sold Price:</span>
-                                        <span class="fw-bold">${{ property.last_sold_price }}</span>
-                                    </li>
-                                    {% endif %}
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {% endif %}
-            
-            {% if ui_template == "unified" %}
-                {% set tabs = [
-                    {
-                        "id": "description",
-                        "title": "Description",
-                        "icon": "info-circle",
-                        "content": '<div class="p-3">' + property.description|default('No description available.')|safe + '</div>'
-                    },
-                    {
-                        "id": "features",
-                        "title": "Features",
-                        "icon": "check2-square",
-                        "content": '<div class="p-3"><ul class="feature-list">' + 
-                            (property.features|map('wrap_in_li')|join('') if property.features else '<li>No features listed</li>')|safe + 
-                            '</ul></div>'
-                    },
-                    {
-                        "id": "tax",
-                        "title": "Tax History",
-                        "icon": "cash-coin",
-                        "badge": property.tax_history|length if property.tax_history else false,
-                        "content": property.tax_history|default([])|length > 0 
-                            ? '<div class="table-responsive p-3"><table class="table table-striped">' +
-                              '<thead><tr><th>Year</th><th>Amount</th><th>Change</th></tr></thead>' +
-                              '<tbody>' + property.tax_history|map('format_tax_row')|join('')|safe + '</tbody></table></div>'
-                            : '<div class="p-3">No tax history available.</div>'
-                    },
-                    {
-                        "id": "price",
-                        "title": "Price History",
-                        "icon": "graph-up",
-                        "badge": property.price_history|length if property.price_history else false,
-                        "content": property.price_history|default([])|length > 0 
-                            ? '<div class="table-responsive p-3"><table class="table table-striped">' +
-                              '<thead><tr><th>Date</th><th>Price</th><th>Event</th></tr></thead>' +
-                              '<tbody>' + property.price_history|map('format_price_row')|join('')|safe + '</tbody></table></div>'
-                            : '<div class="p-3">No price history available.</div>'
-                    }
-                ] %}
-                {{ tab_nav("property-tabs", tabs, active_tab="description") }}
-            {% else %}
-                <ul class="nav nav-tabs" id="propertyTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="description-tab" data-bs-toggle="tab" data-bs-target="#description" type="button" role="tab">
-                            <i class="bi bi-info-circle me-1"></i> Description
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="features-tab" data-bs-toggle="tab" data-bs-target="#features" type="button" role="tab">
-                            <i class="bi bi-check2-square me-1"></i> Features
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="tax-tab" data-bs-toggle="tab" data-bs-target="#tax" type="button" role="tab">
-                            <i class="bi bi-cash-coin me-1"></i> Tax History
-                            {% if property.tax_history %}
-                            <span class="badge bg-secondary rounded-pill">{{ property.tax_history|length }}</span>
-                            {% endif %}
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="price-tab" data-bs-toggle="tab" data-bs-target="#price" type="button" role="tab">
-                            <i class="bi bi-graph-up me-1"></i> Price History
-                            {% if property.price_history %}
-                            <span class="badge bg-secondary rounded-pill">{{ property.price_history|length }}</span>
-                            {% endif %}
-                        </button>
-                    </li>
-                </ul>
-                <div class="tab-content" id="propertyTabsContent">
-                    <div class="tab-pane fade show active" id="description" role="tabpanel">
-                        <div class="p-3">
-                            {{ property.description|default('No description available.')|safe }}
-                        </div>
-                    </div>
-                    <div class="tab-pane fade" id="features" role="tabpanel">
-                        <div class="p-3">
-                            <ul class="feature-list">
-                                {% if property.features %}
-                                    {% for feature in property.features %}
-                                    <li>{{ feature }}</li>
-                                    {% endfor %}
-                                {% else %}
-                                    <li>No features listed</li>
-                                {% endif %}
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="tab-pane fade" id="tax" role="tabpanel">
-                        <div class="p-3">
-                            {% if property.tax_history and property.tax_history|length > 0 %}
-                                <div class="table-responsive">
-                                    <table class="table table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>Year</th>
-                                                <th>Amount</th>
-                                                <th>Change</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for tax in property.tax_history %}
-                                            <tr>
-                                                <td>{{ tax.year }}</td>
-                                                <td>${{ tax.amount }}</td>
-                                                <td class="{{ 'text-success' if tax.change > 0 else 'text-danger' if tax.change < 0 else '' }}">
-                                                    {% if tax.change > 0 %}+{% endif %}{{ tax.change }}%
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            {% else %}
-                                <p>No tax history available.</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="tab-pane fade" id="price" role="tabpanel">
-                        <div class="p-3">
-                            {% if property.price_history and property.price_history|length > 0 %}
-                                <div class="table-responsive">
-                                    <table class="table table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>Date</th>
-                                                <th>Price</th>
-                                                <th>Event</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for price in property.price_history %}
-                                            <tr>
-                                                <td>{{ price.date }}</td>
-                                                <td>${{ price.price }}</td>
-                                                <td>{{ price.event }}</td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            {% else %}
-                                <p>No price history available.</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            {% endif %}
+            <p class="{% if ui_template == 'unified' %}text-light{% else %}text-muted{% endif %}">{{ property.city }}, {{ property.state }} {{ property.zip_code }}</p>
+        </div>
+    </div>
+
+    <!-- Main Property Info -->
+    <div class="row mb-4">
+        <!-- Left Column - Image -->
+        <div class="col-md-7">
+            <div class="image-gallery {% if ui_template == 'unified' %}bg-dark-blue shadow{% endif %}">
+                <img src="{{ property.image_url }}" alt="{{ property.address }}" class="img-fluid">
+            </div>
         </div>
         
-        <div class="col-lg-4">
-            <div class="sticky-top" style="top: 20px;">
-                {% if ui_template == "unified" %}
-                    {% call card(title="Property Price", icon="tag") %}
-                        <div class="text-center mb-3">
-                            <div class="display-5 fw-bold">${{ property.price | format_number }}</div>
-                            {% if property.price_per_sqft %}
-                            <div class="text-muted">${{ property.price_per_sqft }}/sqft</div>
-                            {% endif %}
-                        </div>
-                        
-                        {% if property.price_change %}
-                            <div class="alert {{ 'alert-success' if property.price_change > 0 else 'alert-danger' }} d-flex align-items-center">
-                                <i class="bi bi-{{ 'arrow-up-right' if property.price_change > 0 else 'arrow-down-right' }} me-2"></i>
-                                <div>
-                                    {{ property.price_change }}% {{ 'increase' if property.price_change > 0 else 'decrease' }} from last listed price
-                                </div>
-                            </div>
-                        {% endif %}
-                    {% endcall %}
-                    
-                    {% call card(title="Location", icon="geo-alt") %}
-                        <div id="property-map" style="height: 200px;" class="mb-3"></div>
-                        <address class="mb-0">
-                            {{ property.address }}<br>
-                            {{ property.city }}, {{ property.state }} {{ property.zip_code }}
-                        </address>
-                    {% endcall %}
-                    
-                    {% call card(title="Market Value Estimate", icon="graph-up-arrow") %}
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span>TerraMiner Estimate</span>
-                            <span class="fw-bold">${{ property.estimated_value | format_number }}</span>
-                        </div>
-                        <div class="alert alert-info d-flex" role="alert">
-                            <i class="bi bi-info-circle-fill me-2 flex-shrink-0"></i>
-                            <div>
-                                This estimate is based on recent comparable sales and local market trends.
-                            </div>
-                        </div>
-                        <div class="text-center mt-3">
-                            {{ action_button("View Full CMA", "outline-primary", "file-earmark-bar-graph", url=url_for('cma.view_cma', property_id=property.id)) }}
-                        </div>
-                    {% endcall %}
-                    
-                    {% if property.nearby_schools %}
-                        {% call card(title="Nearby Schools", icon="mortarboard") %}
-                            <ul class="list-group list-group-flush">
-                                {% for school in property.nearby_schools %}
-                                <li class="list-group-item">
-                                    <div class="d-flex justify-content-between">
-                                        <div>
-                                            <div class="fw-bold">{{ school.name }}</div>
-                                            <div class="small text-muted">{{ school.type }} • {{ school.distance }} miles</div>
-                                        </div>
-                                        <div class="school-rating">
-                                            <span class="badge bg-{{ 'success' if school.rating >= 8 else 'warning' if school.rating >= 5 else 'danger' }}">
-                                                {{ school.rating }}/10
-                                            </span>
-                                        </div>
-                                    </div>
-                                </li>
-                                {% endfor %}
-                            </ul>
-                        {% endcall %}
-                    {% endif %}
-                {% else %}
-                    <div class="card mb-4">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="card-title mb-0">
-                                <i class="bi bi-tag me-2"></i>
-                                Property Price
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="text-center mb-3">
-                                <div class="display-5 fw-bold">${{ property.price }}</div>
-                                {% if property.price_per_sqft %}
-                                <div class="text-muted">${{ property.price_per_sqft }}/sqft</div>
+        <!-- Right Column - Key Details -->
+        <div class="col-md-5">
+            <div class="property-section">
+                <div class="property-section-header">
+                    <h3 class="h4 mb-0 {% if ui_template == 'unified' %}text-teal{% endif %}">
+                        <i class="fas fa-home me-2"></i>Property Overview
+                    </h3>
+                </div>
+                <div class="property-section-body">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h4 class="h2 {% if ui_template == 'unified' %}text-teal{% else %}text-primary{% endif %} fw-bold mb-0">${{ property.price|format_number }}</h4>
+                            <p class="text-muted mb-0">
+                                {% set est_diff = ((property.estimated_value - property.price) / property.price * 100)|round(1) %}
+                                {% if est_diff > 0 %}
+                                <span class="text-success"><i class="fas fa-arrow-up"></i> {{ est_diff }}% above estimate</span>
+                                {% elif est_diff < 0 %}
+                                <span class="text-danger"><i class="fas fa-arrow-down"></i> {{ est_diff|abs }}% below estimate</span>
+                                {% else %}
+                                <span>On target with estimate</span>
                                 {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="row text-center mb-4">
+                        <div class="col-4">
+                            <div class="p-2 {% if ui_template == 'unified' %}bg-dark-blue{% else %}bg-light{% endif %} rounded">
+                                <p class="mb-1"><i class="fas fa-bed"></i></p>
+                                <h5 class="mb-0">{{ property.bedrooms }}</h5>
+                                <small class="text-muted">Beds</small>
                             </div>
-                            
-                            {% if property.price_change %}
-                                <div class="alert {{ 'alert-success' if property.price_change > 0 else 'alert-danger' }} d-flex align-items-center">
-                                    <i class="bi bi-{{ 'arrow-up-right' if property.price_change > 0 else 'arrow-down-right' }} me-2"></i>
-                                    <div>
-                                        {{ property.price_change }}% {{ 'increase' if property.price_change > 0 else 'decrease' }} from last listed price
-                                    </div>
-                                </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 {% if ui_template == 'unified' %}bg-dark-blue{% else %}bg-light{% endif %} rounded">
+                                <p class="mb-1"><i class="fas fa-bath"></i></p>
+                                <h5 class="mb-0">{{ property.bathrooms }}</h5>
+                                <small class="text-muted">Baths</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 {% if ui_template == 'unified' %}bg-dark-blue{% else %}bg-light{% endif %} rounded">
+                                <p class="mb-1"><i class="fas fa-ruler-combined"></i></p>
+                                <h5 class="mb-0">{{ property.sqft|format_number }}</h5>
+                                <small class="text-muted">Sq Ft</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <p class="mb-1 text-muted">Property Type</p>
+                            <p class="mb-0"><strong>{{ property.property_type }}</strong></p>
+                        </div>
+                        <div class="col-6">
+                            <p class="mb-1 text-muted">Year Built</p>
+                            <p class="mb-0"><strong>{{ property.year_built }}</strong></p>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <p class="mb-1 text-muted">Lot Size</p>
+                            <p class="mb-0"><strong>{{ property.lot_size }}</strong></p>
+                        </div>
+                        <div class="col-6">
+                            <p class="mb-1 text-muted">Price/SqFt</p>
+                            <p class="mb-0"><strong>${{ property.price_per_sqft|format_number }}</strong></p>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            {% if maps_api_key %}
+                            <button class="btn {% if ui_template == 'unified' %}btn-teal{% else %}btn-primary{% endif %} w-100" type="button" data-bs-toggle="modal" data-bs-target="#mapModal">
+                                <i class="fas fa-map-marker-alt me-2"></i>View on Map
+                            </button>
                             {% endif %}
                         </div>
                     </div>
-                    
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">
-                                <i class="bi bi-geo-alt me-2"></i>
-                                Location
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <div id="property-map" style="height: 200px;" class="mb-3"></div>
-                            <address class="mb-0">
-                                {{ property.address }}<br>
-                                {{ property.city }}, {{ property.state }} {{ property.zip_code }}
-                            </address>
-                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Property Details Sections -->
+    <div class="row">
+        <!-- Left Column -->
+        <div class="col-md-8">
+            <!-- Description -->
+            <div class="property-section">
+                <div class="property-section-header">
+                    <h3 class="h5 mb-0 {% if ui_template == 'unified' %}text-teal{% endif %}">
+                        <i class="fas fa-align-left me-2"></i>Description
+                    </h3>
+                </div>
+                <div class="property-section-body">
+                    <div class="{% if ui_template == 'unified' %}text-light{% endif %}">
+                        {{ property.description|safe }}
                     </div>
-                    
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">
-                                <i class="bi bi-graph-up-arrow me-2"></i>
-                                Market Value Estimate
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <span>TerraMiner Estimate</span>
-                                <span class="fw-bold">${{ property.estimated_value }}</span>
-                            </div>
-                            <div class="alert alert-info d-flex" role="alert">
-                                <i class="bi bi-info-circle-fill me-2 flex-shrink-0"></i>
-                                <div>
-                                    This estimate is based on recent comparable sales and local market trends.
-                                </div>
-                            </div>
-                            <div class="text-center mt-3">
-                                <a href="{{ url_for('cma.view_cma', property_id=property.id) }}" class="btn btn-outline-primary">
-                                    <i class="bi bi-file-earmark-bar-graph me-1"></i> View Full CMA
-                                </a>
-                            </div>
-                        </div>
+                </div>
+            </div>
+            
+            <!-- Features -->
+            <div class="property-section">
+                <div class="property-section-header">
+                    <h3 class="h5 mb-0 {% if ui_template == 'unified' %}text-teal{% endif %}">
+                        <i class="fas fa-star me-2"></i>Features & Amenities
+                    </h3>
+                </div>
+                <div class="property-section-body">
+                    <div class="{% if ui_template == 'unified' %}text-light{% endif %}">
+                        {% for feature in property.features %}
+                        <span class="feature-badge">{{ feature }}</span>
+                        {% endfor %}
                     </div>
-                    
-                    {% if property.nearby_schools %}
-                        <div class="card mb-4">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">
-                                    <i class="bi bi-mortarboard me-2"></i>
-                                    Nearby Schools
-                                </h5>
-                            </div>
-                            <div class="card-body p-0">
-                                <ul class="list-group list-group-flush">
-                                    {% for school in property.nearby_schools %}
-                                    <li class="list-group-item">
-                                        <div class="d-flex justify-content-between">
-                                            <div>
-                                                <div class="fw-bold">{{ school.name }}</div>
-                                                <div class="small text-muted">{{ school.type }} • {{ school.distance }} miles</div>
-                                            </div>
-                                            <div class="school-rating">
-                                                <span class="badge bg-{{ 'success' if school.rating >= 8 else 'warning' if school.rating >= 5 else 'danger' }}">
-                                                    {{ school.rating }}/10
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </li>
+                </div>
+            </div>
+            
+            <!-- Price & Tax History -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="property-section">
+                        <div class="property-section-header">
+                            <h3 class="h5 mb-0 {% if ui_template == 'unified' %}text-teal{% endif %}">
+                                <i class="fas fa-chart-line me-2"></i>Price History
+                            </h3>
+                        </div>
+                        <div class="property-section-body">
+                            <table class="table {% if ui_template == 'unified' %}table-dark{% endif %} table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Price</th>
+                                        <th>Event</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for price in property.price_history %}
+                                    <tr>
+                                        <td>{{ price.date }}</td>
+                                        <td>${{ price.price|format_number }}</td>
+                                        <td>{{ price.event }}</td>
+                                    </tr>
                                     {% endfor %}
-                                </ul>
-                            </div>
+                                </tbody>
+                            </table>
                         </div>
-                    {% endif %}
-                {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="property-section">
+                        <div class="property-section-header">
+                            <h3 class="h5 mb-0 {% if ui_template == 'unified' %}text-teal{% endif %}">
+                                <i class="fas fa-receipt me-2"></i>Tax History
+                            </h3>
+                        </div>
+                        <div class="property-section-body">
+                            <table class="table {% if ui_template == 'unified' %}table-dark{% endif %} table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Year</th>
+                                        <th>Amount</th>
+                                        <th>Change</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for tax in property.tax_history %}
+                                    <tr>
+                                        <td>{{ tax.year }}</td>
+                                        <td>${{ tax.amount|format_number }}</td>
+                                        <td class="{% if tax.change > 0 %}text-success{% elif tax.change < 0 %}text-danger{% endif %}">
+                                            {% if tax.change > 0 %}+{% endif %}{{ tax.change }}%
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Column -->
+        <div class="col-md-4">
+            <!-- Nearby Schools -->
+            <div class="property-section">
+                <div class="property-section-header">
+                    <h3 class="h5 mb-0 {% if ui_template == 'unified' %}text-teal{% endif %}">
+                        <i class="fas fa-school me-2"></i>Nearby Schools
+                    </h3>
+                </div>
+                <div class="property-section-body p-0">
+                    <ul class="list-group list-group-flush {% if ui_template == 'unified' %}bg-transparent{% endif %}">
+                        {% for school in property.nearby_schools %}
+                        <li class="list-group-item d-flex align-items-center {% if ui_template == 'unified' %}bg-transparent text-light border-dark{% endif %}">
+                            <div class="school-rating me-3 {% if school.rating >= 8 %}rating-high{% elif school.rating >= 6 %}rating-medium{% else %}rating-low{% endif %}">
+                                {{ school.rating }}
+                            </div>
+                            <div>
+                                <h6 class="mb-0 {% if ui_template == 'unified' %}text-white{% endif %}">{{ school.name }}</h6>
+                                <small class="text-muted d-block">{{ school.type }}</small>
+                                <small class="text-muted">{{ school.distance }} mi away</small>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Market Trends -->
+            <div class="property-section">
+                <div class="property-section-header">
+                    <h3 class="h5 mb-0 {% if ui_template == 'unified' %}text-teal{% endif %}">
+                        <i class="fas fa-chart-bar me-2"></i>Local Market Trends
+                    </h3>
+                </div>
+                <div class="property-section-body">
+                    <div class="chart-wrapper">
+                        <canvas id="marketTrendChart"></canvas>
+                    </div>
+                    <div class="small text-muted mt-2">
+                        <p>Property values in {{ property.city }} have increased by an average of 5.2% over the past year. This property's estimated value has increased by 2.5% during the same period.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Map Modal -->
+    {% if maps_api_key %}
+    <div class="modal fade" id="mapModal" tabindex="-1" aria-labelledby="mapModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content {% if ui_template == 'unified' %}bg-dark-blue text-white{% endif %}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="mapModalLabel">{{ property.address }}</h5>
+                    <button type="button" class="btn-close {% if ui_template == 'unified' %}btn-close-white{% endif %}" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="propertyMap" style="height: 400px;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn {% if ui_template == 'unified' %}btn-dark-teal{% else %}btn-secondary{% endif %}" data-bs-dismiss="modal">Close</button>
+                </div>
             </div>
         </div>
     </div>
     {% endif %}
+    {% endif %}
 </div>
 {% endblock %}
 
-{% block extra_js %}
-{% if not error %}
-<script src="https://maps.googleapis.com/maps/api/js?key={{ maps_api_key }}&callback=initMap" async defer></script>
+{% block scripts %}
+{{ super() }}
+{% if property %}
+<!-- Chart.js for market trends -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Market trends chart
+        const ctx = document.getElementById('marketTrendChart').getContext('2d');
+        
+        // Sample data for the chart (simulated market trends)
+        const marketTrendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                datasets: [
+                    {
+                        label: 'Neighborhood Avg',
+                        data: [750000, 755000, 752000, 760000, 763000, 775000, 780000, 785000, 790000, 788000, 795000, 800000],
+                        borderColor: '#4e73df',
+                        backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: false
+                    },
+                    {
+                        label: 'This Property',
+                        data: [770000, 772000, 775000, 778000, 780000, 782000, 783000, 785000, 788000, 790000, 792000, 795000],
+                        borderColor: '#36b9cc',
+                        backgroundColor: 'rgba(54, 185, 204, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            }
+                        },
+                        grid: {
+                            color: '{% if ui_template == "unified" %}rgba(255, 255, 255, 0.1){% else %}rgba(0, 0, 0, 0.1){% endif %}'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: '{% if ui_template == "unified" %}rgba(255, 255, 255, 0.1){% else %}rgba(0, 0, 0, 0.1){% endif %}'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '{% if ui_template == "unified" %}rgba(255, 255, 255, 0.8){% else %}rgba(0, 0, 0, 0.8){% endif %}'
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+
+{% if maps_api_key %}
+<!-- Google Maps for property location -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ maps_api_key }}&callback=initMap" defer></script>
 <script>
     function initMap() {
         const propertyLocation = { lat: {{ property.latitude }}, lng: {{ property.longitude }} };
-        const map = new google.maps.Map(document.getElementById("property-map"), {
+        
+        const map = new google.maps.Map(document.getElementById("propertyMap"), {
             zoom: 15,
             center: propertyLocation,
+            mapTypeControl: true,
+            streetViewControl: true,
+            mapTypeId: google.maps.MapTypeId.ROADMAP
         });
         
+        // Add marker for the property
         const marker = new google.maps.Marker({
             position: propertyLocation,
-            map,
+            map: map,
             title: "{{ property.address }}",
+            animation: google.maps.Animation.DROP
+        });
+        
+        // Info window
+        const contentString = `
+            <div style="max-width: 200px;">
+                <h5 style="margin-bottom: 8px;">{{ property.address }}</h5>
+                <p style="margin-bottom: 8px;">{{ property.city }}, {{ property.state }} {{ property.zip_code }}</p>
+                <p style="color: #007bff; font-weight: bold; margin-bottom: 8px;">${{ property.price|format_number }}</p>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.8rem;">
+                    <span>{{ property.bedrooms }} bd</span>
+                    <span>{{ property.bathrooms }} ba</span>
+                    <span>{{ property.sqft|format_number }} sqft</span>
+                </div>
+            </div>
+        `;
+        
+        const infowindow = new google.maps.InfoWindow({
+            content: contentString
+        });
+        
+        // Open info window when marker is clicked
+        marker.addListener("click", () => {
+            infowindow.open(map, marker);
+        });
+        
+        // Open info window by default
+        infowindow.open(map, marker);
+        
+        // Add event listener for modal shown to resize map
+        document.getElementById('mapModal').addEventListener('shown.bs.modal', function () {
+            google.maps.event.trigger(map, 'resize');
+            map.setCenter(propertyLocation);
         });
     }
 </script>
+{% endif %}
 {% endif %}
 {% endblock %}
