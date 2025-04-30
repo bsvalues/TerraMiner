@@ -1,368 +1,304 @@
-{# UI Component Library #}
-{# This file contains reusable UI components for the TerraMiner application #}
+{# UI Components - Standardized interface elements for a consistent design system #}
 
-{# Loading Spinner Component #}
-{% macro loading_spinner(size="medium", text="Loading...", container_class="") %}
-<div class="loading-container {{ container_class }}">
-    <div class="d-flex flex-column align-items-center justify-content-center">
-        <div class="spinner-border text-primary {% if size == 'small' %}spinner-border-sm{% elif size == 'large' %}spinner-border-lg{% endif %}" role="status">
-            <span class="visually-hidden">Loading...</span>
-        </div>
-        {% if text %}
-            <p class="text-muted mt-2">{{ text }}</p>
-        {% endif %}
-    </div>
-</div>
-{% endmacro %}
-
-{# Error Message Component #}
-{% macro error_message(title="Error", message="An unexpected error occurred.", icon="exclamation-triangle", action_text=None, action_url=None, details=None, container_class="") %}
-<div class="error-container py-4 {{ container_class }}">
-    <div class="text-center">
-        <div class="error-icon mb-3">
-            <i class="bi bi-{{ icon }} text-danger" style="font-size: 3rem;"></i>
-        </div>
-        <h4 class="error-title mb-2">{{ title }}</h4>
-        <p class="error-message text-muted mb-3">{{ message }}</p>
-        
-        {% if details %}
-            <div class="error-details mb-4">
-                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" 
-                       data-bs-target="#error-details-{{ range(1, 1000) | random }}" aria-expanded="false">
-                    Show Technical Details
-                </button>
-                <div class="collapse mt-2" id="error-details-{{ range(1, 1000) | random }}">
-                    <div class="card card-body text-start bg-dark">
-                        <pre class="mb-0 text-danger"><code>{{ details }}</code></pre>
-                    </div>
-                </div>
-            </div>
-        {% endif %}
-        
-        {% if action_text and action_url %}
-            <a href="{{ action_url }}" class="btn btn-primary">{{ action_text }}</a>
-        {% endif %}
-    </div>
-</div>
-{% endmacro %}
-
-{# Empty State Component #}
-{% macro empty_state(title="No Data Available", message="There is no data to display at this time.", icon="inbox", action_text=None, action_url=None, container_class="") %}
-<div class="empty-state py-5 {{ container_class }}">
-    <div class="text-center">
-        <div class="empty-state-icon mb-3">
-            <i class="bi bi-{{ icon }} text-muted" style="font-size: 3rem; opacity: 0.5;"></i>
-        </div>
-        <h5 class="empty-state-title mb-2">{{ title }}</h5>
-        <p class="empty-state-message text-muted mb-4">{{ message }}</p>
-        
-        {% if action_text and action_url %}
-            <a href="{{ action_url }}" class="btn btn-outline-primary">{{ action_text }}</a>
-        {% endif %}
-    </div>
-</div>
-{% endmacro %}
-
-{# Card Component #}
-{% macro card(title=None, subtitle=None, footer=None, card_class="", body_class="", header_class="", footer_class="") %}
-<div class="card bg-dark border-secondary mb-4 {{ card_class }}">
-    {% if title %}
-        <div class="card-header border-secondary {{ header_class }}">
-            <h5 class="card-title mb-0">{{ title }}</h5>
-            {% if subtitle %}
-                <h6 class="card-subtitle text-muted">{{ subtitle }}</h6>
-            {% endif %}
-        </div>
+{# Buttons #}
+{% macro button(text, type='primary', size='', icon='', outline=false, classes='', attributes='') %}
+<button class="btn btn{% if outline %}-outline{% endif %}-{{ type }} {% if size %}btn-{{ size }}{% endif %} {{ classes }}" {{ attributes | safe }}>
+    {% if icon %}
+    <i class="bi bi-{{ icon }} {% if text %}me-1{% endif %}"></i>
     {% endif %}
-    
-    <div class="card-body {{ body_class }}">
-        {{ caller() }}
-    </div>
-    
-    {% if footer %}
-        <div class="card-footer border-secondary {{ footer_class }}">
-            {{ footer }}
-        </div>
-    {% endif %}
-</div>
-{% endmacro %}
-
-{# Stat Card Component #}
-{% macro stat_card(title, value, icon=None, trend=None, trend_value=None, trend_positive=True, color="primary", card_class="") %}
-<div class="card stat-card bg-dark border-secondary h-100 {{ card_class }}">
-    <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start">
-            <div>
-                <h6 class="stat-title text-muted mb-1">{{ title }}</h6>
-                <h3 class="stat-value mb-0 text-{{ color }}">{{ value }}</h3>
-                
-                {% if trend and trend_value %}
-                    <div class="stat-trend mt-2">
-                        <span class="badge {% if trend_positive %}bg-success{% else %}bg-danger{% endif %}">
-                            <i class="bi bi-arrow-{% if trend_positive %}up{% else %}down{% endif %}-short me-1"></i>
-                            {{ trend_value }}
-                        </span>
-                        <small class="text-muted ms-1">{{ trend }}</small>
-                    </div>
-                {% endif %}
-            </div>
-            
-            {% if icon %}
-                <div class="stat-icon text-{{ color }} opacity-25">
-                    <i class="bi bi-{{ icon }} fs-1"></i>
-                </div>
-            {% endif %}
-        </div>
-    </div>
-</div>
-{% endmacro %}
-
-{# Chart Container Component #}
-{% macro chart_container(id, height="300px", loading=True, error=False, error_message="Failed to load data", loading_message="Loading chart data...", container_class="") %}
-<div class="chart-container position-relative mb-4 {{ container_class }}" style="height: {{ height }};">
-    <canvas id="{{ id }}"></canvas>
-    
-    {% if loading %}
-        <div class="chart-loading position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
-            {{ loading_spinner(text=loading_message) }}
-        </div>
-    {% endif %}
-    
-    {% if error %}
-        <div class="chart-error position-absolute top-0 start-0 w-100 h-100" style="display: none;">
-            {{ error_message(title="Chart Error", message=error_message, icon="x-circle") }}
-        </div>
-    {% endif %}
-</div>
-{% endmacro %}
-
-{# Button with Icon #}
-{% macro icon_button(text="", icon=None, button_class="btn-primary", size="md", type="button", href=None, data_attributes={}) %}
-{% set button_size = "btn-sm" if size == "sm" else "btn-lg" if size == "lg" else "" %}
-{% if href %}
-<a href="{{ href }}" class="btn {{ button_class }} {{ button_size }}" 
-    {% for key, value in data_attributes.items() %}
-    data-{{ key }}="{{ value }}"
-    {% endfor %}>
-    {% if icon %}<i class="bi bi-{{ icon }} {% if text %}me-1{% endif %}"></i>{% endif %}
     {% if text %}{{ text }}{% endif %}
+</button>
+{% endmacro %}
+
+{% macro icon_button(icon, tooltip='', type='primary', size='', outline=false, circle=false, classes='', attributes='') %}
+<button class="btn btn{% if outline %}-outline{% endif %}-{{ type }} {% if size %}btn-{{ size }}{% endif %} {% if circle %}btn-circle{% endif %} {{ classes }}"
+        {% if tooltip %}data-bs-toggle="tooltip" data-bs-placement="top" title="{{ tooltip }}"{% endif %}
+        {{ attributes | safe }}>
+    <i class="bi bi-{{ icon }}"></i>
+</button>
+{% endmacro %}
+
+{% macro action_button(text, type='primary', icon='', url='', js_action='', classes='', attributes='') %}
+{% if url %}
+<a href="{{ url }}" class="btn btn-{{ type }} {{ classes }}" {{ attributes | safe }}>
+{% else %}
+<button onclick="{{ js_action }}" class="btn btn-{{ type }} {{ classes }}" {{ attributes | safe }}>
+{% endif %}
+    {% if icon %}
+    <i class="bi bi-{{ icon }} {% if text %}me-1{% endif %}"></i>
+    {% endif %}
+    {% if text %}{{ text }}{% endif %}
+{% if url %}
 </a>
 {% else %}
-<button type="{{ type }}" class="btn {{ button_class }} {{ button_size }}"
-    {% for key, value in data_attributes.items() %}
-    data-{{ key }}="{{ value }}"
-    {% endfor %}>
-    {% if icon %}<i class="bi bi-{{ icon }} {% if text %}me-1{% endif %}"></i>{% endif %}
-    {% if text %}{{ text }}{% endif %}
 </button>
 {% endif %}
 {% endmacro %}
 
-{# Breadcrumb Component #}
-{% macro breadcrumb(items) %}
-<nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        {% for item in items %}
-            {% if loop.last %}
-                <li class="breadcrumb-item active" aria-current="page">{{ item.text }}</li>
-            {% else %}
-                <li class="breadcrumb-item"><a href="{{ item.url }}">{{ item.text }}</a></li>
+{# Cards #}
+{% macro card(title='', subtitle='', icon='', body_classes='', card_classes='', header_classes='', footer_classes='', footer=none, header_actions=none) %}
+<div class="card shadow-sm {{ card_classes }}">
+    {% if title or icon or header_actions %}
+    <div class="card-header d-flex justify-content-between align-items-center {{ header_classes }}">
+        <div class="d-flex align-items-center">
+            {% if icon %}
+            <i class="bi bi-{{ icon }} me-2" style="font-size: 1.25rem;"></i>
             {% endif %}
-        {% endfor %}
-    </ol>
-</nav>
-{% endmacro %}
-
-{# Status Badge Component #}
-{% macro status_badge(status, text=None) %}
-{% set status_map = {
-    'success': ['success', 'check-circle-fill', text or 'Success'],
-    'error': ['danger', 'x-circle-fill', text or 'Error'],
-    'warning': ['warning', 'exclamation-triangle-fill', text or 'Warning'],
-    'info': ['info', 'info-circle-fill', text or 'Info'],
-    'pending': ['secondary', 'hourglass-split', text or 'Pending'],
-    'active': ['success', 'dot', text or 'Active'],
-    'inactive': ['secondary', 'dot', text or 'Inactive'],
-    'completed': ['success', 'check-circle', text or 'Completed'],
-    'in_progress': ['primary', 'arrow-clockwise', text or 'In Progress'],
-    'cancelled': ['danger', 'x-circle', text or 'Cancelled'],
-    'scheduled': ['info', 'calendar-event', text or 'Scheduled']
-} %}
-
-{% set badge_class, icon, label = status_map.get(status, ['secondary', 'question-circle', text or status]) %}
-
-<span class="badge text-bg-{{ badge_class }} d-inline-flex align-items-center">
-    <i class="bi bi-{{ icon }} me-1"></i>
-    <span>{{ label }}</span>
-</span>
-{% endmacro %}
-
-{# Alert Component #}
-{% macro alert(type="info", dismissible=True, icon=True) %}
-<div class="alert alert-{{ type }} {% if dismissible %}alert-dismissible fade show{% endif %}" role="alert">
-    {% if icon %}
-        <i class="bi bi-{% if type == 'primary' %}info-circle{% elif type == 'secondary' %}gear{% elif type == 'success' %}check-circle{% elif type == 'danger' %}exclamation-triangle{% elif type == 'warning' %}exclamation-triangle{% elif type == 'info' %}info-circle{% elif type == 'light' %}sun{% elif type == 'dark' %}moon{% endif %} me-2"></i>
+            <div>
+                {% if title %}
+                <h5 class="card-title mb-0">{{ title }}</h5>
+                {% endif %}
+                {% if subtitle %}
+                <h6 class="card-subtitle text-muted">{{ subtitle }}</h6>
+                {% endif %}
+            </div>
+        </div>
+        {% if header_actions %}
+        <div class="card-actions">
+            {{ header_actions | safe }}
+        </div>
+        {% endif %}
+    </div>
     {% endif %}
-    {{ caller() }}
-    {% if dismissible %}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <div class="card-body {{ body_classes }}">
+        {{ caller() }}
+    </div>
+    {% if footer %}
+    <div class="card-footer {{ footer_classes }}">
+        {{ footer | safe }}
+    </div>
     {% endif %}
 </div>
 {% endmacro %}
 
-{# Accordion Component #}
-{% macro accordion(id, items, flush=False, always_open=False) %}
-<div class="accordion {% if flush %}accordion-flush{% endif %}" id="accordion-{{ id }}">
-    {% for item in items %}
-        <div class="accordion-item bg-dark border-secondary">
-            <h2 class="accordion-header" id="heading-{{ id }}-{{ loop.index }}">
-                <button class="accordion-button {% if not loop.first %}collapsed{% endif %} bg-dark text-light" type="button" 
-                        data-bs-toggle="collapse" 
-                        data-bs-target="#collapse-{{ id }}-{{ loop.index }}" 
-                        aria-expanded="{% if loop.first %}true{% else %}false{% endif %}" 
-                        aria-controls="collapse-{{ id }}-{{ loop.index }}">
-                    {% if item.icon %}<i class="bi bi-{{ item.icon }} me-2"></i>{% endif %}
-                    {{ item.title }}
-                </button>
-            </h2>
-            <div id="collapse-{{ id }}-{{ loop.index }}" 
-                 class="accordion-collapse collapse {% if loop.first %}show{% endif %}" 
-                 aria-labelledby="heading-{{ id }}-{{ loop.index }}"
-                 {% if not always_open %}data-bs-parent="#accordion-{{ id }}"{% endif %}>
-                <div class="accordion-body">
-                    {{ item.content }}
-                </div>
+{% macro stat_card(title, value, subtitle='', icon='', change='', change_type='', card_classes='', text_classes='') %}
+<div class="card shadow-sm {{ card_classes }}">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h6 class="text-muted mb-1">{{ title }}</h6>
+                <h3 class="mb-0 {{ text_classes }}">{{ value }}</h3>
+                {% if subtitle %}
+                <small class="text-muted">{{ subtitle }}</small>
+                {% endif %}
             </div>
+            {% if icon %}
+            <div class="stat-icon bg-light rounded p-2">
+                <i class="bi bi-{{ icon }}" style="font-size: 1.5rem;"></i>
+            </div>
+            {% endif %}
         </div>
+        {% if change %}
+        <div class="mt-3 pt-1 border-top">
+            <span class="{% if change_type == 'positive' %}text-success{% elif change_type == 'negative' %}text-danger{% else %}text-muted{% endif %}">
+                <i class="bi bi-{% if change_type == 'positive' %}arrow-up-right{% elif change_type == 'negative' %}arrow-down-right{% else %}arrow-right{% endif %} me-1"></i>
+                {{ change }}
+            </span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{# Tables #}
+{% macro data_table(id, headers, responsive=true, striped=true, hoverable=true, bordered=false, small=false, classes='') %}
+<div {% if responsive %}class="table-responsive"{% endif %}>
+    <table id="{{ id }}" class="table {% if striped %}table-striped{% endif %} {% if hoverable %}table-hover{% endif %} {% if bordered %}table-bordered{% endif %} {% if small %}table-sm{% endif %} {{ classes }}">
+        <thead>
+            <tr>
+                {% for header in headers %}
+                <th>{{ header }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {{ caller() }}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}
+
+{# Badges #}
+{% macro status_badge(status, size='', pill=true) %}
+{% set color = {
+    'active': 'success',
+    'inactive': 'secondary',
+    'pending': 'warning',
+    'running': 'primary',
+    'completed': 'success',
+    'failed': 'danger',
+    'scheduled': 'info',
+    'critical': 'danger',
+    'error': 'danger',
+    'warning': 'warning',
+    'info': 'info',
+    'resolved': 'success',
+    'acknowledged': 'primary'
+} %}
+<span class="badge {% if pill %}rounded-pill{% endif %} bg-{{ color[status.lower()] if status.lower() in color else 'secondary' }} {% if size %}badge-{{ size }}{% endif %}">
+    {{ status }}
+</span>
+{% endmacro %}
+
+{% macro metric_badge(value, label='', type='primary', icon='', tooltip='') %}
+<div class="metric-badge bg-light-{{ type }} text-{{ type }} p-2 rounded {% if tooltip %}cursor-help{% endif %}"
+     {% if tooltip %}data-bs-toggle="tooltip" data-bs-placement="top" title="{{ tooltip }}"{% endif %}>
+    {% if icon %}
+    <i class="bi bi-{{ icon }} me-1"></i>
+    {% endif %}
+    <span class="fw-bold">{{ value }}</span>
+    {% if label %}
+    <span class="ms-1 small">{{ label }}</span>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# Charts #}
+{% macro chart_container(id, title='', subtitle='', height='300px', responsive=true, card=true, header_actions='') %}
+{% if card %}
+{% call card(title=title, subtitle=subtitle, header_actions=header_actions, card_classes='chart-card') %}
+    <div id="{{ id }}_container" style="height: {{ height }}; {% if responsive %}width: 100%;{% endif %}">
+        <canvas id="{{ id }}"></canvas>
+    </div>
+{% endcall %}
+{% else %}
+<div id="{{ id }}_container" class="chart-container" style="height: {{ height }}; {% if responsive %}width: 100%;{% endif %}">
+    {% if title %}
+    <div class="chart-header">
+        <h5>{{ title }}</h5>
+        {% if subtitle %}<h6 class="text-muted">{{ subtitle }}</h6>{% endif %}
+    </div>
+    {% endif %}
+    <canvas id="{{ id }}"></canvas>
+</div>
+{% endif %}
+{% endmacro %}
+
+{# Alerts #}
+{% macro toast(title, message, icon='info-circle', type='primary', autohide=true, delay=5000) %}
+<div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="{{ 'true' if autohide else 'false' }}" data-bs-delay="{{ delay }}">
+    <div class="toast-header bg-{{ type }} text-white">
+        <i class="bi bi-{{ icon }} me-2"></i>
+        <strong class="me-auto">{{ title }}</strong>
+        <small>Just now</small>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body">
+        {{ message }}
+    </div>
+</div>
+{% endmacro %}
+
+{# Forms #}
+{% macro form_group(label, id, input_type='text', value='', placeholder='', required=false, disabled=false, readonly=false, help_text='', input_classes='', label_classes='', error='', error_classes='') %}
+<div class="mb-3">
+    <label for="{{ id }}" class="form-label {{ label_classes }}">
+        {{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}
+    </label>
+    <input type="{{ input_type }}" class="form-control {{ input_classes }} {% if error %}is-invalid{% endif %}" 
+           id="{{ id }}" name="{{ id }}" value="{{ value }}" 
+           placeholder="{{ placeholder }}" 
+           {% if required %}required{% endif %} 
+           {% if disabled %}disabled{% endif %} 
+           {% if readonly %}readonly{% endif %}>
+    {% if help_text %}
+    <div class="form-text">{{ help_text }}</div>
+    {% endif %}
+    {% if error %}
+    <div class="invalid-feedback {{ error_classes }}">{{ error }}</div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro select_group(label, id, options, selected_value='', placeholder='Select...', required=false, disabled=false, help_text='', multiple=false, classes='', error='') %}
+<div class="mb-3">
+    <label for="{{ id }}" class="form-label">
+        {{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}
+    </label>
+    <select class="form-select {{ classes }} {% if error %}is-invalid{% endif %}" 
+            id="{{ id }}" name="{{ id }}" 
+            {% if required %}required{% endif %} 
+            {% if disabled %}disabled{% endif %}
+            {% if multiple %}multiple{% endif %}>
+        {% if placeholder and not multiple %}
+        <option value="" {% if not selected_value %}selected{% endif %}>{{ placeholder }}</option>
+        {% endif %}
+        {% for option in options %}
+            {% if option is mapping %}
+                <option value="{{ option.value }}" {% if option.value == selected_value %}selected{% endif %}>{{ option.text }}</option>
+            {% else %}
+                <option value="{{ option }}" {% if option == selected_value %}selected{% endif %}>{{ option }}</option>
+            {% endif %}
+        {% endfor %}
+    </select>
+    {% if help_text %}
+    <div class="form-text">{{ help_text }}</div>
+    {% endif %}
+    {% if error %}
+    <div class="invalid-feedback">{{ error }}</div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# Navigation #}
+{% macro tab_nav(id, tabs, active_tab='', classes='') %}
+<ul class="nav nav-tabs {{ classes }}" id="{{ id }}" role="tablist">
+    {% for tab in tabs %}
+    <li class="nav-item" role="presentation">
+        <button class="nav-link {% if tab.id == active_tab %}active{% endif %}" 
+                id="{{ tab.id }}-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#{{ tab.id }}-content" 
+                type="button" 
+                role="tab" 
+                aria-controls="{{ tab.id }}-content" 
+                aria-selected="{% if tab.id == active_tab %}true{% else %}false{% endif %}">
+            {% if tab.icon %}
+            <i class="bi bi-{{ tab.icon }} me-1"></i>
+            {% endif %}
+            {{ tab.title }}
+            {% if tab.badge %}
+            <span class="badge bg-{{ tab.badge_type|default('secondary') }} ms-1 rounded-pill">{{ tab.badge }}</span>
+            {% endif %}
+        </button>
+    </li>
+    {% endfor %}
+</ul>
+<div class="tab-content" id="{{ id }}Content">
+    {% for tab in tabs %}
+    <div class="tab-pane fade {% if tab.id == active_tab %}show active{% endif %}" id="{{ tab.id }}-content" role="tabpanel" aria-labelledby="{{ tab.id }}-tab">
+        {{ tab.content | safe if tab.content }}
+    </div>
     {% endfor %}
 </div>
 {% endmacro %}
 
-{# Tabs Component #}
-{% macro tabs(id, tabs) %}
-<div class="tab-container">
-    <ul class="nav nav-tabs" id="tabs-{{ id }}" role="tablist">
-        {% for tab in tabs %}
-            <li class="nav-item" role="presentation">
-                <button class="nav-link {% if loop.first %}active{% endif %}" 
-                        id="tab-{{ id }}-{{ loop.index }}" 
-                        data-bs-toggle="tab" 
-                        data-bs-target="#tab-pane-{{ id }}-{{ loop.index }}" 
-                        type="button" 
-                        role="tab" 
-                        aria-controls="tab-pane-{{ id }}-{{ loop.index }}" 
-                        aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
-                    {% if tab.icon %}<i class="bi bi-{{ tab.icon }} me-1"></i>{% endif %}
-                    {{ tab.title }}
-                </button>
-            </li>
-        {% endfor %}
-    </ul>
-    <div class="tab-content" id="tabs-content-{{ id }}">
-        {% for tab in tabs %}
-            <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
-                 id="tab-pane-{{ id }}-{{ loop.index }}" 
-                 role="tabpanel" 
-                 aria-labelledby="tab-{{ id }}-{{ loop.index }}" 
-                 tabindex="0">
-                <div class="py-3">
-                    {{ tab.content }}
-                </div>
-            </div>
-        {% endfor %}
-    </div>
-</div>
-{% endmacro %}
-
-{# Progress Component #}
-{% macro progress(value, max=100, label=None, height="1rem", color="primary", striped=False, animated=False, show_percentage=True) %}
-<div class="progress-container">
-    {% if label %}
-        <div class="d-flex justify-content-between align-items-center mb-1">
-            <span>{{ label }}</span>
-            {% if show_percentage %}
-                <span>{{ ((value / max) * 100) | round }}%</span>
-            {% endif %}
-        </div>
-    {% endif %}
-    <div class="progress" style="height: {{ height }};">
-        <div class="progress-bar bg-{{ color }} {% if striped %}progress-bar-striped{% endif %} {% if animated %}progress-bar-animated{% endif %}" 
-             role="progressbar" 
-             style="width: {{ (value / max) * 100 }}%;" 
-             aria-valuenow="{{ value }}" 
-             aria-valuemin="0" 
-             aria-valuemax="{{ max }}">
-            {% if not label and show_percentage and height != "1rem" %}
-                {{ ((value / max) * 100) | round }}%
-            {% endif %}
-        </div>
-    </div>
-</div>
-{% endmacro %}
-
-{# Filter Bar Component #}
-{% macro filter_bar(filters, clear_url="#") %}
-<div class="filter-bar py-2 px-3 bg-dark border border-secondary rounded mb-4">
-    <div class="row g-2 align-items-center">
-        <div class="col">
-            <div class="d-flex flex-wrap gap-2 align-items-center">
-                {% for filter in filters %}
-                    <div class="filter-item">
-                        <span class="text-muted me-1">{{ filter.label }}:</span>
-                        <span class="badge bg-primary rounded-pill">
-                            {{ filter.value }}
-                            {% if filter.removable %}
-                                <a href="{{ filter.remove_url }}" class="text-white ms-1 text-decoration-none">
-                                    <i class="bi bi-x-circle"></i>
-                                </a>
-                            {% endif %}
-                        </span>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-        <div class="col-auto">
-            <a href="{{ clear_url }}" class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-x me-1"></i>
-                Clear All
+{% macro pagination(current_page, total_pages, url_pattern, boundary_count=1, size='') %}
+<nav aria-label="Page navigation">
+    <ul class="pagination {% if size %}pagination-{{ size }}{% endif %} justify-content-center">
+        <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_pattern.format(page=current_page-1) if current_page > 1 else '#' }}" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
             </a>
-        </div>
-    </div>
-</div>
-{% endmacro %}
-
-{# Search Bar Component #}
-{% macro search_bar(placeholder="Search...", value="", action="", method="GET", name="q", button_text="Search", class="mb-4") %}
-<form action="{{ action }}" method="{{ method }}" class="search-bar {{ class }}">
-    <div class="input-group">
-        <input type="text" class="form-control" placeholder="{{ placeholder }}" name="{{ name }}" value="{{ value }}">
-        <button class="btn btn-primary" type="submit">
-            <i class="bi bi-search me-1"></i>
-            {{ button_text }}
-        </button>
-    </div>
-</form>
-{% endmacro %}
-
-{# Page Header Component #}
-{% macro page_header(title, subtitle=None, icon=None, actions=None) %}
-<div class="page-header mb-4">
-    <div class="d-flex flex-wrap justify-content-between align-items-center">
-        <div>
-            <h1 class="page-title mb-1">
-                {% if icon %}<i class="bi bi-{{ icon }} me-2"></i>{% endif %}
-                {{ title }}
-            </h1>
-            {% if subtitle %}
-                <p class="page-subtitle text-muted mb-0">{{ subtitle }}</p>
-            {% endif %}
-        </div>
+        </li>
         
-        {% if actions %}
-            <div class="page-actions">
-                {{ actions }}
-            </div>
-        {% endif %}
-    </div>
-</div>
+        {% for i in range(1, total_pages + 1) %}
+            {% if i <= boundary_count or i > total_pages - boundary_count or (i >= current_page - 2 and i <= current_page + 2) %}
+                <li class="page-item {% if i == current_page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_pattern.format(page=i) }}">{{ i }}</a>
+                </li>
+            {% elif i == boundary_count + 1 or i == total_pages - boundary_count %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+            {% endif %}
+        {% endfor %}
+        
+        <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_pattern.format(page=current_page+1) if current_page < total_pages else '#' }}" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+            </a>
+        </li>
+    </ul>
+</nav>
 {% endmacro %}

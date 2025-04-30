@@ -1,0 +1,108 @@
+{# Error State Components - These provide consistent error handling across the application #}
+
+{% macro error_alert(message, title='Error', type='danger', dismissible=true, icon=true) %}
+<div class="alert alert-{{ type }} {% if dismissible %}alert-dismissible fade show{% endif %}" role="alert">
+    {% if icon %}
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+    {% endif %}
+    {% if title %}
+    <strong>{{ title }}:</strong> 
+    {% endif %}
+    {{ message }}
+    {% if dismissible %}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro data_error(message='Failed to load data', retry_button=true, retry_function='', container_classes='') %}
+<div class="data-error-container {{ container_classes }} d-flex flex-column align-items-center justify-content-center py-5">
+    <div class="text-danger mb-3">
+        <i class="bi bi-exclamation-circle" style="font-size: 3rem;"></i>
+    </div>
+    <h5 class="text-danger">{{ message }}</h5>
+    {% if retry_button %}
+    <button onclick="{{ retry_function if retry_function else 'window.location.reload()' }}" class="btn btn-outline-primary mt-3">
+        <i class="bi bi-arrow-clockwise me-2"></i>Retry
+    </button>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro api_error(status_code, message='', container_classes='') %}
+<div class="api-error-container {{ container_classes }} text-center py-4">
+    <div class="error-code mb-3">
+        <span class="display-1 text-danger">{{ status_code }}</span>
+    </div>
+    <h4 class="text-danger">
+        {% if status_code == 404 %}
+            Not Found
+        {% elif status_code == 403 %}
+            Access Forbidden
+        {% elif status_code == 401 %}
+            Unauthorized
+        {% elif status_code == 500 %}
+            Server Error
+        {% elif status_code == 502 %}
+            Bad Gateway
+        {% elif status_code == 503 %}
+            Service Unavailable
+        {% elif status_code == 504 %}
+            Gateway Timeout
+        {% else %}
+            Error
+        {% endif %}
+    </h4>
+    {% if message %}
+    <p class="text-muted">{{ message }}</p>
+    {% else %}
+    <p class="text-muted">
+        {% if status_code == 404 %}
+            The requested resource could not be found.
+        {% elif status_code == 403 %}
+            You don't have permission to access this resource.
+        {% elif status_code == 401 %}
+            Authentication is required to access this resource.
+        {% elif status_code == 500 %}
+            The server encountered an internal error.
+        {% elif status_code == 502 %}
+            The server received an invalid response from an upstream server.
+        {% elif status_code == 503 %}
+            The service is temporarily unavailable.
+        {% elif status_code == 504 %}
+            The server timed out waiting for a response.
+        {% else %}
+            An error occurred while processing your request.
+        {% endif %}
+    </p>
+    {% endif %}
+    <div class="mt-4">
+        <a href="javascript:history.back()" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-arrow-left me-1"></i>Go Back
+        </a>
+        <a href="{{ url_for('index') }}" class="btn btn-primary">
+            <i class="bi bi-house me-1"></i>Go to Dashboard
+        </a>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro empty_state(message='No data available', icon='bi-inbox', action_button=false, action_text='', action_url='', container_classes='') %}
+<div class="empty-state-container {{ container_classes }} text-center py-5">
+    <div class="empty-state-icon mb-3">
+        <i class="bi {{ icon }}" style="font-size: 3rem; opacity: 0.5;"></i>
+    </div>
+    <h5 class="text-muted">{{ message }}</h5>
+    {% if action_button and action_text and action_url %}
+    <a href="{{ action_url }}" class="btn btn-outline-primary mt-3">
+        {{ action_text }}
+    </a>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro validation_feedback(field_id, valid=false, message='') %}
+<div class="{% if valid %}valid-feedback{% else %}invalid-feedback{% endif %}" id="{{ field_id }}-feedback">
+    {{ message }}
+</div>
+{% endmacro %}

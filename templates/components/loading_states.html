@@ -1,0 +1,74 @@
+{# Loading State Components - These provide consistent loading indicators across the application #}
+
+{% macro skeleton_card(height='200px', classes='') %}
+<div class="skeleton-card {{ classes }}" style="height: {{ height }};">
+    <div class="skeleton-header pulse"></div>
+    <div class="skeleton-body">
+        <div class="skeleton-line pulse"></div>
+        <div class="skeleton-line pulse" style="width: 80%;"></div>
+        <div class="skeleton-line pulse" style="width: 90%;"></div>
+        <div class="skeleton-line pulse" style="width: 60%;"></div>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro loading_spinner(size='md', text='', color='primary', classes='') %}
+<div class="loading-indicator d-flex align-items-center justify-content-center {{ classes }}">
+    <div class="spinner-border text-{{ color }} spinner-border-{{ size }}" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    {% if text %}
+    <span class="ms-2">{{ text }}</span>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro data_loading_container(id, height='400px', message='Loading data...', spinner_size='lg') %}
+<div id="{{ id }}" class="data-loading-container d-flex flex-column align-items-center justify-content-center" style="height: {{ height }};">
+    <div class="spinner-border text-primary spinner-border-{{ spinner_size }} mb-3" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="text-muted">{{ message }}</p>
+</div>
+{% endmacro %}
+
+{% macro skeleton_table(rows=5, cols=4, header=true, classes='') %}
+<div class="skeleton-table-container {{ classes }}">
+    <table class="table skeleton-table">
+        {% if header %}
+        <thead>
+            <tr>
+                {% for i in range(cols) %}
+                <th>
+                    <div class="skeleton-header pulse"></div>
+                </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        {% endif %}
+        <tbody>
+            {% for i in range(rows) %}
+            <tr>
+                {% for j in range(cols) %}
+                <td>
+                    <div class="skeleton-line pulse" style="width: {% if j == 0 %}60%{% elif j == cols-1 %}40%{% else %}80%{% endif %};"></div>
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}
+
+{% macro skeleton_chart(height='300px', width='100%', classes='') %}
+<div class="skeleton-chart {{ classes }}" style="height: {{ height }}; width: {{ width }};">
+    <div class="skeleton-chart-inner pulse"></div>
+</div>
+{% endmacro %}
+
+{% macro shimmer_container(height='200px', width='100%', classes='') %}
+<div class="shimmer-container {{ classes }}" style="height: {{ height }}; width: {{ width }};">
+    <div class="shimmer-effect"></div>
+</div>
+{% endmacro %}
