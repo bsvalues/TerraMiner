@@ -9,7 +9,7 @@ import schedule
 
 from app import app, db
 from models import (
-    SystemMetric, ScheduledReport, AIFeedbackReportSettings
+    SystemMetric, ModelsScheduledReport, AIFeedbackReportSettings
 )
 from utils.monitoring_tasks import collect_system_metrics, check_system_health
 from utils.report_generator import ReportGenerator
@@ -52,7 +52,7 @@ def schedule_reports():
     try:
         with app.app_context():
             # Get all active scheduled reports
-            reports = ScheduledReport.query.filter_by(is_active=True).all()
+            reports = ModelsScheduledReport.query.filter_by(is_active=True).all()
             
             for report in reports:
                 try:

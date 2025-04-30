@@ -2,8 +2,6 @@ import os
 import logging
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, send_file
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
 from etl.narrpr_scraper import NarrprScraper
 from db.database import save_to_database, Database
@@ -13,29 +11,20 @@ from utils.export import export_to_csv, export_to_json, export_to_excel, get_exp
 from utils.test_data import insert_test_data
 from middleware import init_template_middleware, template_preference_decorator
 
+# Import the database instance from our new db_utils.py
+from db_utils import db, init_db
+
 # Initialize logger
 setup_logger()
 logger = logging.getLogger(__name__)
 
 # Initialize Flask app
-class Base(DeclarativeBase):
-    pass
-
-db = SQLAlchemy(model_class=Base)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Configure database
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_recycle": 300,
-    "pool_pre_ping": True,
-}
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-# Initialize database
-db.init_app(app)
+# Initialize database using our factory function
+init_db(app)
 
 # Initialize template middleware
 render_template_with_fallback = init_template_middleware(app)
@@ -869,7 +858,7 @@ def monitoring_dashboard():
     # Import locally to avoid circular import issues
     from models import (
         SystemMetric, APIUsageLog, AIAgentMetrics, 
-        ScheduledReport, MonitoringAlert
+        ModelsScheduledReport, MonitoringAlert
     )
     
     # Get root-level JobRun object
@@ -973,8 +962,8 @@ def monitoring_dashboard():
     
     # Get report metrics
     report_metrics = {
-        'total_scheduled': ScheduledReport.query.filter_by(is_active=True).count(),
-        'upcoming': ScheduledReport.query.filter_by(is_active=True).all(),
+        'total_scheduled': ModelsScheduledReport.query.filter_by(is_active=True).count(),
+        'upcoming': ModelsScheduledReport.query.filter_by(is_active=True).all(),
     }
     
     # Calculate system health score (0-100)
@@ -1046,11 +1035,11 @@ def monitoring_dashboard():
     
     try:
         # Try to import models from package
-        from models import PropertyLocation, PriceTrend
+        from models import ModelsPropertyLocation, PriceTrend
         
         # Update location stats with actual data
-        location_stats['total_properties'] = PropertyLocation.query.count()
-        location_stats['distinct_cities'] = db.session.query(PropertyLocation.city).distinct().count()
+        location_stats['total_properties'] = ModelsPropertyLocation.query.count()
+        location_stats['distinct_cities'] = db.session.query(ModelsPropertyLocation.city).distinct().count()
         
         # Calculate median price for the most recent date
         latest_date = db.session.query(func.max(PriceTrend.date)).scalar()
@@ -1107,7 +1096,7 @@ def monitoring_api():
 def api_location_data():
     """API endpoint for location data to power geographical visualization."""
     try:
-        from models import PropertyLocation
+        from models import ModelsPropertyLocation
         from sqlalchemy import func
         
         # Get query parameters
@@ -1117,15 +1106,15 @@ def api_location_data():
         limit = request.args.get('limit', default=100, type=int)
         
         # Build query
-        query = PropertyLocation.query
+        query = ModelsPropertyLocation.query
         
         # Apply filters if provided
         if city:
-            query = query.filter(func.lower(PropertyLocation.city) == city.lower())
+            query = query.filter(func.lower(ModelsPropertyLocation.city) == city.lower())
         if state:
-            query = query.filter(func.lower(PropertyLocation.state) == state.lower())
+            query = query.filter(func.lower(ModelsPropertyLocation.state) == state.lower())
         if zip_code:
-            query = query.filter(PropertyLocation.zip_code == zip_code)
+            query = query.filter(ModelsPropertyLocation.zip_code == zip_code)
             
         # Get locations with limit
         locations = query.limit(limit).all()
@@ -1349,17 +1338,17 @@ def monitoring_locations():
     """Property locations map visualization page"""
     # Get available states and cities for filters
     try:
-        from models import PropertyLocation
+        from models import ModelsPropertyLocation
         from sqlalchemy import func
         
-        states = db.session.query(PropertyLocation.state).distinct().order_by(PropertyLocation.state).all()
+        states = db.session.query(ModelsPropertyLocation.state).distinct().order_by(ModelsPropertyLocation.state).all()
         states = [state[0] for state in states if state[0]]
         
-        cities = db.session.query(PropertyLocation.city).distinct().order_by(PropertyLocation.city).all()
+        cities = db.session.query(ModelsPropertyLocation.city).distinct().order_by(ModelsPropertyLocation.city).all()
         cities = [city[0] for city in cities if city[0]]
         
         # Get location count
-        location_count = PropertyLocation.query.count()
+        location_count = ModelsPropertyLocation.query.count()
         
     except Exception as e:
         logger.error(f"Error retrieving location filters: {str(e)}")
@@ -1418,7 +1407,7 @@ def monitoring_price_trends():
 def api_property_search():
     """API endpoint for searching properties."""
     try:
-        from models import PropertyLocation
+        from models import ModelsPropertyLocation
         from sqlalchemy import func, or_
         
         # Get filter parameters
@@ -1434,36 +1423,36 @@ def api_property_search():
         limit = request.args.get('limit', default=20, type=int)
         
         # Build query
-        query = PropertyLocation.query
+        query = ModelsPropertyLocation.query
         
         # Apply filters if provided
         if property_type:
-            query = query.filter(PropertyLocation.property_type == property_type)
+            query = query.filter(ModelsPropertyLocation.property_type == property_type)
         if city:
-            query = query.filter(func.lower(PropertyLocation.city) == city.lower())
+            query = query.filter(func.lower(ModelsPropertyLocation.city) == city.lower())
         if state:
-            query = query.filter(func.lower(PropertyLocation.state) == state.lower())
+            query = query.filter(func.lower(ModelsPropertyLocation.state) == state.lower())
             
         # Price filters - convert to cents
         if min_price:
-            query = query.filter(PropertyLocation.price_value >= min_price * 100)
+            query = query.filter(ModelsPropertyLocation.price_value >= min_price * 100)
         if max_price:
-            query = query.filter(PropertyLocation.price_value <= max_price * 100)
+            query = query.filter(ModelsPropertyLocation.price_value <= max_price * 100)
             
         # Bedroom filters
         if min_beds:
-            query = query.filter(PropertyLocation.bedrooms >= min_beds)
+            query = query.filter(ModelsPropertyLocation.bedrooms >= min_beds)
         if max_beds:
-            query = query.filter(PropertyLocation.bedrooms <= max_beds)
+            query = query.filter(ModelsPropertyLocation.bedrooms <= max_beds)
             
         # Bathroom filters
         if min_baths:
-            query = query.filter(PropertyLocation.bathrooms >= min_baths)
+            query = query.filter(ModelsPropertyLocation.bathrooms >= min_baths)
         if max_baths:
-            query = query.filter(PropertyLocation.bathrooms <= max_baths)
+            query = query.filter(ModelsPropertyLocation.bathrooms <= max_baths)
             
         # Limit results and execute query
-        properties = query.order_by(PropertyLocation.id).limit(limit).all()
+        properties = query.order_by(ModelsPropertyLocation.id).limit(limit).all()
         
         # Convert to JSON-serializable format
         results = []
@@ -1506,18 +1495,18 @@ def api_property_search():
 def property_comparison():
     """One-click property comparison dashboard"""
     try:
-        from models import PropertyLocation
+        from models import ModelsPropertyLocation
         from sqlalchemy import func
         
         # Get all property types
-        property_types = db.session.query(PropertyLocation.property_type).distinct().order_by(PropertyLocation.property_type).all()
+        property_types = db.session.query(ModelsPropertyLocation.property_type).distinct().order_by(ModelsPropertyLocation.property_type).all()
         property_types = [p[0] for p in property_types if p[0]]
         
         # Get all states and cities
-        states = db.session.query(PropertyLocation.state).distinct().order_by(PropertyLocation.state).all()
+        states = db.session.query(ModelsPropertyLocation.state).distinct().order_by(ModelsPropertyLocation.state).all()
         states = [state[0] for state in states if state[0]]
         
-        cities = db.session.query(PropertyLocation.city).distinct().order_by(PropertyLocation.city).all()
+        cities = db.session.query(ModelsPropertyLocation.city).distinct().order_by(ModelsPropertyLocation.city).all()
         cities = [city[0] for city in cities if city[0]]
         
         # Get selected properties IDs from query parameters
@@ -1526,7 +1515,7 @@ def property_comparison():
         # Get selected properties if any
         selected_properties = []
         if selected_ids:
-            selected_properties = PropertyLocation.query.filter(PropertyLocation.id.in_(selected_ids)).all()
+            selected_properties = ModelsPropertyLocation.query.filter(ModelsPropertyLocation.id.in_(selected_ids)).all()
         
         # Get comparable properties for suggestions
         suggested_properties = []
@@ -1535,32 +1524,32 @@ def property_comparison():
             base_property = selected_properties[0]
             
             # Find properties with similar characteristics
-            query = PropertyLocation.query.filter(
-                PropertyLocation.id != base_property.id,  # Exclude the base property
-                PropertyLocation.property_type == base_property.property_type,  # Same property type
-                PropertyLocation.city == base_property.city,  # Same city
-                PropertyLocation.state == base_property.state  # Same state
+            query = ModelsPropertyLocation.query.filter(
+                ModelsPropertyLocation.id != base_property.id,  # Exclude the base property
+                ModelsPropertyLocation.property_type == base_property.property_type,  # Same property type
+                ModelsPropertyLocation.city == base_property.city,  # Same city
+                ModelsPropertyLocation.state == base_property.state  # Same state
             )
             
             # Exclude already selected properties
             if len(selected_properties) > 1:
                 other_ids = [p.id for p in selected_properties[1:]]
-                query = query.filter(~PropertyLocation.id.in_(other_ids))
+                query = query.filter(~ModelsPropertyLocation.id.in_(other_ids))
                 
             # Get up to 5 suggested properties
             suggested_properties = query.limit(5).all()
         
         # Get global stats for comparison context
-        avg_price = db.session.query(func.avg(PropertyLocation.price_value)).scalar() or 0
+        avg_price = db.session.query(func.avg(ModelsPropertyLocation.price_value)).scalar() or 0
         avg_price = int(avg_price / 100)  # Convert cents to dollars
         
-        min_price = db.session.query(func.min(PropertyLocation.price_value)).scalar() or 0
+        min_price = db.session.query(func.min(ModelsPropertyLocation.price_value)).scalar() or 0
         min_price = int(min_price / 100)  # Convert cents to dollars
         
-        max_price = db.session.query(func.max(PropertyLocation.price_value)).scalar() or 0
+        max_price = db.session.query(func.max(ModelsPropertyLocation.price_value)).scalar() or 0
         max_price = int(max_price / 100)  # Convert cents to dollars
         
-        avg_sqft = db.session.query(func.avg(PropertyLocation.square_feet)).scalar() or 0
+        avg_sqft = db.session.query(func.avg(ModelsPropertyLocation.square_feet)).scalar() or 0
         avg_sqft = int(avg_sqft)
         
         # Calculate price per square foot for each selected property
@@ -1710,10 +1699,10 @@ def monitoring_alerts_history():
 @app.route('/monitoring/reports/scheduled', methods=['GET'])
 def monitoring_reports_scheduled():
     """Scheduled reports page"""
-    from models import ScheduledReport
+    from models import ModelsScheduledReport
     import json
     
-    reports = ScheduledReport.query.order_by(ScheduledReport.is_active.desc(), ScheduledReport.name).all()
+    reports = ModelsScheduledReport.query.order_by(ModelsScheduledReport.is_active.desc(), ModelsScheduledReport.name).all()
     
     # Calculate recipients count for each report
     for report in reports:
@@ -1731,7 +1720,7 @@ def monitoring_reports_scheduled():
 @app.route('/monitoring/reports/create', methods=['GET', 'POST'])
 def monitoring_reports_create():
     """Create report page"""
-    from models import ScheduledReport
+    from models import ModelsScheduledReport
     import json
     
     if request.method == 'POST':
@@ -1769,7 +1758,7 @@ def monitoring_reports_create():
             parameters['status'] = status
         
         # Create report
-        report = ScheduledReport(
+        report = ModelsScheduledReport(
             name=name,
             report_type=report_type,
             schedule_type=schedule_type,
@@ -1799,11 +1788,11 @@ def monitoring_reports_create():
 @app.route('/monitoring/reports/run/<int:report_id>', methods=['POST'])
 def monitoring_reports_run(report_id):
     """Run a scheduled report immediately"""
-    from models import ScheduledReport
+    from models import ModelsScheduledReport
     from utils.report_generator import ReportGenerator
     from datetime import datetime
     
-    report = ScheduledReport.query.get_or_404(report_id)
+    report = ModelsScheduledReport.query.get_or_404(report_id)
     
     try:
         # Process the report
@@ -1828,10 +1817,10 @@ def monitoring_reports_run(report_id):
 @app.route('/monitoring/reports/edit/<int:report_id>', methods=['GET', 'POST'])
 def monitoring_reports_edit(report_id):
     """Edit a scheduled report"""
-    from models import ScheduledReport
+    from models import ModelsScheduledReport
     import json
     
-    report = ScheduledReport.query.get_or_404(report_id)
+    report = ModelsScheduledReport.query.get_or_404(report_id)
     
     if request.method == 'POST':
         # Update report
@@ -1914,9 +1903,9 @@ def monitoring_reports_edit(report_id):
 @app.route('/monitoring/reports/delete/<int:report_id>', methods=['POST'])
 def monitoring_reports_delete(report_id):
     """Delete a scheduled report"""
-    from models import ScheduledReport
+    from models import ModelsScheduledReport
     
-    report = ScheduledReport.query.get_or_404(report_id)
+    report = ModelsScheduledReport.query.get_or_404(report_id)
     
     db.session.delete(report)
     db.session.commit()

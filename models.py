@@ -448,8 +448,9 @@ class NarrprReports(db.Model):
     price = db.Column(db.String(50), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
     
-    # Relationships
-    locations = db.relationship('PropertyLocation', backref='report', lazy=True)
+    # Relationship with PropertyLocation in the same file
+    locations = db.relationship('PropertyLocation', foreign_keys='PropertyLocation.report_id', 
+                                backref='narrpr_report', lazy=True)
     
     def __repr__(self):
         return f"<NarrprReports id={self.id} title={self.title} address={self.address}>"

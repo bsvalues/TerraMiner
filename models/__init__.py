@@ -4,9 +4,8 @@ from models.narrpr_data import NarrprReport, NarrprProperty, NarrprComparablePro
 from models.api_keys import APIKey
 from models.schedule import ETLSchedule
 
-# Import directly from main models module
-from app import db
-# Next, import all the models directly here to avoid circular dependencies
+# Import the db instance from our centralized db_utils module
+from db_utils import db
 from datetime import datetime
 from datetime import date
 
@@ -133,7 +132,7 @@ class ReportExecution(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
     
     # Relationship
-    report = db.relationship('ScheduledReport', backref=db.backref('executions', lazy=True))
+    report = db.relationship('ModelsScheduledReport', backref=db.backref('executions', lazy=True))
     
 class ReportExecutionLog(db.Model):
     """Model for logging report execution history with more detailed information."""
@@ -151,10 +150,11 @@ class ReportExecutionLog(db.Model):
     parameters = db.Column(db.Text, nullable=True)  # JSON of parameters used for the report
     
     # Relationship with report (if associated with a scheduled report)
-    report = db.relationship('ScheduledReport', backref=db.backref('execution_logs', lazy=True))
+    report = db.relationship('ModelsScheduledReport', backref=db.backref('execution_logs', lazy=True))
 
-class PropertyLocation(db.Model):
+class ModelsPropertyLocation(db.Model):
     """Model for property location data."""
+    __tablename__ = 'property_location'
     __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
@@ -251,7 +251,7 @@ class AIFeedbackReportSettings(db.Model):
     @staticmethod
     def get_settings():
         """Get the current settings, creating default settings if none exist."""
-        from app import db
+        # Using the already imported db instance
         
         settings = AIFeedbackReportSettings.query.first()
         if not settings:
@@ -269,10 +269,10 @@ __all__ = [
     'NarrprReport', 'NarrprProperty', 'NarrprComparableProperty', 'NarrprMarketActivity',
     
     # Monitoring models
-    'SystemMetric', 'APIUsageLog', 'MonitoringAlert', 'ScheduledReport',
+    'SystemMetric', 'APIUsageLog', 'MonitoringAlert', 'ModelsScheduledReport',
     'ReportExecution', 'AIAgentMetrics', 'JobRun', 'ReportExecutionLog',
     'AIFeedbackReportSettings',
     
     # Geographical models
-    'PropertyLocation', 'PriceTrend'
+    'ModelsPropertyLocation', 'PriceTrend'
 ]

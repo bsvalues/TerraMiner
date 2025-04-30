@@ -1425,7 +1425,10 @@ def create_scheduled_report():
             recipients = json.dumps(recipients)
         
         # Create new scheduled report
-        report = ScheduledReport(
+        # Import models inside function to avoid circular imports
+        from models import ModelsScheduledReport
+        
+        report = ModelsScheduledReport(
             name=name,
             description=description,
             report_type=report_type,
@@ -1471,20 +1474,23 @@ def get_scheduled_reports():
         output_format = request.args.get('output_format')
         is_active = request.args.get('active', default=None, type=lambda v: v.lower() == 'true' if v else None)
         
+        # Import models inside function to avoid circular imports
+        from models import ModelsScheduledReport
+        
         # Build query
-        query = ScheduledReport.query
+        query = ModelsScheduledReport.query
         
         if report_type:
-            query = query.filter(ScheduledReport.report_type == report_type)
+            query = query.filter(ModelsScheduledReport.report_type == report_type)
         if schedule_type:
-            query = query.filter(ScheduledReport.schedule_type == schedule_type)
+            query = query.filter(ModelsScheduledReport.schedule_type == schedule_type)
         if output_format:
-            query = query.filter(ScheduledReport.output_format == output_format)
+            query = query.filter(ModelsScheduledReport.output_format == output_format)
         if is_active is not None:
-            query = query.filter(ScheduledReport.is_active == is_active)
+            query = query.filter(ModelsScheduledReport.is_active == is_active)
             
         # Execute query
-        reports = query.order_by(ScheduledReport.name).all()
+        reports = query.order_by(ModelsScheduledReport.name).all()
         
         # Format result
         result = []
@@ -1526,7 +1532,10 @@ def get_scheduled_reports():
 def get_scheduled_report(report_id):
     """Get a specific scheduled report by ID"""
     try:
-        report = ScheduledReport.query.get(report_id)
+        # Import models inside function to avoid circular imports
+        from models import ModelsScheduledReport
+        
+        report = ModelsScheduledReport.query.get(report_id)
         
         if not report:
             return jsonify({
@@ -1587,7 +1596,10 @@ def get_scheduled_report(report_id):
 def update_scheduled_report(report_id):
     """Update a scheduled report"""
     try:
-        report = ScheduledReport.query.get(report_id)
+        # Import models inside function to avoid circular imports
+        from models import ModelsScheduledReport
+        
+        report = ModelsScheduledReport.query.get(report_id)
         
         if not report:
             return jsonify({
@@ -1661,7 +1673,10 @@ def update_scheduled_report(report_id):
 def delete_scheduled_report(report_id):
     """Delete a scheduled report"""
     try:
-        report = ScheduledReport.query.get(report_id)
+        # Import models inside function to avoid circular imports
+        from models import ModelsScheduledReport
+        
+        report = ModelsScheduledReport.query.get(report_id)
         
         if not report:
             return jsonify({
@@ -1690,7 +1705,10 @@ def delete_scheduled_report(report_id):
 def execute_scheduled_report(report_id):
     """Execute a scheduled report on demand"""
     try:
-        report = ScheduledReport.query.get(report_id)
+        # Import models inside function to avoid circular imports
+        from models import ModelsScheduledReport, ReportExecution
+        
+        report = ModelsScheduledReport.query.get(report_id)
         
         if not report:
             return jsonify({

@@ -15,24 +15,13 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
-# First try importing from app.py with special handling
+# Import the app directly now that we've fixed the circular imports
 try:
-    # Force Python to look for app.py in the current directory
-    import importlib.util
-    spec = importlib.util.spec_from_file_location('app_module', os.path.join(current_dir, 'app.py'))
-    app_module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(app_module)
-    app = app_module.app
-    logger.info("Successfully imported app using importlib")
+    from app import app
+    logger.info("Successfully imported app")
 except Exception as e:
-    logger.warning(f"Failed to import app using importlib: {str(e)}")
-    # Fall back to regular import
-    try:
-        from app import app
-        logger.info("Successfully imported app using regular import")
-    except Exception as e:
-        logger.error(f"Failed to import app: {str(e)}")
-        raise
+    logger.error(f"Failed to import app: {str(e)}")
+    raise
 from etl.narrpr_scraper import NarrprScraper
 from etl.zillow_scraper import ZillowScraper
 from etl.manager import etl_manager
