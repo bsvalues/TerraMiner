@@ -1668,7 +1668,7 @@ def monitoring_alerts_active():
         else:
             alerts_by_severity['info'].append(alert)
     
-    return render_template('monitoring_alerts_active.html', 
+    return render_template('monitoring_alerts_active_fixed.html', 
                           alerts=alerts,
                           alerts_by_severity=alerts_by_severity)
                           
