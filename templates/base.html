@@ -303,5 +303,9 @@
     </script>
     
     {% block scripts %}{% endblock %}
+    
+    <!-- Template Switcher -->
+    {% from "template_switcher.html" import template_switcher %}
+    {{ template_switcher(request.path, ui_template|default('legacy')) }}
 </body>
 </html>

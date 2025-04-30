@@ -1,10 +1,11 @@
 {# Template Switcher Component - For toggling between old and new UI during migration #}
 
 {% macro template_switcher(page_url, current_template='legacy') %}
-<div class="template-switcher position-fixed bottom-0 end-0 m-3 p-2 bg-dark border border-secondary rounded shadow-lg" style="z-index: 1050;">
-    <div class="btn-group" role="group" aria-label="UI Template Selector">
-        <a href="{{ page_url }}?ui=legacy" class="btn btn-sm {% if current_template == 'legacy' %}btn-primary{% else %}btn-outline-primary{% endif %}">Legacy UI</a>
-        <a href="{{ page_url }}?ui=unified" class="btn btn-sm {% if current_template == 'unified' %}btn-primary{% else %}btn-outline-primary{% endif %}">New UI</a>
+<div class="template-switcher position-fixed bottom-0 end-0 m-3 p-3 bg-dark border border-warning rounded shadow-lg" style="z-index: 1050;">
+    <h6 class="text-warning mb-2 text-center">UI Template</h6>
+    <div class="btn-group btn-group-lg w-100" role="group" aria-label="UI Template Selector">
+        <a href="{{ page_url }}?ui=legacy" class="btn {% if current_template == 'legacy' %}btn-primary{% else %}btn-outline-primary{% endif %}">Legacy UI</a>
+        <a href="{{ page_url }}?ui=unified" class="btn {% if current_template == 'unified' %}btn-success{% else %}btn-outline-success{% endif %}">New UI</a>
     </div>
 </div>
 {% endmacro %}
