@@ -1,0 +1,619 @@
+{% extends "layout.html" %}
+{% from "components/ui_components.html" import loading_spinner, empty_state, error_message, chart_container, metric_card %}
+
+{% block title %}AI Demo{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">AI Capabilities Demo</h3>
+                </div>
+                <div class="card-body">
+                    <p class="lead">
+                        Explore the AI capabilities of the TerraMiner platform. 
+                        Our AI-powered features help you get deeper insights into real estate data.
+                    </p>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        These demos showcase our AI capabilities using real data. Results are generated in real-time.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <!-- Natural Language Search -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="bi bi-search"></i> Natural Language Search</h4>
+                </div>
+                <div class="card-body">
+                    <p>Search for properties using natural language instead of complex filters.</p>
+                    
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="nlSearchInput" 
+                                placeholder="e.g., 'Find 3-bedroom homes in San Francisco under $1.2M with a garage'">
+                            <button class="btn btn-primary" type="button" id="nlSearchButton">
+                                <i class="bi bi-search"></i> Search
+                            </button>
+                        </div>
+                        <div class="form-text text-muted">Try asking for specific property features, locations, or price ranges.</div>
+                    </div>
+                    
+                    <div id="nlSearch-results" class="mt-4">
+                        <div id="nlSearch-loading" class="d-none">
+                            {{ loading_spinner(size="medium", text="Processing your query...") }}
+                        </div>
+                        
+                        <div id="nlSearch-error" class="d-none">
+                            {{ error_message(
+                                title="Search Error",
+                                message="We couldn't process your natural language query. Please try again with different wording.",
+                                icon="exclamation-triangle",
+                                action_text="Try Again"
+                            ) }}
+                        </div>
+                        
+                        <div id="nlSearch-empty" class="text-center py-5">
+                            {{ empty_state(
+                                title="Start Your Search",
+                                message="Enter a natural language query above to find properties that match your criteria.",
+                                icon="search"
+                            ) }}
+                        </div>
+                        
+                        <div id="nlSearch-content" class="d-none">
+                            <!-- Results will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Property Recommendations -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="bi bi-stars"></i> Smart Recommendations</h4>
+                </div>
+                <div class="card-body">
+                    <p>Get personalized property recommendations based on your preferences.</p>
+                    
+                    <form id="recommendationForm" class="mb-3">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="propertyType" class="form-label">Property Type</label>
+                                <select class="form-select" id="propertyType">
+                                    <option value="house">House</option>
+                                    <option value="condo">Condo</option>
+                                    <option value="townhouse">Townhouse</option>
+                                    <option value="apartment">Apartment</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="priceRange" class="form-label">Price Range</label>
+                                <select class="form-select" id="priceRange">
+                                    <option value="0-500000">Under $500k</option>
+                                    <option value="500000-750000">$500k - $750k</option>
+                                    <option value="750000-1000000">$750k - $1M</option>
+                                    <option value="1000000-1500000">$1M - $1.5M</option>
+                                    <option value="1500000-999999999">$1.5M+</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="location" class="form-label">Location</label>
+                                <input type="text" class="form-control" id="location" placeholder="City, State or ZIP">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="features" class="form-label">Must-Have Features</label>
+                                <input type="text" class="form-control" id="features" placeholder="e.g., garage, pool">
+                            </div>
+                            <div class="col-12">
+                                <button type="button" class="btn btn-primary w-100" id="recommendBtn">
+                                    <i class="bi bi-magic"></i> Get Recommendations
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <div id="recommendations-results" class="mt-4">
+                        <div id="recommendations-loading" class="d-none">
+                            {{ loading_spinner(size="medium", text="Analyzing properties and generating recommendations...") }}
+                        </div>
+                        
+                        <div id="recommendations-error" class="d-none">
+                            {{ error_message(
+                                title="Recommendation Error",
+                                message="We couldn't generate recommendations based on your criteria. Please try different options.",
+                                icon="exclamation-triangle",
+                                action_text="Try Again"
+                            ) }}
+                        </div>
+                        
+                        <div id="recommendations-empty">
+                            {{ empty_state(
+                                title="Get Recommendations",
+                                message="Fill out your preferences above to receive AI-powered property recommendations.",
+                                icon="house"
+                            ) }}
+                        </div>
+                        
+                        <div id="recommendations-content" class="d-none">
+                            <!-- Results will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <!-- Market Analysis -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="bi bi-graph-up"></i> AI Market Analysis</h4>
+                </div>
+                <div class="card-body">
+                    <p>Get AI-powered insights about real estate market trends and forecasts.</p>
+                    
+                    <form id="marketAnalysisForm" class="mb-3">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label for="marketLocation" class="form-label">Location</label>
+                                <input type="text" class="form-control" id="marketLocation" placeholder="City, State or ZIP">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="timeframe" class="form-label">Timeframe</label>
+                                <select class="form-select" id="timeframe">
+                                    <option value="3m">3 Months</option>
+                                    <option value="6m">6 Months</option>
+                                    <option value="1y" selected>1 Year</option>
+                                    <option value="2y">2 Years</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <button type="button" class="btn btn-primary w-100" id="analyzeMarketBtn">
+                                    <i class="bi bi-bar-chart"></i> Analyze Market
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <div id="market-analysis-results" class="mt-4">
+                        <div id="market-analysis-loading" class="d-none">
+                            {{ loading_spinner(size="medium", text="Analyzing market data...") }}
+                        </div>
+                        
+                        <div id="market-analysis-error" class="d-none">
+                            {{ error_message(
+                                title="Analysis Error",
+                                message="We couldn't analyze the market for this location. Please try a different location.",
+                                icon="exclamation-triangle",
+                                action_text="Try Again"
+                            ) }}
+                        </div>
+                        
+                        <div id="market-analysis-empty">
+                            {{ empty_state(
+                                title="Market Analysis",
+                                message="Enter a location above to get AI-powered market insights and forecasts.",
+                                icon="graph-up"
+                            ) }}
+                        </div>
+                        
+                        <div id="market-analysis-content" class="d-none">
+                            <!-- Results will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Text Summarization -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="bi bi-file-text"></i> Property Report Summarization</h4>
+                </div>
+                <div class="card-body">
+                    <p>Use AI to summarize lengthy property reports into concise, actionable highlights.</p>
+                    
+                    <form id="summarizationForm" class="mb-3">
+                        <div class="mb-3">
+                            <label for="reportSelectType" class="form-label">Report Type</label>
+                            <select class="form-select" id="reportSelectType">
+                                <option value="property">Property Report</option>
+                                <option value="market">Market Analysis Report</option>
+                                <option value="investment">Investment Analysis Report</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reportSelect" class="form-label">Select Report</label>
+                            <select class="form-select" id="reportSelect">
+                                <option value="">-- Select a report --</option>
+                                <option value="report-1">123 Main St. Property Report</option>
+                                <option value="report-2">456 Oak Ave. Property Report</option>
+                                <option value="report-3">789 Pine Blvd. Property Report</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <button type="button" class="btn btn-primary w-100" id="summarizeBtn">
+                                <i class="bi bi-file-earmark-text"></i> Summarize Report
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div id="summarization-results" class="mt-4">
+                        <div id="summarization-loading" class="d-none">
+                            {{ loading_spinner(size="medium", text="Analyzing and summarizing report...") }}
+                        </div>
+                        
+                        <div id="summarization-error" class="d-none">
+                            {{ error_message(
+                                title="Summarization Error",
+                                message="We couldn't summarize this report. Please try a different one.",
+                                icon="exclamation-triangle",
+                                action_text="Try Again"
+                            ) }}
+                        </div>
+                        
+                        <div id="summarization-empty">
+                            {{ empty_state(
+                                title="Report Summarization",
+                                message="Select a report above to generate an AI-powered summary with key insights.",
+                                icon="file-text"
+                            ) }}
+                        </div>
+                        
+                        <div id="summarization-content" class="d-none">
+                            <!-- Results will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0"><i class="bi bi-star"></i> AI Feature Feedback</h4>
+                    <a href="{{ url_for('ai_feedback_analytics') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-bar-chart"></i> View Feedback Analytics
+                    </a>
+                </div>
+                <div class="card-body">
+                    <p>Help us improve our AI features by providing feedback on their usefulness and accuracy.</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="feedback-form mb-3">
+                                <h5>Rate your experience with our AI features:</h5>
+                                <div class="mb-3">
+                                    <label class="form-label">Which feature did you use?</label>
+                                    <select class="form-select" id="feedbackFeature">
+                                        <option value="">-- Select a feature --</option>
+                                        <option value="nlsearch">Natural Language Search</option>
+                                        <option value="recommendations">Property Recommendations</option>
+                                        <option value="market_analysis">Market Analysis</option>
+                                        <option value="summarization">Report Summarization</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">How would you rate this feature? (1-5)</label>
+                                    <div class="rating-stars">
+                                        <div class="d-flex">
+                                            {% for i in range(1, 6) %}
+                                            <div class="star-rating me-2">
+                                                <input type="radio" id="star{{ i }}" name="rating" value="{{ i }}" class="d-none">
+                                                <label for="star{{ i }}" class="fs-2 text-muted star-label">
+                                                    <i class="bi bi-star"></i>
+                                                </label>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="feedbackComments" class="form-label">Comments (Optional)</label>
+                                    <textarea class="form-control" id="feedbackComments" rows="3" placeholder="Tell us what you liked or how we can improve"></textarea>
+                                </div>
+                                
+                                <button type="button" class="btn btn-primary" id="submitFeedbackBtn">
+                                    <i class="bi bi-send"></i> Submit Feedback
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="feedback-stats">
+                                <h5>Feature Ratings</h5>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Natural Language Search</span>
+                                        <span>4.2/5</span>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: 84%" aria-valuenow="84" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Property Recommendations</span>
+                                        <span>4.5/5</span>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: 90%" aria-valuenow="90" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Market Analysis</span>
+                                        <span>3.8/5</span>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-info" role="progressbar" style="width: 76%" aria-valuenow="76" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Report Summarization</span>
+                                        <span>4.0/5</span>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: 80%" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/error_handler.js"></script>
+<script src="/static/js/ui_utilities.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Natural Language Search
+        const nlSearchButton = document.getElementById('nlSearchButton');
+        const nlSearchInput = document.getElementById('nlSearchInput');
+        const nlSearchResults = document.getElementById('nlSearch-results');
+        const nlSearchLoading = document.getElementById('nlSearch-loading');
+        const nlSearchError = document.getElementById('nlSearch-error');
+        const nlSearchEmpty = document.getElementById('nlSearch-empty');
+        const nlSearchContent = document.getElementById('nlSearch-content');
+        
+        if (nlSearchButton) {
+            nlSearchButton.addEventListener('click', function() {
+                const query = nlSearchInput.value.trim();
+                if (!query) {
+                    alert('Please enter a search query');
+                    return;
+                }
+                
+                // Show loading state
+                nlSearchEmpty.classList.add('d-none');
+                nlSearchError.classList.add('d-none');
+                nlSearchContent.classList.add('d-none');
+                nlSearchLoading.classList.remove('d-none');
+                
+                // Simulate API call
+                setTimeout(() => {
+                    // This would be a real fetch in production
+                    // fetchWithErrorHandling('/api/ai/natural-language-search', {
+                    //     method: 'POST',
+                    //     headers: { 'Content-Type': 'application/json' },
+                    //     body: JSON.stringify({ query })
+                    // }, 'nlSearch-results')
+                    
+                    // For demo, we'll just show a simulated result
+                    nlSearchLoading.classList.add('d-none');
+                    
+                    // Show results
+                    nlSearchContent.innerHTML = `
+                        <h5>Search Results</h5>
+                        <p class="text-muted">Based on your query: "${query}"</p>
+                        <div class="list-group">
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">123 Main Street, San Francisco</h5>
+                                    <span class="badge bg-primary">$1.05M</span>
+                                </div>
+                                <p class="mb-1">3 bed, 2 bath home with garage and modern kitchen</p>
+                                <small class="text-muted">Built 2018 | 1,850 sqft</small>
+                            </a>
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">456 Ocean View, San Francisco</h5>
+                                    <span class="badge bg-primary">$1.15M</span>
+                                </div>
+                                <p class="mb-1">3 bed, 2.5 bath with 2-car garage and renovated interior</p>
+                                <small class="text-muted">Built 2015 | 1,950 sqft</small>
+                            </a>
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">789 Golden Gate Ave, San Francisco</h5>
+                                    <span class="badge bg-primary">$989K</span>
+                                </div>
+                                <p class="mb-1">3 bed, 2 bath condo with parking space and modern finishes</p>
+                                <small class="text-muted">Built 2020 | 1,750 sqft</small>
+                            </a>
+                        </div>
+                        
+                        <div class="mt-3 text-center">
+                            <p><strong>AI Insight:</strong> Based on your search, properties in this area with 3 bedrooms under $1.2M typically have 2 bathrooms and range from 1,700-2,000 sqft.</p>
+                        </div>
+                    `;
+                    nlSearchContent.classList.remove('d-none');
+                    
+                    // Add feedback form
+                    const feedbackDiv = document.createElement('div');
+                    feedbackDiv.className = 'mt-4 p-3 border rounded';
+                    feedbackDiv.innerHTML = `
+                        <h6>Was this search result helpful?</h6>
+                        <div class="d-flex">
+                            <button class="btn btn-sm btn-outline-success me-2">Yes</button>
+                            <button class="btn btn-sm btn-outline-danger">No</button>
+                        </div>
+                    `;
+                    nlSearchContent.appendChild(feedbackDiv);
+                    
+                }, 1500);
+            });
+        }
+        
+        // Property Recommendations
+        const recommendBtn = document.getElementById('recommendBtn');
+        if (recommendBtn) {
+            recommendBtn.addEventListener('click', function() {
+                const location = document.getElementById('location').value;
+                if (!location) {
+                    alert('Please enter a location');
+                    return;
+                }
+                
+                // Show loading state
+                document.getElementById('recommendations-empty').classList.add('d-none');
+                document.getElementById('recommendations-error').classList.add('d-none');
+                document.getElementById('recommendations-content').classList.add('d-none');
+                document.getElementById('recommendations-loading').classList.remove('d-none');
+                
+                // For demo purposes, simulate loading then show results
+                setTimeout(() => {
+                    document.getElementById('recommendations-loading').classList.add('d-none');
+                    
+                    const resultsDiv = document.getElementById('recommendations-content');
+                    resultsDiv.innerHTML = `
+                        <h5>Recommended Properties</h5>
+                        <p class="text-muted">Based on your preferences for ${document.getElementById('propertyType').value} in ${location}</p>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">123 Main Street</h5>
+                                        <h6 class="card-subtitle mb-2 text-muted">${location}</h6>
+                                        <p class="card-text">
+                                            <span class="badge bg-info me-1">3 bed</span>
+                                            <span class="badge bg-info me-1">2 bath</span>
+                                            <span class="badge bg-info">1,850 sqft</span>
+                                        </p>
+                                        <p class="card-text">Modern home with garage, renovated kitchen, and backyard.</p>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <strong class="text-primary">$875,000</strong>
+                                            <button class="btn btn-sm btn-outline-primary">View Details</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">456 Park Avenue</h5>
+                                        <h6 class="card-subtitle mb-2 text-muted">${location}</h6>
+                                        <p class="card-text">
+                                            <span class="badge bg-info me-1">4 bed</span>
+                                            <span class="badge bg-info me-1">3 bath</span>
+                                            <span class="badge bg-info">2,200 sqft</span>
+                                        </p>
+                                        <p class="card-text">Spacious home with private yard, updated bathrooms, and garage.</p>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <strong class="text-primary">$925,000</strong>
+                                            <button class="btn btn-sm btn-outline-primary">View Details</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 alert alert-info">
+                            <strong>AI Insight:</strong> Based on your preferences, we found properties that match 92% of your criteria. Most homes in this area with your requirements are priced 5% below market average.
+                        </div>
+                    `;
+                    resultsDiv.classList.remove('d-none');
+                }, 2000);
+            });
+        }
+        
+        // Initialize rating stars
+        const starLabels = document.querySelectorAll('.star-label');
+        if (starLabels.length > 0) {
+            starLabels.forEach(star => {
+                star.addEventListener('click', function() {
+                    const ratingValue = this.getAttribute('for').replace('star', '');
+                    const starInput = document.getElementById('star' + ratingValue);
+                    
+                    // Clear all stars
+                    starLabels.forEach(s => {
+                        s.innerHTML = '<i class="bi bi-star"></i>';
+                        s.classList.add('text-muted');
+                        s.classList.remove('text-warning');
+                    });
+                    
+                    // Fill stars up to selected rating
+                    for (let i = 1; i <= ratingValue; i++) {
+                        const label = document.querySelector(`label[for="star${i}"]`);
+                        label.innerHTML = '<i class="bi bi-star-fill"></i>';
+                        label.classList.remove('text-muted');
+                        label.classList.add('text-warning');
+                    }
+                    
+                    // Set the input value
+                    starInput.checked = true;
+                });
+            });
+        }
+        
+        // Handle feedback submission
+        const submitFeedbackBtn = document.getElementById('submitFeedbackBtn');
+        if (submitFeedbackBtn) {
+            submitFeedbackBtn.addEventListener('click', function() {
+                const feature = document.getElementById('feedbackFeature').value;
+                const rating = document.querySelector('input[name="rating"]:checked');
+                const comments = document.getElementById('feedbackComments').value;
+                
+                if (!feature) {
+                    alert('Please select which feature you used');
+                    return;
+                }
+                
+                if (!rating) {
+                    alert('Please provide a rating');
+                    return;
+                }
+                
+                // Save feedback (simulated for demo)
+                alert('Thank you for your feedback! Your input helps us improve our AI features.');
+                
+                // Reset form
+                document.getElementById('feedbackFeature').value = '';
+                document.getElementById('feedbackComments').value = '';
+                starLabels.forEach(s => {
+                    s.innerHTML = '<i class="bi bi-star"></i>';
+                    s.classList.add('text-muted');
+                    s.classList.remove('text-warning');
+                });
+                document.querySelectorAll('input[name="rating"]').forEach(input => {
+                    input.checked = false;
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

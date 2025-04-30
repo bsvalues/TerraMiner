@@ -1,0 +1,264 @@
+{# Specialized Data Visualization and Database-related Components #}
+
+{# Database Connection Status #}
+{% macro db_connection_status(status="connected", connection_count=0, response_time=0) %}
+<div class="connection-status d-flex align-items-center p-2 rounded
+    {% if status == 'connected' %}bg-success bg-opacity-10 border border-success
+    {% elif status == 'degraded' %}bg-warning bg-opacity-10 border border-warning
+    {% elif status == 'error' %}bg-danger bg-opacity-10 border border-danger
+    {% else %}bg-secondary bg-opacity-10 border border-secondary{% endif %}">
+    
+    <div class="connection-icon me-3">
+        <i class="bi bi-{% if status == 'connected' %}database-check text-success
+            {% elif status == 'degraded' %}database-exclamation text-warning
+            {% elif status == 'error' %}database-x text-danger
+            {% else %}database-dash text-secondary{% endif %} fs-3"></i>
+    </div>
+    
+    <div class="connection-details">
+        <h6 class="mb-1">Database Status: 
+            <span class="{% if status == 'connected' %}text-success
+                {% elif status == 'degraded' %}text-warning
+                {% elif status == 'error' %}text-danger
+                {% else %}text-secondary{% endif %}">
+                {{ status|capitalize }}
+            </span>
+        </h6>
+        <div class="connection-metrics text-muted small">
+            <div>Active Connections: {{ connection_count }}</div>
+            <div>Response Time: {{ response_time }}ms</div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{# Database Query Error #}
+{% macro db_query_error(error_message="Database query failed", query_type="select", table_name=None, action_url=None) %}
+<div class="query-error bg-danger bg-opacity-10 p-3 rounded border border-danger">
+    <div class="d-flex align-items-start">
+        <div class="query-error-icon me-3">
+            <i class="bi bi-exclamation-triangle-fill text-danger fs-3"></i>
+        </div>
+        <div class="query-error-details">
+            <h5 class="text-danger mb-2">Query Error</h5>
+            <p class="mb-1">{{ error_message }}</p>
+            {% if table_name %}
+            <div class="query-info my-2">
+                <span class="badge bg-secondary me-2">{{ query_type|upper }}</span>
+                <span class="badge bg-secondary">{{ table_name }}</span>
+            </div>
+            {% endif %}
+            
+            {% if action_url %}
+            <div class="mt-3">
+                <a href="{{ action_url }}" class="btn btn-sm btn-outline-danger">View Database Logs</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{# Data Table with Empty and Loading States #}
+{% macro data_table(headers=[], empty_message="No data available", loading=false, error=false, error_message=None, has_actions=false) %}
+<div class="data-table-container">
+    {% if loading %}
+    <div class="data-table-loading p-5 text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3 text-muted">Loading data...</p>
+    </div>
+    {% elif error %}
+    <div class="data-table-error bg-danger bg-opacity-10 p-4 rounded border border-danger text-center">
+        <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3 d-block"></i>
+        <h5 class="text-danger">Data Error</h5>
+        <p>{{ error_message or "An error occurred while retrieving data" }}</p>
+        <button class="btn btn-outline-danger mt-2">Retry</button>
+    </div>
+    {% else %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    {% for header in headers %}
+                    <th>{{ header }}</th>
+                    {% endfor %}
+                    {% if has_actions %}
+                    <th class="text-end">Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="data-table-empty">
+                    <td colspan="{{ headers|length + (1 if has_actions else 0) }}" class="text-center py-5">
+                        <i class="bi bi-inbox fs-1 text-muted d-block mb-3"></i>
+                        <p class="mb-1">{{ empty_message }}</p>
+                    </td>
+                </tr>
+                <!-- Actual data rows would be inserted here -->
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# Data Refresh Button with Last Updated Time #}
+{% macro data_refresh_button(last_updated=None, loading=false, onclick="refreshData()") %}
+<div class="data-refresh d-flex align-items-center">
+    {% if last_updated %}
+    <span class="text-muted me-2 small">
+        <i class="bi bi-clock"></i> Updated: {{ last_updated }}
+    </span>
+    {% endif %}
+    
+    <button class="btn btn-sm btn-outline-secondary" onclick="{{ onclick }}" {% if loading %}disabled{% endif %}>
+        {% if loading %}
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <span class="ms-1">Refreshing...</span>
+        {% else %}
+        <i class="bi bi-arrow-repeat"></i>
+        <span class="ms-1">Refresh</span>
+        {% endif %}
+    </button>
+</div>
+{% endmacro %}
+
+{# Property Card with Loading and Error States #}
+{% macro property_card(property=None, loading=false, error=false, error_message=None) %}
+<div class="property-card card h-100">
+    {% if loading %}
+    <div class="card-body d-flex justify-content-center align-items-center" style="min-height: 250px;">
+        <div class="text-center">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">Loading property data...</span>
+            </div>
+            <p class="text-muted mb-0">Loading property details...</p>
+        </div>
+    </div>
+    {% elif error %}
+    <div class="card-body text-center bg-danger bg-opacity-10" style="min-height: 250px;">
+        <i class="bi bi-exclamation-triangle-fill text-danger fs-3 my-3 d-block"></i>
+        <h6 class="text-danger">Property Data Error</h6>
+        <p class="text-muted small">{{ error_message or "Failed to load property data" }}</p>
+        <button class="btn btn-sm btn-outline-danger mt-2">Retry</button>
+    </div>
+    {% elif property %}
+    <div class="card-body">
+        <h5 class="card-title">{{ property.address }}</h5>
+        <h6 class="card-subtitle mb-2 text-muted">{{ property.city }}, {{ property.state }}</h6>
+        
+        <div class="property-specs d-flex justify-content-between my-3">
+            <div class="text-center">
+                <div class="fs-5">{{ property.bedrooms }}</div>
+                <div class="small text-muted">Beds</div>
+            </div>
+            <div class="text-center">
+                <div class="fs-5">{{ property.bathrooms }}</div>
+                <div class="small text-muted">Baths</div>
+            </div>
+            <div class="text-center">
+                <div class="fs-5">{{ property.sqft }}</div>
+                <div class="small text-muted">Sq.Ft</div>
+            </div>
+        </div>
+        
+        <p class="card-text">{{ property.description }}</p>
+        
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="property-price fs-4 fw-bold text-primary">${{ property.price|format_number }}</div>
+            <a href="{{ property.url }}" class="btn btn-outline-primary">View Details</a>
+        </div>
+    </div>
+    {% else %}
+    <div class="card-body text-center" style="min-height: 250px;">
+        <i class="bi bi-house-slash fs-3 text-muted my-3 d-block"></i>
+        <h6>No Property Data</h6>
+        <p class="text-muted small">Property information not available</p>
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# Data Import Status #}
+{% macro data_import_status(status="pending", progress=0, message=None, source=None) %}
+<div class="data-import-status p-3 rounded
+    {% if status == 'success' %}bg-success bg-opacity-10 border border-success
+    {% elif status == 'error' %}bg-danger bg-opacity-10 border border-danger
+    {% elif status == 'in_progress' %}bg-info bg-opacity-10 border border-info
+    {% else %}bg-secondary bg-opacity-10 border border-secondary{% endif %}">
+    
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="mb-0">
+            <i class="bi bi-{% if status == 'success' %}check-circle-fill text-success
+                {% elif status == 'error' %}x-circle-fill text-danger
+                {% elif status == 'in_progress' %}arrow-repeat text-info
+                {% else %}hourglass text-secondary{% endif %} me-2"></i>
+            Data Import: {{ status|replace('_', ' ')|capitalize }}
+        </h6>
+        
+        {% if source %}
+        <span class="badge bg-secondary">{{ source }}</span>
+        {% endif %}
+    </div>
+    
+    {% if status == 'in_progress' %}
+    <div class="progress mb-2" style="height: 6px;">
+        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: {{ progress }}%"></div>
+    </div>
+    <div class="d-flex justify-content-between small">
+        <span>{{ progress }}% complete</span>
+        <span id="import-time-remaining">Estimating time remaining...</span>
+    </div>
+    {% endif %}
+    
+    {% if message %}
+    <div class="import-message mt-2 small 
+        {% if status == 'success' %}text-success
+        {% elif status == 'error' %}text-danger
+        {% else %}text-muted{% endif %}">
+        {{ message }}
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# Data Activity Timeline #}
+{% macro data_activity_timeline(activities=[], empty_message="No recent activity", max_items=5) %}
+<div class="data-activity-timeline">
+    <h6 class="border-bottom pb-2 mb-3">Recent Activity</h6>
+    
+    {% if activities|length == 0 %}
+    <div class="text-center text-muted py-4">
+        <i class="bi bi-calendar-x mb-2 d-block fs-3"></i>
+        {{ empty_message }}
+    </div>
+    {% else %}
+    <div class="timeline">
+        {% for activity in activities %}
+        <div class="timeline-item pb-3 {% if not loop.last %}border-start border-light{% endif %} ps-3 ms-2 position-relative">
+            <div class="timeline-marker position-absolute bg-{{ activity.type|default('secondary') }}" style="width: 12px; height: 12px; border-radius: 50%; left: -6px; top: 6px;"></div>
+            
+            <div class="d-flex justify-content-between mb-1">
+                <span class="fw-bold">{{ activity.action }}</span>
+                <small class="text-muted">{{ activity.time_ago }}</small>
+            </div>
+            
+            <p class="mb-1 small">{{ activity.description }}</p>
+            
+            {% if activity.details %}
+            <div class="timeline-details small text-muted">{{ activity.details }}</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        
+        {% if activities|length > max_items %}
+        <div class="text-center mt-2">
+            <a href="#" class="btn btn-sm btn-link">View All Activity</a>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}

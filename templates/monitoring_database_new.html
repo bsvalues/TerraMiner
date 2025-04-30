@@ -1,0 +1,589 @@
+{% extends "unified_base.html" %}
+{% from "components/ui_components.html" import loading_spinner, empty_state, error_message, chart_container, health_status, status_badge, responsive_table %}
+{% from "components/data_components.html" import db_connection_status, db_query_error, data_table, data_refresh_button, data_activity_timeline %}
+
+{% block title %}Database Monitoring{% endblock %}
+{% block page_title %}Database Performance Monitoring{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Database Status Overview -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-database"></i> Database Status</h5>
+                {{ data_refresh_button(last_updated=current_time, loading=false, onclick="refreshDatabaseMetrics()") }}
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        {{ db_connection_status(
+                            status=db_metrics.status|default('connected'),
+                            connection_count=db_metrics.connection_count.metric_value|default(5)|int if db_metrics.connection_count else 5,
+                            response_time=db_metrics.query_time_avg.metric_value|default(15)|round(2) if db_metrics.query_time_avg else 15
+                        ) }}
+                    </div>
+                    <div class="col-md-9">
+                        <div class="row">
+                            <div class="col-md-4 col-6 mb-3">
+                                <div class="metric-card p-3">
+                                    <h6 class="text-muted mb-1">Queries/Minute</h6>
+                                    <h3 class="metric-value">{{ db_metrics.queries_per_minute|default(42)|int }}</h3>
+                                    <div class="small">
+                                        {% if db_metrics.queries_trend and db_metrics.queries_trend > 0 %}
+                                        <span class="text-success"><i class="bi bi-arrow-up"></i> {{ db_metrics.queries_trend }}%</span>
+                                        {% elif db_metrics.queries_trend and db_metrics.queries_trend < 0 %}
+                                        <span class="text-danger"><i class="bi bi-arrow-down"></i> {{ db_metrics.queries_trend|abs }}%</span>
+                                        {% else %}
+                                        <span class="text-muted"><i class="bi bi-dash"></i> No change</span>
+                                        {% endif %}
+                                        <span class="text-muted">vs. last hour</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-6 mb-3">
+                                <div class="metric-card p-3">
+                                    <h6 class="text-muted mb-1">Avg Response Time</h6>
+                                    <h3 class="metric-value">{{ db_metrics.query_time_avg.metric_value|default(15)|round(2) }}ms</h3>
+                                    <div class="small">
+                                        {% if db_metrics.response_time_trend and db_metrics.response_time_trend < 0 %}
+                                        <span class="text-success"><i class="bi bi-arrow-down"></i> {{ db_metrics.response_time_trend|abs }}%</span>
+                                        {% elif db_metrics.response_time_trend and db_metrics.response_time_trend > 0 %}
+                                        <span class="text-danger"><i class="bi bi-arrow-up"></i> {{ db_metrics.response_time_trend }}%</span>
+                                        {% else %}
+                                        <span class="text-muted"><i class="bi bi-dash"></i> No change</span>
+                                        {% endif %}
+                                        <span class="text-muted">vs. last hour</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-6 mb-3">
+                                <div class="metric-card p-3">
+                                    <h6 class="text-muted mb-1">Error Rate</h6>
+                                    <h3 class="metric-value">{{ db_metrics.error_rate|default(0.5)|round(2) }}%</h3>
+                                    <div class="small">
+                                        {% if db_metrics.error_rate_trend and db_metrics.error_rate_trend < 0 %}
+                                        <span class="text-success"><i class="bi bi-arrow-down"></i> {{ db_metrics.error_rate_trend|abs }}%</span>
+                                        {% elif db_metrics.error_rate_trend and db_metrics.error_rate_trend > 0 %}
+                                        <span class="text-danger"><i class="bi bi-arrow-up"></i> {{ db_metrics.error_rate_trend }}%</span>
+                                        {% else %}
+                                        <span class="text-muted"><i class="bi bi-dash"></i> No change</span>
+                                        {% endif %}
+                                        <span class="text-muted">vs. last hour</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="btn-group mt-3" role="group" aria-label="Time interval selector" id="interval-buttons">
+                    <button type="button" class="btn btn-outline-secondary active" data-interval="hour">Last Hour</button>
+                    <button type="button" class="btn btn-outline-secondary" data-interval="day">Last Day</button>
+                    <button type="button" class="btn btn-outline-secondary" data-interval="week">Last Week</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Database Performance Chart -->
+    <div class="col-md-8 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-graph-up"></i> Database Performance</h5>
+            </div>
+            <div class="card-body">
+                {{ chart_container(
+                    id="db-performance-chart",
+                    height="300px",
+                    loading=true,
+                    error=true,
+                    error_message="Failed to load database performance data"
+                ) }}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Table Usage Statistics -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-table"></i> Table Usage</h5>
+            </div>
+            <div class="card-body">
+                {{ chart_container(
+                    id="table-usage-chart",
+                    height="300px",
+                    loading=true,
+                    error=true,
+                    error_message="Failed to load table usage data"
+                ) }}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Query Types Distribution -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Query Types</h5>
+            </div>
+            <div class="card-body">
+                {{ chart_container(
+                    id="query-types-chart",
+                    height="250px",
+                    loading=true,
+                    error=true,
+                    error_message="Failed to load query types data"
+                ) }}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Database Activity -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-activity"></i> Recent Database Activity</h5>
+            </div>
+            <div class="card-body">
+                {% set activities = [
+                    {
+                        'action': 'Table Created',
+                        'time_ago': '5 min ago',
+                        'description': 'New table "property_valuation_history" created',
+                        'details': 'Created by ETL process',
+                        'type': 'info'
+                    },
+                    {
+                        'action': 'Index Added',
+                        'time_ago': '15 min ago',
+                        'description': 'Added index on "location_id" in "property_locations" table',
+                        'details': 'Performance optimization',
+                        'type': 'success'
+                    },
+                    {
+                        'action': 'Schema Change',
+                        'time_ago': '1 hour ago',
+                        'description': 'Added column "last_verified_date" to "property" table',
+                        'type': 'info'
+                    },
+                    {
+                        'action': 'Query Error',
+                        'time_ago': '2 hours ago',
+                        'description': 'Failed query on "market_trends" table',
+                        'details': 'Timeout after 30 seconds',
+                        'type': 'danger'
+                    }
+                ] %}
+                
+                {{ data_activity_timeline(activities=activities, empty_message="No recent database activity", max_items=5) }}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Database Operations -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> Recent Operations</h5>
+                <div class="d-flex">
+                    <div class="form-group me-2 mb-0">
+                        <select class="form-select form-select-sm" id="query-type-filter">
+                            <option value="all">All Query Types</option>
+                            <option value="SELECT">SELECT</option>
+                            <option value="INSERT">INSERT</option>
+                            <option value="UPDATE">UPDATE</option>
+                            <option value="DELETE">DELETE</option>
+                        </select>
+                    </div>
+                    {{ data_refresh_button(loading=false, onclick="refreshOperationsTable()") }}
+                </div>
+            </div>
+            <div class="card-body">
+                {% if db_metrics and db_metrics.recent_operations %}
+                {{ data_table(
+                    headers=["Timestamp", "Query Type", "Table", "Duration (ms)", "Status", "Details"],
+                    empty_message="No database operations recorded in the selected time period",
+                    loading=false,
+                    error=false,
+                    has_actions=false
+                ) }}
+                {% else %}
+                {{ empty_state(
+                    title="No Recent Operations",
+                    message="There are no database operations to display for the selected time period.",
+                    icon="database-dash"
+                ) }}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Database Errors -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Recent Errors</h5>
+            </div>
+            <div class="card-body">
+                {% if db_metrics and db_metrics.recent_errors and db_metrics.recent_errors|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Error Type</th>
+                                <th>Query</th>
+                                <th>Error Message</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for error in db_metrics.recent_errors %}
+                            <tr>
+                                <td>{{ error.timestamp|format_datetime }}</td>
+                                <td>
+                                    <span class="badge bg-danger">{{ error.error_type }}</span>
+                                </td>
+                                <td>
+                                    <code class="small">{{ error.query|truncate(50) }}</code>
+                                </td>
+                                <td>{{ error.message }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-secondary me-1" data-bs-toggle="tooltip" title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Diagnose">
+                                        <i class="bi bi-tools"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                {{ empty_state(
+                    title="No Recent Errors",
+                    message="There are no database errors to display for the selected time period.",
+                    icon="check-circle",
+                    action_text="View Error History",
+                    action_url="#"
+                ) }}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/ui_utilities.js"></script>
+<script src="/static/js/error_handler.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let dbPerformanceChart, tableUsageChart, queryTypesChart;
+        let currentInterval = 'hour';
+        
+        // Initialize charts
+        function initCharts() {
+            // Database Performance Chart
+            const perfCtx = document.getElementById('db-performance-chart');
+            if (perfCtx) {
+                dbPerformanceChart = createChart('db-performance-chart', 'line', {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Query Response Time (ms)',
+                            data: [],
+                            borderColor: 'rgba(13, 110, 253, 0.8)',
+                            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            pointRadius: 3
+                        },
+                        {
+                            label: 'Active Connections',
+                            data: [],
+                            borderColor: 'rgba(25, 135, 84, 0.8)',
+                            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            pointRadius: 3,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                }, {
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Query Response Time (ms)'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Connections'
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Table Usage Chart
+            const tableCtx = document.getElementById('table-usage-chart');
+            if (tableCtx) {
+                tableUsageChart = createChart('table-usage-chart', 'bar', {
+                    labels: [],
+                    datasets: [{
+                        label: 'Query Count',
+                        data: [],
+                        backgroundColor: 'rgba(13, 110, 253, 0.8)',
+                        borderWidth: 0
+                    }]
+                }, {
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                });
+            }
+            
+            // Query Types Chart
+            const queryTypesCtx = document.getElementById('query-types-chart');
+            if (queryTypesCtx) {
+                queryTypesChart = createChart('query-types-chart', 'doughnut', {
+                    labels: ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'Other'],
+                    datasets: [{
+                        data: [0, 0, 0, 0, 0],
+                        backgroundColor: [
+                            'rgba(13, 110, 253, 0.8)',
+                            'rgba(25, 135, 84, 0.8)',
+                            'rgba(255, 193, 7, 0.8)',
+                            'rgba(220, 53, 69, 0.8)',
+                            'rgba(108, 117, 125, 0.8)'
+                        ]
+                    }]
+                }, {
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Fetch database metrics
+        function fetchDatabaseMetrics() {
+            // Show loading states
+            showLoading('db-performance-chart');
+            showLoading('table-usage-chart');
+            showLoading('query-types-chart');
+            
+            // Simulate API call (in production, this would be a real fetch)
+            setTimeout(() => {
+                // This would be a real fetch in production
+                // fetchWithErrorHandling('/api/monitoring/database-metrics?interval=' + currentInterval, {}, 'db-performance-chart')
+                //     .then(data => { ... })
+                
+                // For demo, we'll generate sample data
+                const timestamps = generateTimestamps();
+                const queryResponseTimes = generateRandomData(timestamps.length, 10, 30);
+                const connections = generateRandomData(timestamps.length, 2, 8);
+                const tableUsage = {
+                    tables: ['properties', 'market_trends', 'users', 'reports', 'alerts'],
+                    counts: [125, 87, 45, 32, 18]
+                };
+                const queryTypes = [65, 15, 12, 5, 3]; // SELECT, INSERT, UPDATE, DELETE, Other
+                
+                // Update charts
+                updatePerformanceChart(timestamps, queryResponseTimes, connections);
+                updateTableUsageChart(tableUsage.tables, tableUsage.counts);
+                updateQueryTypesChart(queryTypes);
+                
+                // Hide loading states
+                hideLoading('db-performance-chart');
+                hideLoading('table-usage-chart');
+                hideLoading('query-types-chart');
+            }, 1000);
+        }
+        
+        // Update database performance chart
+        function updatePerformanceChart(timestamps, responseTimes, connections) {
+            dbPerformanceChart.data.labels = timestamps;
+            dbPerformanceChart.data.datasets[0].data = responseTimes;
+            dbPerformanceChart.data.datasets[1].data = connections;
+            dbPerformanceChart.update();
+        }
+        
+        // Update table usage chart
+        function updateTableUsageChart(tables, counts) {
+            tableUsageChart.data.labels = tables;
+            tableUsageChart.data.datasets[0].data = counts;
+            tableUsageChart.update();
+        }
+        
+        // Update query types chart
+        function updateQueryTypesChart(data) {
+            queryTypesChart.data.datasets[0].data = data;
+            queryTypesChart.update();
+        }
+        
+        // Update recent operations table
+        function updateRecentOperationsTable(operations) {
+            const tableBody = document.querySelector('tbody');
+            if (!tableBody) return;
+            
+            // Filter operations based on query type
+            const queryTypeFilter = document.getElementById('query-type-filter');
+            const filter = queryTypeFilter ? queryTypeFilter.value : 'all';
+            
+            if (filter !== 'all') {
+                operations = operations.filter(op => op.query_type === filter);
+            }
+            
+            // Clear existing rows
+            tableBody.innerHTML = '';
+            
+            // Add new rows or show empty state
+            if (operations.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            <i class="bi bi-inbox fs-1 text-muted d-block mb-3"></i>
+                            <p>No database operations match the selected filter</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            operations.forEach(op => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${formatDate(op.timestamp, 'datetime')}</td>
+                    <td><span class="badge ${getBadgeColor(op.query_type)}">${op.query_type}</span></td>
+                    <td>${op.table_name}</td>
+                    <td>${op.duration_ms} ms</td>
+                    <td>
+                        <span class="badge ${op.status === 'success' ? 'bg-success' : 'bg-danger'}">
+                            ${op.status === 'success' ? 'Success' : 'Failed'}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+            
+            // Initialize tooltips for new elements
+            const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            tooltips.forEach(tooltip => {
+                new bootstrap.Tooltip(tooltip);
+            });
+        }
+        
+        // Helper function to get badge color for query type
+        function getBadgeColor(queryType) {
+            switch (queryType) {
+                case 'SELECT': return 'bg-primary';
+                case 'INSERT': return 'bg-success';
+                case 'UPDATE': return 'bg-warning';
+                case 'DELETE': return 'bg-danger';
+                default: return 'bg-secondary';
+            }
+        }
+        
+        // Helper function to generate timestamps
+        function generateTimestamps() {
+            const timestamps = [];
+            const now = new Date();
+            let interval;
+            
+            if (currentInterval === 'hour') {
+                interval = 5 * 60 * 1000; // 5 minutes
+                for (let i = 12; i >= 0; i--) {
+                    const time = new Date(now.getTime() - (i * interval));
+                    timestamps.push(time.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}));
+                }
+            } else if (currentInterval === 'day') {
+                interval = 2 * 60 * 60 * 1000; // 2 hours
+                for (let i = 12; i >= 0; i--) {
+                    const time = new Date(now.getTime() - (i * interval));
+                    timestamps.push(time.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}));
+                }
+            } else {
+                interval = 24 * 60 * 60 * 1000; // 1 day
+                for (let i = 6; i >= 0; i--) {
+                    const time = new Date(now.getTime() - (i * interval));
+                    timestamps.push(time.toLocaleDateString([], {month: 'short', day: 'numeric'}));
+                }
+            }
+            
+            return timestamps;
+        }
+        
+        // Helper function to generate random data
+        function generateRandomData(length, min, max) {
+            return Array.from({ length }, () => Math.floor(Math.random() * (max - min + 1)) + min);
+        }
+        
+        // Setup interval buttons
+        const intervalButtons = document.querySelectorAll('[data-interval]');
+        intervalButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                intervalButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                currentInterval = this.getAttribute('data-interval');
+                fetchDatabaseMetrics();
+            });
+        });
+        
+        // Setup query type filter
+        const queryTypeFilter = document.getElementById('query-type-filter');
+        if (queryTypeFilter) {
+            queryTypeFilter.addEventListener('change', function() {
+                const filter = this.value;
+                // Get the current operations data
+                const operations = {{ db_metrics.recent_operations|tojson if db_metrics and db_metrics.recent_operations else '[]' }};
+                // Apply filter and update table
+                updateRecentOperationsTable(operations);
+            });
+        }
+        
+        // Make refreshDatabaseMetrics available globally
+        window.refreshDatabaseMetrics = fetchDatabaseMetrics;
+        
+        // Make refreshOperationsTable available globally
+        window.refreshOperationsTable = function() {
+            // In a real application, this would fetch new data
+            const operations = {{ db_metrics.recent_operations|tojson if db_metrics and db_metrics.recent_operations else '[]' }};
+            updateRecentOperationsTable(operations);
+        };
+        
+        // Initialize the page
+        initCharts();
+        fetchDatabaseMetrics();
+        
+        // Auto-refresh data every 60 seconds
+        setInterval(fetchDatabaseMetrics, 60000);
+    });
+</script>
+{% endblock %}

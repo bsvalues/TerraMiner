@@ -1,269 +1,368 @@
-{# Standardized UI Components Library #}
+{# UI Component Library #}
+{# This file contains reusable UI components for the TerraMiner application #}
 
-{# ==== Loading States ==== #}
-
-{# Standard Loading Spinner for async content #}
-{% macro loading_spinner(size="medium", text="Loading data...", container_class="my-4") %}
-<div class="loading-container d-flex flex-column align-items-center justify-content-center {{ container_class }}">
-    <div class="spinner-border text-primary {% if size == 'small' %}spinner-border-sm{% elif size == 'large' %}fs-1{% endif %}" role="status">
-        <span class="visually-hidden">Loading...</span>
-    </div>
-    {% if text %}
-    <div class="mt-2 text-muted">{{ text }}</div>
-    {% endif %}
-</div>
-{% endmacro %}
-
-{# Inline Loading Spinner #}
-{% macro inline_spinner(text="Loading...") %}
-<span class="d-inline-flex align-items-center">
-    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-    {{ text }}
-</span>
-{% endmacro %}
-
-{# Skeleton Loading Placeholder for cards #}
-{% macro skeleton_card() %}
-<div class="card loading-skeleton h-100">
-    <div class="card-body">
-        <div class="skeleton-line skeleton-title mb-3"></div>
-        <div class="skeleton-line w-75 mb-2"></div>
-        <div class="skeleton-line w-50 mb-4"></div>
-        <div class="skeleton-block mb-3"></div>
-    </div>
-</div>
-{% endmacro %}
-
-{# ==== Error States ==== #}
-
-{# Unified Error Message #}
-{% macro error_message(title="Error", message="An unexpected error occurred.", icon="exclamation-triangle", action_text=None, action_url=None, action_function=None, error_details=None) %}
-<div class="error-container text-center py-4">
-    <div class="error-icon mb-3">
-        <i class="bi bi-{{ icon }} text-danger" style="font-size: 3rem;"></i>
-    </div>
-    <h4 class="error-title mb-2">{{ title }}</h4>
-    <p class="error-message text-muted mb-3">{{ message }}</p>
-    
-    {% if error_details %}
-    <div class="error-details mb-4">
-        <div class="d-grid gap-2 col-md-6 mx-auto">
-            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#errorDetails" aria-expanded="false" aria-controls="errorDetails">
-                Show Technical Details
-            </button>
+{# Loading Spinner Component #}
+{% macro loading_spinner(size="medium", text="Loading...", container_class="") %}
+<div class="loading-container {{ container_class }}">
+    <div class="d-flex flex-column align-items-center justify-content-center">
+        <div class="spinner-border text-primary {% if size == 'small' %}spinner-border-sm{% elif size == 'large' %}spinner-border-lg{% endif %}" role="status">
+            <span class="visually-hidden">Loading...</span>
         </div>
-        <div class="collapse mt-2" id="errorDetails">
-            <div class="card card-body text-start bg-dark">
-                <pre class="mb-0 text-danger"><code>{{ error_details }}</code></pre>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-    
-    {% if action_text and action_url %}
-    <a href="{{ action_url }}" class="btn btn-primary">{{ action_text }}</a>
-    {% elif action_text and action_function %}
-    <button type="button" class="btn btn-primary" onclick="{{ action_function }}">{{ action_text }}</button>
-    {% endif %}
-</div>
-{% endmacro %}
-
-{# API Error Message for data loading failures #}
-{% macro api_error(message="Unable to load data from API.", retry_function=None) %}
-<div class="api-error alert alert-danger d-flex align-items-center" role="alert">
-    <i class="bi bi-exclamation-triangle-fill me-2 flex-shrink-0"></i>
-    <div>
-        {{ message }}
-        {% if retry_function %}
-        <button type="button" class="btn btn-sm btn-outline-danger ms-3" onclick="{{ retry_function }}">
-            <i class="bi bi-arrow-clockwise me-1"></i> Retry
-        </button>
+        {% if text %}
+            <p class="text-muted mt-2">{{ text }}</p>
         {% endif %}
     </div>
 </div>
 {% endmacro %}
 
-{# ==== Empty States ==== #}
-
-{# Standard Empty State #}
-{% macro empty_state(title="No Data Available", message="There are no items to display at this time.", icon="folder", action_text=None, action_url=None, action_function=None) %}
-<div class="empty-state text-center py-5">
-    <div class="empty-state-icon mb-3">
-        <i class="bi bi-{{ icon }} text-muted" style="font-size: 3rem; opacity: 0.5;"></i>
-    </div>
-    <h5 class="empty-state-title mb-2">{{ title }}</h5>
-    <p class="empty-state-message text-muted mb-4">{{ message }}</p>
-    {% if action_text and action_url %}
-    <a href="{{ action_url }}" class="btn btn-primary">{{ action_text }}</a>
-    {% elif action_text and action_function %}
-    <button type="button" class="btn btn-primary" onclick="{{ action_function }}">{{ action_text }}</button>
-    {% endif %}
-</div>
-{% endmacro %}
-
-{# Compact Empty State for tables or lists #}
-{% macro compact_empty_state(message="No items found", icon="folder") %}
-<div class="text-center text-muted py-3">
-    <i class="bi bi-{{ icon }} me-2"></i> {{ message }}
-</div>
-{% endmacro %}
-
-{# ==== Data Visualization ==== #}
-
-{# Standard Metric Card #}
-{% macro metric_card(value, label, icon=None, trend=None, trend_value=None, color="primary", size="md") %}
-<div class="metric-card h-100">
-    <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="text-{{ color }} {% if size == 'sm' %}fs-6{% elif size == 'lg' %}fs-4{% else %}fs-5{% endif %}">{{ label }}</div>
-            {% if icon %}
-            <div class="metric-icon">
-                <i class="bi bi-{{ icon }} {% if size == 'sm' %}fs-4{% elif size == 'lg' %}fs-2{% else %}fs-3{% endif %} text-{{ color }}" style="opacity: 0.8;"></i>
+{# Error Message Component #}
+{% macro error_message(title="Error", message="An unexpected error occurred.", icon="exclamation-triangle", action_text=None, action_url=None, details=None, container_class="") %}
+<div class="error-container py-4 {{ container_class }}">
+    <div class="text-center">
+        <div class="error-icon mb-3">
+            <i class="bi bi-{{ icon }} text-danger" style="font-size: 3rem;"></i>
+        </div>
+        <h4 class="error-title mb-2">{{ title }}</h4>
+        <p class="error-message text-muted mb-3">{{ message }}</p>
+        
+        {% if details %}
+            <div class="error-details mb-4">
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" 
+                       data-bs-target="#error-details-{{ range(1, 1000) | random }}" aria-expanded="false">
+                    Show Technical Details
+                </button>
+                <div class="collapse mt-2" id="error-details-{{ range(1, 1000) | random }}">
+                    <div class="card card-body text-start bg-dark">
+                        <pre class="mb-0 text-danger"><code>{{ details }}</code></pre>
+                    </div>
+                </div>
             </div>
+        {% endif %}
+        
+        {% if action_text and action_url %}
+            <a href="{{ action_url }}" class="btn btn-primary">{{ action_text }}</a>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{# Empty State Component #}
+{% macro empty_state(title="No Data Available", message="There is no data to display at this time.", icon="inbox", action_text=None, action_url=None, container_class="") %}
+<div class="empty-state py-5 {{ container_class }}">
+    <div class="text-center">
+        <div class="empty-state-icon mb-3">
+            <i class="bi bi-{{ icon }} text-muted" style="font-size: 3rem; opacity: 0.5;"></i>
+        </div>
+        <h5 class="empty-state-title mb-2">{{ title }}</h5>
+        <p class="empty-state-message text-muted mb-4">{{ message }}</p>
+        
+        {% if action_text and action_url %}
+            <a href="{{ action_url }}" class="btn btn-outline-primary">{{ action_text }}</a>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{# Card Component #}
+{% macro card(title=None, subtitle=None, footer=None, card_class="", body_class="", header_class="", footer_class="") %}
+<div class="card bg-dark border-secondary mb-4 {{ card_class }}">
+    {% if title %}
+        <div class="card-header border-secondary {{ header_class }}">
+            <h5 class="card-title mb-0">{{ title }}</h5>
+            {% if subtitle %}
+                <h6 class="card-subtitle text-muted">{{ subtitle }}</h6>
             {% endif %}
         </div>
-        <div class="metric-value {% if size == 'sm' %}fs-4{% elif size == 'lg' %}display-4{% else %}display-5{% endif %} fw-bold">{{ value }}</div>
-        {% if trend and trend_value %}
-        <div class="metric-trend mt-2">
-            <span class="badge {% if trend == 'up' %}bg-success{% elif trend == 'down' %}bg-danger{% else %}bg-secondary{% endif %}">
-                <i class="bi bi-{% if trend == 'up' %}arrow-up{% elif trend == 'down' %}arrow-down{% else %}dash{% endif %}"></i>
-                {{ trend_value }}
-            </span>
+    {% endif %}
+    
+    <div class="card-body {{ body_class }}">
+        {{ caller() }}
+    </div>
+    
+    {% if footer %}
+        <div class="card-footer border-secondary {{ footer_class }}">
+            {{ footer }}
         </div>
-        {% endif %}
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# Stat Card Component #}
+{% macro stat_card(title, value, icon=None, trend=None, trend_value=None, trend_positive=True, color="primary", card_class="") %}
+<div class="card stat-card bg-dark border-secondary h-100 {{ card_class }}">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h6 class="stat-title text-muted mb-1">{{ title }}</h6>
+                <h3 class="stat-value mb-0 text-{{ color }}">{{ value }}</h3>
+                
+                {% if trend and trend_value %}
+                    <div class="stat-trend mt-2">
+                        <span class="badge {% if trend_positive %}bg-success{% else %}bg-danger{% endif %}">
+                            <i class="bi bi-arrow-{% if trend_positive %}up{% else %}down{% endif %}-short me-1"></i>
+                            {{ trend_value }}
+                        </span>
+                        <small class="text-muted ms-1">{{ trend }}</small>
+                    </div>
+                {% endif %}
+            </div>
+            
+            {% if icon %}
+                <div class="stat-icon text-{{ color }} opacity-25">
+                    <i class="bi bi-{{ icon }} fs-1"></i>
+                </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endmacro %}
 
-{# Chart Container with loading state and error handling #}
-{% macro chart_container(id, height="300px", loading=false, error=false, error_message="Failed to load chart data") %}
-<div class="chart-wrapper">
+{# Chart Container Component #}
+{% macro chart_container(id, height="300px", loading=True, error=False, error_message="Failed to load data", loading_message="Loading chart data...", container_class="") %}
+<div class="chart-container position-relative mb-4 {{ container_class }}" style="height: {{ height }};">
+    <canvas id="{{ id }}"></canvas>
+    
     {% if loading %}
-    <div class="chart-loading" id="{{ id }}-loading">
-        {{ loading_spinner(size="medium", text="Loading chart data...") }}
-    </div>
+        <div class="chart-loading position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+            {{ loading_spinner(text=loading_message) }}
+        </div>
     {% endif %}
     
     {% if error %}
-    <div class="chart-error d-none" id="{{ id }}-error">
-        {{ api_error(message=error_message, retry_function="loadChart_" + id + "()") }}
-    </div>
+        <div class="chart-error position-absolute top-0 start-0 w-100 h-100" style="display: none;">
+            {{ error_message(title="Chart Error", message=error_message, icon="x-circle") }}
+        </div>
     {% endif %}
-    
-    <div class="chart-container" {% if loading %}style="display: none;"{% endif %} id="{{ id }}-container">
-        <canvas id="{{ id }}" style="height: {{ height }};"></canvas>
-    </div>
 </div>
 {% endmacro %}
 
-{# ==== Status Indicators ==== #}
+{# Button with Icon #}
+{% macro icon_button(text="", icon=None, button_class="btn-primary", size="md", type="button", href=None, data_attributes={}) %}
+{% set button_size = "btn-sm" if size == "sm" else "btn-lg" if size == "lg" else "" %}
+{% if href %}
+<a href="{{ href }}" class="btn {{ button_class }} {{ button_size }}" 
+    {% for key, value in data_attributes.items() %}
+    data-{{ key }}="{{ value }}"
+    {% endfor %}>
+    {% if icon %}<i class="bi bi-{{ icon }} {% if text %}me-1{% endif %}"></i>{% endif %}
+    {% if text %}{{ text }}{% endif %}
+</a>
+{% else %}
+<button type="{{ type }}" class="btn {{ button_class }} {{ button_size }}"
+    {% for key, value in data_attributes.items() %}
+    data-{{ key }}="{{ value }}"
+    {% endfor %}>
+    {% if icon %}<i class="bi bi-{{ icon }} {% if text %}me-1{% endif %}"></i>{% endif %}
+    {% if text %}{{ text }}{% endif %}
+</button>
+{% endif %}
+{% endmacro %}
 
-{# Status Badge #}
+{# Breadcrumb Component #}
+{% macro breadcrumb(items) %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        {% for item in items %}
+            {% if loop.last %}
+                <li class="breadcrumb-item active" aria-current="page">{{ item.text }}</li>
+            {% else %}
+                <li class="breadcrumb-item"><a href="{{ item.url }}">{{ item.text }}</a></li>
+            {% endif %}
+        {% endfor %}
+    </ol>
+</nav>
+{% endmacro %}
+
+{# Status Badge Component #}
 {% macro status_badge(status, text=None) %}
 {% set status_map = {
-    'success': {'class': 'bg-success', 'icon': 'check-circle-fill', 'text': 'Success'},
-    'warning': {'class': 'bg-warning', 'icon': 'exclamation-triangle-fill', 'text': 'Warning'},
-    'error': {'class': 'bg-danger', 'icon': 'x-circle-fill', 'text': 'Error'},
-    'info': {'class': 'bg-info', 'icon': 'info-circle-fill', 'text': 'Info'},
-    'pending': {'class': 'bg-secondary', 'icon': 'hourglass-split', 'text': 'Pending'},
-    'active': {'class': 'bg-success', 'icon': 'check-circle-fill', 'text': 'Active'},
-    'inactive': {'class': 'bg-light text-dark', 'icon': 'dash-circle-fill', 'text': 'Inactive'},
-    'critical': {'class': 'bg-danger', 'icon': 'exclamation-octagon-fill', 'text': 'Critical'}
+    'success': ['success', 'check-circle-fill', text or 'Success'],
+    'error': ['danger', 'x-circle-fill', text or 'Error'],
+    'warning': ['warning', 'exclamation-triangle-fill', text or 'Warning'],
+    'info': ['info', 'info-circle-fill', text or 'Info'],
+    'pending': ['secondary', 'hourglass-split', text or 'Pending'],
+    'active': ['success', 'dot', text or 'Active'],
+    'inactive': ['secondary', 'dot', text or 'Inactive'],
+    'completed': ['success', 'check-circle', text or 'Completed'],
+    'in_progress': ['primary', 'arrow-clockwise', text or 'In Progress'],
+    'cancelled': ['danger', 'x-circle', text or 'Cancelled'],
+    'scheduled': ['info', 'calendar-event', text or 'Scheduled']
 } %}
 
-{% set data = status_map[status] if status in status_map else {'class': 'bg-secondary', 'icon': 'question-circle-fill', 'text': status} %}
-<span class="badge {{ data.class }} d-inline-flex align-items-center">
-    <i class="bi bi-{{ data.icon }} me-1"></i>
-    {{ text if text else data.text }}
+{% set badge_class, icon, label = status_map.get(status, ['secondary', 'question-circle', text or status]) %}
+
+<span class="badge text-bg-{{ badge_class }} d-inline-flex align-items-center">
+    <i class="bi bi-{{ icon }} me-1"></i>
+    <span>{{ label }}</span>
 </span>
 {% endmacro %}
 
-{# Health Status Indicator #}
-{% macro health_status(status, score=null) %}
-{% set status_map = {
-    'excellent': {'class': 'success', 'text': 'Excellent'},
-    'good': {'class': 'info', 'text': 'Good'},
-    'fair': {'class': 'warning', 'text': 'Fair'},
-    'poor': {'class': 'danger', 'text': 'Poor'},
-    'critical': {'class': 'danger', 'text': 'Critical'}
-} %}
-
-{% set data = status_map[status] if status in status_map else {'class': 'secondary', 'text': status} %}
-<span class="badge bg-{{ data.class }}">
-    {{ data.text }}{% if score %} ({{ score }}%){% endif %}
-</span>
-{% endmacro %}
-
-{# ==== Tables ==== #}
-
-{# Table Filter Input #}
-{% macro table_filter(target_id, placeholder="Search...", classes="mb-3") %}
-<div class="input-group {{ classes }}">
-    <span class="input-group-text"><i class="bi bi-search"></i></span>
-    <input type="text" class="form-control table-search" placeholder="{{ placeholder }}" data-table="{{ target_id }}">
-</div>
-{% endmacro %}
-
-{# Table with loading and empty states #}
-{% macro responsive_table(id, headers=[], loading=false, empty=false, empty_message="No data available") %}
-<div class="table-responsive">
-    {% if loading %}
-    <div id="{{ id }}-loading" class="py-4">
-        {{ loading_spinner(size="medium", text="Loading data...") }}
-    </div>
+{# Alert Component #}
+{% macro alert(type="info", dismissible=True, icon=True) %}
+<div class="alert alert-{{ type }} {% if dismissible %}alert-dismissible fade show{% endif %}" role="alert">
+    {% if icon %}
+        <i class="bi bi-{% if type == 'primary' %}info-circle{% elif type == 'secondary' %}gear{% elif type == 'success' %}check-circle{% elif type == 'danger' %}exclamation-triangle{% elif type == 'warning' %}exclamation-triangle{% elif type == 'info' %}info-circle{% elif type == 'light' %}sun{% elif type == 'dark' %}moon{% endif %} me-2"></i>
     {% endif %}
-    
-    <table class="table table-striped table-hover" id="{{ id }}" {% if loading %}style="display: none;"{% endif %}>
-        <thead>
-            <tr>
-                {% for header in headers %}
-                <th>{{ header }}</th>
-                {% endfor %}
-            </tr>
-        </thead>
-        <tbody id="{{ id }}-body">
-            {% if empty %}
-            <tr>
-                <td colspan="{{ headers|length }}" class="text-center py-4">
-                    {{ compact_empty_state(message=empty_message) }}
-                </td>
-            </tr>
-            {% endif %}
-        </tbody>
-    </table>
+    {{ caller() }}
+    {% if dismissible %}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    {% endif %}
 </div>
 {% endmacro %}
 
-{# Table Row Actions #}
-{% macro row_actions(buttons) %}
-<div class="d-flex justify-content-end">
-    {% for button in buttons %}
-    <button 
-        type="button" 
-        class="btn btn-sm {{ button.class|default('btn-outline-secondary') }} me-1" 
-        {% if button.tooltip %}data-bs-toggle="tooltip" title="{{ button.tooltip }}"{% endif %}
-        {% if button.action %}onclick="{{ button.action }}"{% endif %}
-        {% if button.id %}id="{{ button.id }}"{% endif %}
-    >
-        {% if button.icon %}<i class="bi bi-{{ button.icon }}"></i>{% endif %}
-        {% if button.icon and button.text %} {% endif %}
-        {% if button.text %}{{ button.text }}{% endif %}
-    </button>
+{# Accordion Component #}
+{% macro accordion(id, items, flush=False, always_open=False) %}
+<div class="accordion {% if flush %}accordion-flush{% endif %}" id="accordion-{{ id }}">
+    {% for item in items %}
+        <div class="accordion-item bg-dark border-secondary">
+            <h2 class="accordion-header" id="heading-{{ id }}-{{ loop.index }}">
+                <button class="accordion-button {% if not loop.first %}collapsed{% endif %} bg-dark text-light" type="button" 
+                        data-bs-toggle="collapse" 
+                        data-bs-target="#collapse-{{ id }}-{{ loop.index }}" 
+                        aria-expanded="{% if loop.first %}true{% else %}false{% endif %}" 
+                        aria-controls="collapse-{{ id }}-{{ loop.index }}">
+                    {% if item.icon %}<i class="bi bi-{{ item.icon }} me-2"></i>{% endif %}
+                    {{ item.title }}
+                </button>
+            </h2>
+            <div id="collapse-{{ id }}-{{ loop.index }}" 
+                 class="accordion-collapse collapse {% if loop.first %}show{% endif %}" 
+                 aria-labelledby="heading-{{ id }}-{{ loop.index }}"
+                 {% if not always_open %}data-bs-parent="#accordion-{{ id }}"{% endif %}>
+                <div class="accordion-body">
+                    {{ item.content }}
+                </div>
+            </div>
+        </div>
     {% endfor %}
 </div>
 {% endmacro %}
 
-{# ==== Form Elements ==== #}
+{# Tabs Component #}
+{% macro tabs(id, tabs) %}
+<div class="tab-container">
+    <ul class="nav nav-tabs" id="tabs-{{ id }}" role="tablist">
+        {% for tab in tabs %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if loop.first %}active{% endif %}" 
+                        id="tab-{{ id }}-{{ loop.index }}" 
+                        data-bs-toggle="tab" 
+                        data-bs-target="#tab-pane-{{ id }}-{{ loop.index }}" 
+                        type="button" 
+                        role="tab" 
+                        aria-controls="tab-pane-{{ id }}-{{ loop.index }}" 
+                        aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+                    {% if tab.icon %}<i class="bi bi-{{ tab.icon }} me-1"></i>{% endif %}
+                    {{ tab.title }}
+                </button>
+            </li>
+        {% endfor %}
+    </ul>
+    <div class="tab-content" id="tabs-content-{{ id }}">
+        {% for tab in tabs %}
+            <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
+                 id="tab-pane-{{ id }}-{{ loop.index }}" 
+                 role="tabpanel" 
+                 aria-labelledby="tab-{{ id }}-{{ loop.index }}" 
+                 tabindex="0">
+                <div class="py-3">
+                    {{ tab.content }}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endmacro %}
 
-{# Date Range Picker #}
-{% macro date_range_picker(start_id, end_id, label="Date Range") %}
-<div class="mb-3">
-    <label class="form-label">{{ label }}</label>
+{# Progress Component #}
+{% macro progress(value, max=100, label=None, height="1rem", color="primary", striped=False, animated=False, show_percentage=True) %}
+<div class="progress-container">
+    {% if label %}
+        <div class="d-flex justify-content-between align-items-center mb-1">
+            <span>{{ label }}</span>
+            {% if show_percentage %}
+                <span>{{ ((value / max) * 100) | round }}%</span>
+            {% endif %}
+        </div>
+    {% endif %}
+    <div class="progress" style="height: {{ height }};">
+        <div class="progress-bar bg-{{ color }} {% if striped %}progress-bar-striped{% endif %} {% if animated %}progress-bar-animated{% endif %}" 
+             role="progressbar" 
+             style="width: {{ (value / max) * 100 }}%;" 
+             aria-valuenow="{{ value }}" 
+             aria-valuemin="0" 
+             aria-valuemax="{{ max }}">
+            {% if not label and show_percentage and height != "1rem" %}
+                {{ ((value / max) * 100) | round }}%
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{# Filter Bar Component #}
+{% macro filter_bar(filters, clear_url="#") %}
+<div class="filter-bar py-2 px-3 bg-dark border border-secondary rounded mb-4">
+    <div class="row g-2 align-items-center">
+        <div class="col">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                {% for filter in filters %}
+                    <div class="filter-item">
+                        <span class="text-muted me-1">{{ filter.label }}:</span>
+                        <span class="badge bg-primary rounded-pill">
+                            {{ filter.value }}
+                            {% if filter.removable %}
+                                <a href="{{ filter.remove_url }}" class="text-white ms-1 text-decoration-none">
+                                    <i class="bi bi-x-circle"></i>
+                                </a>
+                            {% endif %}
+                        </span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="col-auto">
+            <a href="{{ clear_url }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-x me-1"></i>
+                Clear All
+            </a>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{# Search Bar Component #}
+{% macro search_bar(placeholder="Search...", value="", action="", method="GET", name="q", button_text="Search", class="mb-4") %}
+<form action="{{ action }}" method="{{ method }}" class="search-bar {{ class }}">
     <div class="input-group">
-        <span class="input-group-text"><i class="bi bi-calendar-range"></i></span>
-        <input type="date" class="form-control" id="{{ start_id }}" name="{{ start_id }}">
-        <span class="input-group-text">to</span>
-        <input type="date" class="form-control" id="{{ end_id }}" name="{{ end_id }}">
+        <input type="text" class="form-control" placeholder="{{ placeholder }}" name="{{ name }}" value="{{ value }}">
+        <button class="btn btn-primary" type="submit">
+            <i class="bi bi-search me-1"></i>
+            {{ button_text }}
+        </button>
+    </div>
+</form>
+{% endmacro %}
+
+{# Page Header Component #}
+{% macro page_header(title, subtitle=None, icon=None, actions=None) %}
+<div class="page-header mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center">
+        <div>
+            <h1 class="page-title mb-1">
+                {% if icon %}<i class="bi bi-{{ icon }} me-2"></i>{% endif %}
+                {{ title }}
+            </h1>
+            {% if subtitle %}
+                <p class="page-subtitle text-muted mb-0">{{ subtitle }}</p>
+            {% endif %}
+        </div>
+        
+        {% if actions %}
+            <div class="page-actions">
+                {{ actions }}
+            </div>
+        {% endif %}
     </div>
 </div>
 {% endmacro %}

@@ -11,6 +11,7 @@ from utils.logger import setup_logger
 from utils.config import load_config, update_config
 from utils.export import export_to_csv, export_to_json, export_to_excel, get_export_formats
 from utils.test_data import insert_test_data
+from middleware import init_template_middleware, template_preference_decorator
 
 # Initialize logger
 setup_logger()
@@ -35,6 +36,9 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Initialize database
 db.init_app(app)
+
+# Initialize template middleware
+render_template_with_fallback = init_template_middleware(app)
 
 # Load configuration
 config = load_config()
