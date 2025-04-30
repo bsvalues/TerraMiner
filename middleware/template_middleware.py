@@ -49,10 +49,13 @@ def init_template_middleware(app):
             
             try:
                 # Attempt to render new template
-                return render_template(new_template_name, **context)
-            except:
+                app.logger.debug(f"Attempting to render new template: {new_template_name}")
+                rendered = render_template(new_template_name, **context)
+                app.logger.debug(f"Successfully rendered new template: {new_template_name}")
+                return rendered
+            except Exception as e:
                 # Fallback to legacy template if new one doesn't exist
-                app.logger.warning(f"New template {new_template_name} not found, falling back to {template_name}")
+                app.logger.warning(f"New template {new_template_name} not found, falling back to {template_name}: {str(e)}")
                 return render_template(template_name, **context)
         
         # Otherwise use requested template

@@ -7,5 +7,8 @@
         <a href="{{ page_url }}?ui=legacy" class="btn {% if current_template == 'legacy' %}btn-primary{% else %}btn-outline-primary{% endif %}">Legacy UI</a>
         <a href="{{ page_url }}?ui=unified" class="btn {% if current_template == 'unified' %}btn-success{% else %}btn-outline-success{% endif %}">New UI</a>
     </div>
+    <div class="mt-2 text-center">
+        <small class="text-muted">Current: {{ current_template }}</small>
+    </div>
 </div>
 {% endmacro %}
