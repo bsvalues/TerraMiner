@@ -1,324 +1,366 @@
-# TerraMiner Design System
+# TerraMiner UI Design System
 
-This document outlines the design system used throughout the TerraMiner application to ensure consistency in the user interface and experience.
+This document outlines the UI components, styles, and patterns that make up the TerraMiner design system. It serves as a reference for maintaining consistency across the application.
+
+## Table of Contents
+
+1. [Color Palette](#color-palette)
+2. [Typography](#typography)
+3. [Spacing](#spacing)
+4. [Components](#components)
+5. [Loading States](#loading-states)
+6. [Error States](#error-states)
+7. [Responsive Design](#responsive-design)
+8. [Accessibility](#accessibility)
+9. [Usage Guidelines](#usage-guidelines)
 
 ## Color Palette
 
 ### Primary Colors
-- **Primary Blue**: `#2196F3` - Main brand color used for primary actions, key UI elements
-- **Primary Dark Blue**: `#0D47A1` - Used for hover states and emphasis
-- **Secondary Teal**: `#00BCD4` - Secondary brand color used for accents and highlights
-- **Accent Cyan**: `#00E5FF` - Bright accent used sparingly for emphasis
 
-### Functional Colors
-- **Success Green**: `#4CAF50` - Used for success states, confirmations
-- **Warning Amber**: `#FFC107` - Used for warnings, alerts that need attention
-- **Danger Red**: `#F44336` - Used for errors, destructive actions
-- **Info Blue**: `#03A9F4` - Used for informational states
+| Color Name | Hex Code | Usage |
+|------------|----------|-------|
+| Dark Blue  | `#0d1b2a` | Primary background for unified theme |
+| Blue       | `#1b263b` | Secondary background, card headers |
+| Light Blue | `#415a77` | Tertiary elements, borders |
+| Pale Blue  | `#778da9` | Muted text, icons |
+| Teal       | `#00b4d8` | Primary accent color, buttons, links |
+| Dark Teal  | `#0096c7` | Button hover states |
+| Light Gray | `#e0e1dd` | Light text on dark backgrounds |
 
-### Background Colors
-- **Dark Background**: `#1A237E` - Used for main navigation and headers
-- **Medium Background**: `#283593` - Used for secondary navigation elements
-- **Light Background**: `#3949AB` - Used for active states, selected items
-- **Card Background (Light)**: `#FFFFFF` - Used for cards and content containers
-- **Card Background (Dark)**: `#263238` - Used for dark mode cards
+### Semantic Colors
 
-### Text Colors
-- **Primary Text**: `#212121` - Main text color
-- **Secondary Text**: `#757575` - Secondary text, labels
-- **Muted Text**: `#9E9E9E` - Hint text, disabled states
-- **Light Text**: `#FAFAFA` - Text on dark backgrounds
+| Color Name | Hex Code | Usage |
+|------------|----------|-------|
+| Success    | `#28a745` | Positive actions, success states |
+| Warning    | `#ffc107` | Warning states, caution indicators |
+| Danger     | `#dc3545` | Error states, destructive actions |
+| Info       | `#17a2b8` | Informational states, help text |
 
 ## Typography
 
-### Font Family
-- **Primary Font**: System font stack (San Francisco, Segoe UI, Roboto)
-- **Monospace**: For code snippets and technical data
+The application uses system fonts for optimal performance and native feel:
+
+```css
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 
+             "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", 
+             "Segoe UI Emoji", "Segoe UI Symbol";
+```
 
 ### Font Sizes
-- **Base Size**: 16px (1rem)
-- **Small**: 0.875rem
-- **Large**: 1.25rem
-- **Extra Large**: 1.5rem
-- **Heading 1**: 2.25rem
-- **Heading 2**: 1.75rem
-- **Heading 3**: 1.5rem
-- **Heading 4**: 1.25rem
-- **Heading 5**: 1.125rem
-- **Heading 6**: 1rem (bold)
+
+| Element | Size | Weight | Line Height |
+|---------|------|--------|-------------|
+| H1      | 2rem | 700    | 1.2         |
+| H2      | 1.75rem | 700 | 1.2         |
+| H3      | 1.5rem | 600  | 1.3         |
+| H4      | 1.25rem | 600 | 1.3         |
+| H5      | 1.1rem | 600  | 1.4         |
+| Body    | 1rem | 400    | 1.5         |
+| Small   | 0.875rem | 400 | 1.4        |
+
+### Font Weights
+
+- Regular: 400
+- Semibold: 600
+- Bold: 700
 
 ## Spacing
 
-- **Extra Small (xs)**: 0.25rem (4px)
-- **Small (sm)**: 0.5rem (8px)
-- **Medium (md)**: 1rem (16px)
-- **Large (lg)**: 1.5rem (24px)
-- **Extra Large (xl)**: 2rem (32px)
+The application uses a consistent spacing scale:
+
+| Size | Value | Usage |
+|------|-------|-------|
+| xs   | 0.25rem (4px) | Tight spacing, between inline elements |
+| sm   | 0.5rem (8px)  | Buttons padding, close spacing |
+| md   | 1rem (16px)   | Default spacing, padding, margins |
+| lg   | 1.5rem (24px) | Generous spacing, section margins |
+| xl   | 2rem (32px)   | Large spacing, section paddings |
+| xxl  | 3rem (48px)   | Very large spacing, page sections |
 
 ## Components
 
+The TerraMiner UI includes the following reusable components:
+
 ### Buttons
 
-#### Primary Button
-```html
-{% from "components/ui_components.html" import button %}
-{{ button("Submit", "primary") }}
-```
+- **Primary**: The main action button (Teal in unified theme)
+- **Secondary**: Alternative actions
+- **Outline**: Less prominent actions
+- **Danger**: Destructive actions
+- **Link**: Text-based button that looks like a link
 
-#### Outline Button
-```html
-{% from "components/ui_components.html" import button %}
-{{ button("Cancel", "secondary", outline=true) }}
-```
+Sizes: sm, md, lg
 
-#### Icon Button
+Usage:
 ```html
-{% from "components/ui_components.html" import icon_button %}
-{{ icon_button("trash", tooltip="Delete item", type="danger", outline=true) }}
-```
-
-#### Action Button (Link or JS action)
-```html
-{% from "components/ui_components.html" import action_button %}
-{{ action_button("View Details", "primary", "eye", url=url_for('some_route')) }}
+{% from 'components/ui_components.html' import button %}
+{{ button(text="Submit", type="primary", size="md", icon="check") }}
 ```
 
 ### Cards
 
-#### Basic Card
+Cards are used to group related content and actions.
+
+Usage:
 ```html
-{% from "components/ui_components.html" import card %}
-{% call card(title="Card Title", subtitle="Optional subtitle", icon="graph-up") %}
-    Card content goes here
+{% from 'components/ui_components.html' import card %}
+{% call card(title="Card Title", header_icon="chart-bar") %}
+  Card content goes here
 {% endcall %}
 ```
 
-#### Stat Card
+### Alerts
+
+Used to display important messages.
+
+Usage:
 ```html
-{% from "components/ui_components.html" import stat_card %}
-{{ stat_card(
-    title="Total Properties", 
-    value="2,547", 
-    subtitle="Last updated: Today", 
-    icon="building",
-    change="+12% from last month",
-    change_type="positive"
-) }}
+{% from 'components/ui_components.html' import alert %}
+{{ alert(message="Successfully updated", type="success", icon="check-circle") }}
 ```
 
 ### Tables
 
-#### Data Table
+For displaying tabular data.
+
+Usage:
 ```html
-{% from "components/ui_components.html" import data_table %}
-{% call data_table("unique-id", ["Name", "Email", "Role", "Actions"]) %}
-    <tr>
-        <td>John Doe</td>
-        <td>john@example.com</td>
-        <td>Admin</td>
-        <td>
-            <button class="btn btn-sm btn-outline-primary">Edit</button>
-        </td>
-    </tr>
+{% from 'components/ui_components.html' import data_table %}
+{% call data_table(headers=["Name", "Email", "Role"]) %}
+  <tr>
+    <td>John Doe</td>
+    <td>john@example.com</td>
+    <td>Admin</td>
+  </tr>
 {% endcall %}
 ```
 
 ### Badges
 
-#### Status Badge
+For labels and status indicators.
+
+Usage:
 ```html
-{% from "components/ui_components.html" import status_badge %}
-{{ status_badge("active") }}
-{{ status_badge("error") }}
+{% from 'components/ui_components.html' import badge %}
+{{ badge(text="New", type="success", pill=true) }}
 ```
 
-#### Metric Badge
+### Pagination
+
+For navigating between pages of content.
+
+Usage:
 ```html
-{% from "components/ui_components.html" import metric_badge %}
-{{ metric_badge("42", "requests/sec", "primary", "hdd") }}
+{% from 'components/ui_components.html' import pagination %}
+{{ pagination(current_page=2, total_pages=10, base_url="/items") }}
 ```
 
-### Charts
+### Tabs
 
+For organizing content into multiple sections.
+
+Usage:
 ```html
-{% from "components/ui_components.html" import chart_container %}
-{{ chart_container(
-    id="my-chart",
-    title="Revenue Growth",
-    subtitle="Monthly revenue over time",
-    height="400px"
-) }}
+{% from 'components/ui_components.html' import tab_nav, tab_content %}
+{% set tabs = [
+  {"id": "overview", "label": "Overview", "icon": "chart-pie"},
+  {"id": "details", "label": "Details", "icon": "list-ul"}
+] %}
+
+{% call tab_nav(tabs=tabs, active_tab="overview") %}
+  {% call tab_content(id="overview", active=true) %}
+    Overview content
+  {% endcall %}
+  
+  {% call tab_content(id="details") %}
+    Details content
+  {% endcall %}
+{% endcall %}
 ```
 
-### Loading States
+### Accordion
 
-#### Skeleton Card
+For collapsible content.
+
+Usage:
 ```html
-{% from "components/loading_states.html" import skeleton_card %}
-{{ skeleton_card(height="200px") }}
+{% from 'components/ui_components.html' import accordion %}
+{% set items = [
+  {"title": "Item 1", "content": "Content for item 1", "icon": "info-circle"},
+  {"title": "Item 2", "content": "Content for item 2", "icon": "cog"}
+] %}
+
+{{ accordion(id="faq-accordion", items=items) }}
 ```
 
-#### Loading Spinner
+### Progress Bar
+
+For showing progress.
+
+Usage:
 ```html
-{% from "components/loading_states.html" import loading_spinner %}
-{{ loading_spinner(size="lg", text="Loading data...") }}
+{% from 'components/ui_components.html' import progress_bar %}
+{{ progress_bar(value=75, max=100, type="success", striped=true) }}
 ```
 
-#### Data Loading Container
+### Toggle Switch
+
+For binary options.
+
+Usage:
 ```html
-{% from "components/loading_states.html" import data_loading_container %}
-{{ data_loading_container(id="data-container", message="Fetching properties...") }}
+{% from 'components/ui_components.html' import toggle_switch %}
+{{ toggle_switch(id="notifications", label="Enable notifications", checked=true) }}
 ```
 
-#### Skeleton Table
+## Loading States
+
+The application uses several loading state patterns:
+
+### Spinner
+
+For simple loading indicators.
+
+Usage:
 ```html
-{% from "components/loading_states.html" import skeleton_table %}
-{{ skeleton_table(rows=5, cols=4) }}
+{% from 'components/loading_states.html' import spinner %}
+{{ spinner(size="lg", color="teal", message="Loading data...") }}
 ```
 
-#### Skeleton Chart
+### Skeleton Loaders
+
+For content placeholders during loading.
+
+Types:
+- Text skeletons
+- Card skeletons
+- Table skeletons
+- List skeletons
+- Chart skeletons
+- Property card skeletons
+
+Usage:
 ```html
-{% from "components/loading_states.html" import skeleton_chart %}
-{{ skeleton_chart(height="300px") }}
+{% from 'components/loading_states.html' import skeleton_text, skeleton_card %}
+{{ skeleton_text(lines=3) }}
+{{ skeleton_card() }}
 ```
 
-#### Shimmer Effect
+## Error States
+
+Standard error state components for consistent error handling.
+
+### Error Card
+
+For displaying errors.
+
+Usage:
 ```html
-{% from "components/loading_states.html" import shimmer_container %}
-{{ shimmer_container(height="100px") }}
+{% from 'components/error_states.html' import error_card %}
+{{ error_card(title="Error Loading Data", message="Could not connect to the server.") }}
 ```
 
-### Error States
+### Empty State
 
-#### Error Alert
+For when no content is available.
+
+Usage:
 ```html
-{% from "components/error_states.html" import error_alert %}
-{{ error_alert("Unable to fetch data from server", title="Connection Error") }}
+{% from 'components/error_states.html' import empty_state %}
+{{ empty_state(title="No Properties", message="No properties match your search criteria.") }}
 ```
 
-#### Data Error
+### No Results
+
+For search with no results.
+
+Usage:
 ```html
-{% from "components/error_states.html" import data_error %}
-{{ data_error(message="Failed to load property data", retry_function="loadProperties()") }}
+{% from 'components/error_states.html' import no_results %}
+{{ no_results(search_term="beach house") }}
 ```
 
-#### API Error
+### Network Error
+
+For connectivity issues.
+
+Usage:
 ```html
-{% from "components/error_states.html" import api_error %}
-{{ api_error(status_code=404, message="The requested property could not be found") }}
+{% from 'components/error_states.html' import network_error %}
+{{ network_error() }}
 ```
 
-#### Empty State
+### Permission Error
+
+For access control errors.
+
+Usage:
 ```html
-{% from "components/error_states.html" import empty_state %}
-{{ empty_state(
-    message="No properties match your search criteria", 
-    icon="search", 
-    action_button=true,
-    action_text="Clear filters",
-    action_url=url_for('properties', clear=1)
-) }}
+{% from 'components/error_states.html' import permission_error %}
+{{ permission_error() }}
 ```
 
-## Form Elements
+## Responsive Design
 
-#### Form Group
-```html
-{% from "components/ui_components.html" import form_group %}
-{{ form_group(
-    label="Email Address",
-    id="email",
-    input_type="email",
-    value=user.email,
-    placeholder="Enter your email",
-    required=true,
-    help_text="We'll never share your email with anyone else."
-) }}
-```
+The application follows a mobile-first approach using Bootstrap's responsive grid system. Key breakpoints:
 
-#### Select Group
-```html
-{% from "components/ui_components.html" import select_group %}
-{{ select_group(
-    label="Property Type",
-    id="property_type",
-    options=[
-        {"value": "residential", "text": "Residential"},
-        {"value": "commercial", "text": "Commercial"},
-        {"value": "industrial", "text": "Industrial"}
-    ],
-    selected_value=property.type,
-    required=true
-) }}
-```
+- xs: < 576px (Mobile phones)
+- sm: ≥ 576px (Large phones, small tablets)
+- md: ≥ 768px (Tablets)
+- lg: ≥ 992px (Desktops)
+- xl: ≥ 1200px (Large desktops)
+- xxl: ≥ 1400px (Extra large desktops)
 
-## Navigation
+## Accessibility
 
-#### Tab Navigation
-```html
-{% from "components/ui_components.html" import tab_nav %}
-{{ tab_nav(
-    id="property-tabs",
-    tabs=[
-        {"id": "details", "title": "Details", "icon": "info-circle"},
-        {"id": "history", "title": "History", "icon": "clock-history"},
-        {"id": "pricing", "title": "Pricing", "icon": "cash"}
-    ],
-    active_tab="details"
-) }}
-```
+The TerraMiner UI follows these accessibility principles:
 
-#### Pagination
-```html
-{% from "components/ui_components.html" import pagination %}
-{{ pagination(
-    current_page=2,
-    total_pages=5,
-    url_pattern=url_for('properties', page='{page}')
-) }}
-```
+- Sufficient color contrast (WCAG AA compliance)
+- Keyboard navigation support
+- Appropriate ARIA attributes
+- Screen reader compatible markup
+- Focus management for interactive elements
 
-## CSS Utilities
+## Usage Guidelines
 
-### Border Utilities
-- **Border Left Primary**: `.border-left-primary`
-- **Border Left Success**: `.border-left-success`
-- **Border Left Info**: `.border-left-info`
-- **Border Left Warning**: `.border-left-warning`
-- **Border Left Danger**: `.border-left-danger`
-- **Border Left Secondary**: `.border-left-secondary`
+### UI Template Switching
 
-### Background Utilities
-- **Primary Light Background**: `.bg-light-primary`
-- **Success Light Background**: `.bg-light-success`
-- **Warning Light Background**: `.bg-light-warning`
-- **Danger Light Background**: `.bg-light-danger`
-- **Info Light Background**: `.bg-light-info`
+The application supports two UI templates:
+1. **Legacy**: The original light theme
+2. **Unified**: The new dark blue theme with teal accents
 
-## Best Practices
+Template switching is done by appending `?ui=unified` or `?ui=legacy` to URLs or by setting a user preference.
 
-1. **Consistent Spacing**: Use the defined spacing variables for margins and padding
-2. **Color Usage**: Stick to the defined color palette for all UI elements
-3. **Loading States**: Always use loading indicators when fetching data
-4. **Error Handling**: Use appropriate error states for different failure scenarios
-5. **Empty States**: Provide clear empty states when no data is available
-6. **Responsive Design**: Ensure all UI elements work well on all screen sizes
-7. **Accessibility**: Maintain proper contrast ratios and provide alternative text for images
-
-## Implementation Pattern
-
-For optimal implementation of the design system:
-
-1. Import component macros at the top of the template
-2. Use native components for the legacy template and design system components for the unified template
-3. Wrap UI-specific code in conditional blocks based on the template preference:
+In templates, use conditional classes based on the current template:
 
 ```html
-{% if ui_template == "unified" %}
-    {# Unified UI implementation using components #}
-    {{ component_macro(params) }}
-{% else %}
-    {# Legacy UI implementation #}
-    <div class="legacy-element">...</div>
-{% endif %}
+<div class="card {% if ui_template == 'unified' %}bg-dark-blue text-white border-0 shadow{% endif %}">
+  ...
+</div>
 ```
+
+### Icon Usage
+
+The application uses Font Awesome 5 for icons. For consistency, use icons from this set.
+
+Common icon usage patterns:
+- Action buttons should include appropriate icons
+- Section headers may include icons
+- Status indicators should use semantic icons
+
+### Form Elements
+
+Form inputs should:
+- Have associated labels
+- Include placeholder text when appropriate
+- Display validation errors clearly
+- Use consistent styling between forms
+
+### Data Visualization
+
+Charts and graphs should:
+- Use the defined color palette
+- Include proper labels and legends
+- Be responsive to different screen sizes
+- Include appropriate loading states and error handling
