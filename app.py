@@ -1,7 +1,7 @@
 import os
 import logging
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, send_file
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, send_file, g
 from werkzeug.middleware.proxy_fix import ProxyFix
 from etl.narrpr_scraper import NarrprScraper
 from db.database import save_to_database, Database
@@ -1067,21 +1067,79 @@ def monitoring_dashboard():
     except Exception as e:
         logger.warning(f"Could not retrieve property/price stats: {str(e)}")
     
-    return render_template(
-        'monitoring_dashboard.html',
-        alerts_summary=alerts_summary,
-        system_metrics=system_metrics,
-        api_metrics=api_metrics,
-        database_metrics=database_metrics,
-        ai_metrics=ai_metrics,
-        job_metrics=job_metrics,
-        report_metrics=report_metrics,
-        health_score=health_score,
-        health_status=health_status,
-        current_time=current_time,
-        location_stats=location_stats,
-        price_stats=price_stats
-    )
+    # Convert data for the new template's expected format
+    if g.ui_template == 'unified':
+        system_overview = {
+            'reports': report_metrics['total_scheduled'],
+            'properties': location_stats['total_properties'],
+            'active_jobs': job_metrics['total_jobs_30d'],
+            'alerts': alerts_summary['active']['total'],
+            'db_connections': database_metrics['connection_count'].metric_value if database_metrics['connection_count'] else 0,
+            'db_response_time': database_metrics['query_time_avg'].metric_value * 1000 if database_metrics['query_time_avg'] else 0,
+        }
+        
+        alerts = []
+        for alert in alerts_summary['latest']:
+            alerts.append({
+                'id': alert.id,
+                'severity': alert.severity,
+                'message': alert.message,
+                'timestamp': alert.created_at,
+                'status': alert.status
+            })
+            
+        scheduled_jobs = []
+        for job in report_metrics['upcoming']:
+            scheduled_jobs.append({
+                'id': job.id,
+                'name': job.name,
+                'schedule': job.schedule_description,
+                'last_run': job.last_run,
+                'next_run': job.next_run,
+                'status': 'active' if job.is_active else 'paused'
+            })
+        
+        recent_activity = []
+        # We would populate this from a real activity log
+        
+        logger.debug(f"Using template for UI preference: {g.ui_template}")
+        
+        return render_template(
+            'monitoring_dashboard.html',
+            alerts_summary=alerts_summary,
+            system_metrics=system_metrics,
+            api_metrics=api_metrics,
+            database_metrics=database_metrics,
+            ai_metrics=ai_metrics,
+            job_metrics=job_metrics,
+            report_metrics=report_metrics,
+            health_score=health_score,
+            health_status=health_status,
+            current_time=current_time,
+            location_stats=location_stats,
+            price_stats=price_stats,
+            # New template data
+            system_overview=system_overview,
+            alerts=alerts,
+            scheduled_jobs=scheduled_jobs,
+            recent_activity=recent_activity
+        )
+    else:
+        return render_template(
+            'monitoring_dashboard.html',
+            alerts_summary=alerts_summary,
+            system_metrics=system_metrics,
+            api_metrics=api_metrics,
+            database_metrics=database_metrics,
+            ai_metrics=ai_metrics,
+            job_metrics=job_metrics,
+            report_metrics=report_metrics,
+            health_score=health_score,
+            health_status=health_status,
+            current_time=current_time,
+            location_stats=location_stats,
+            price_stats=price_stats
+        )
     
 @app.route('/monitoring/system', methods=['GET'])
 def monitoring_system():

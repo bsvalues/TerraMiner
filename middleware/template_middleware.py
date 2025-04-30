@@ -23,6 +23,9 @@ def init_template_middleware(app):
         
         # Set template preference in g for access in templates
         g.ui_template = session.get('ui_template', 'legacy')
+        
+        # Log template preference for debugging
+        app.logger.debug(f"Current UI template preference: {g.ui_template}")
     
     # Custom render template function that handles template switching
     def render_template_with_fallback(template_name, **context):
