@@ -12,6 +12,8 @@ from datetime import date
 
 class SystemMetric(db.Model):
     """Model for storing system performance metrics."""
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     metric_name = db.Column(db.String(100), nullable=False)  # Name of the metric
     metric_value = db.Column(db.Float, nullable=False)  # Numerical value
@@ -25,6 +27,8 @@ class SystemMetric(db.Model):
 
 class APIUsageLog(db.Model):
     """Model for tracking API usage."""
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     endpoint = db.Column(db.String(255), nullable=False)  # API endpoint
     method = db.Column(db.String(10), nullable=False)  # HTTP method
@@ -40,6 +44,8 @@ class APIUsageLog(db.Model):
 
 class AIAgentMetrics(db.Model):
     """Model for tracking AI agent performance metrics."""
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     agent_type = db.Column(db.String(50), nullable=False)  # Type of agent
     prompt_version_id = db.Column(db.Integer, nullable=True)  # Related prompt version
@@ -81,6 +87,8 @@ class AIAgentMetrics(db.Model):
 
 class MonitoringAlert(db.Model):
     """Model for system monitoring alerts."""
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     alert_type = db.Column(db.String(50), nullable=False)  # Type of alert (threshold, anomaly, etc.)
     component = db.Column(db.String(50), nullable=False)  # Component (database, api, ai, etc.)
@@ -92,8 +100,11 @@ class MonitoringAlert(db.Model):
     acknowledged_at = db.Column(db.DateTime, nullable=True)
     resolved_at = db.Column(db.DateTime, nullable=True)
 
-class ScheduledReport(db.Model):
+class ModelsScheduledReport(db.Model):
     """Model for scheduled monitoring reports."""
+    __tablename__ = 'scheduled_report'
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=True)
@@ -110,6 +121,8 @@ class ScheduledReport(db.Model):
 
 class ReportExecution(db.Model):
     """Model for tracking report execution history."""
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     report_id = db.Column(db.Integer, db.ForeignKey('scheduled_report.id'), nullable=False)
     status = db.Column(db.String(20), nullable=False)  # Status (success, failure)
@@ -124,6 +137,8 @@ class ReportExecution(db.Model):
     
 class ReportExecutionLog(db.Model):
     """Model for logging report execution history with more detailed information."""
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     report_id = db.Column(db.Integer, db.ForeignKey('scheduled_report.id'), nullable=True)
     report_type = db.Column(db.String(50), nullable=False)  # Type of report
@@ -140,6 +155,8 @@ class ReportExecutionLog(db.Model):
 
 class PropertyLocation(db.Model):
     """Model for property location data."""
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     address = db.Column(db.String(255), nullable=False)
     street = db.Column(db.String(100), nullable=True)
@@ -162,6 +179,7 @@ class PropertyLocation(db.Model):
 class PriceTrend(db.Model):
     """Model for storing price trends by location over time."""
     __tablename__ = 'price_trend'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     location_type = db.Column(db.String(20))  # city, state, zip, etc.
@@ -183,6 +201,8 @@ class PriceTrend(db.Model):
 
 class JobRun(db.Model):
     """Model for tracking execution of scheduled jobs."""
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     job_name = db.Column(db.String(100), nullable=False)  # Name of the job
     status = db.Column(db.String(20), nullable=False)  # Status (running, success, failure)
@@ -198,6 +218,8 @@ class JobRun(db.Model):
 
 class AIFeedbackReportSettings(db.Model):
     """Model for storing AI feedback report settings."""
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     
     # Recipients

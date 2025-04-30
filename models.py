@@ -3,6 +3,8 @@ from app import db
 
 class ActivityLog(db.Model):
     """Model for tracking activity in the application."""
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     action = db.Column(db.String(100), nullable=False)
     details = db.Column(db.Text)
@@ -13,6 +15,8 @@ class ActivityLog(db.Model):
 
 class JobRun(db.Model):
     """Model for tracking scraper job runs."""
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     start_time = db.Column(db.DateTime, default=datetime.now)
     end_time = db.Column(db.DateTime)
@@ -26,6 +30,8 @@ class JobRun(db.Model):
 
 class NarrprCredential(db.Model):
     """Model for storing NARRPR credentials."""
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(255), nullable=False)
     password = db.Column(db.String(255), nullable=False)
@@ -37,6 +43,8 @@ class NarrprCredential(db.Model):
 
 class AIFeedback(db.Model):
     """Model for storing feedback on AI agent responses."""
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     agent_type = db.Column(db.String(50), nullable=False)  # summarizer, market_analyzer, recommender, nl_search
     query_data = db.Column(db.Text, nullable=False)  # The input provided to the agent
@@ -44,19 +52,21 @@ class AIFeedback(db.Model):
     rating = db.Column(db.Integer, nullable=False)  # 1-5 star rating
     comments = db.Column(db.Text, nullable=True)  # Optional user comments
     session_id = db.Column(db.String(64), nullable=True)  # To group multiple interactions from same session
-    prompt_version_id = db.Column(db.Integer, db.ForeignKey('prompt_version.id'), nullable=True)  # The prompt version used
+    prompt_version_id = db.Column(db.Integer, nullable=True)  # The prompt version used
     extra_data = db.Column(db.Text, nullable=True)  # JSON blob with additional metadata (e.g., A/B test data)
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     
-    # Relationship with prompt version
-    prompt_version = db.relationship('PromptVersion', backref=db.backref('feedback', lazy=True))
+    # Remove relationship to avoid circular dependency
+    # prompt_version = db.relationship('PromptVersion', backref=db.backref('feedback', lazy=True))
     
     def __repr__(self):
         return f"<AIFeedback {self.agent_type} - {self.rating} stars>"
         
 class AIFeedbackReportSettings(db.Model):
     """Model for storing AI feedback report settings."""
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     
     # Recipients
@@ -245,6 +255,8 @@ class AutomationLog(db.Model):
         
 class SystemMetric(db.Model):
     """Model for storing system performance metrics."""
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     metric_name = db.Column(db.String(100), nullable=False)  # Name of the metric
     metric_value = db.Column(db.Float, nullable=False)  # Numerical value
@@ -258,6 +270,8 @@ class SystemMetric(db.Model):
         
 class APIUsageLog(db.Model):
     """Model for tracking API usage."""
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     endpoint = db.Column(db.String(255), nullable=False)  # API endpoint
     method = db.Column(db.String(10), nullable=False)  # HTTP method
@@ -273,6 +287,8 @@ class APIUsageLog(db.Model):
         
 class AIAgentMetrics(db.Model):
     """Model for tracking AI agent performance metrics."""
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     agent_type = db.Column(db.String(50), nullable=False)  # Type of agent
     prompt_version_id = db.Column(db.Integer, db.ForeignKey('prompt_version.id'), nullable=True)  # Related prompt version
@@ -337,6 +353,8 @@ class AlertNotificationMap(db.Model):
 
 class MonitoringAlert(db.Model):
     """Model for storing monitoring alerts."""
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     alert_type = db.Column(db.String(50), nullable=False)  # Type of alert (error, warning, etc.)
     severity = db.Column(db.String(20), nullable=False)  # Severity level (critical, error, warning, info)
@@ -357,8 +375,11 @@ class MonitoringAlert(db.Model):
     def __repr__(self):
         return f"<MonitoringAlert id={self.id} type={self.alert_type} status={self.status}>"
         
-class ScheduledReport(db.Model):
+class TerraMinerScheduledReport(db.Model):
     """Model for configuring scheduled reports."""
+    __tablename__ = 'scheduled_report'
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)  # Report name
     description = db.Column(db.Text, nullable=True)  # Report description
@@ -374,10 +395,12 @@ class ScheduledReport(db.Model):
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
     
     def __repr__(self):
-        return f"<ScheduledReport id={self.id} name={self.name} type={self.report_type}>"
+        return f"<TerraMinerScheduledReport id={self.id} name={self.name} type={self.report_type}>"
         
 class ReportExecution(db.Model):
     """Model for tracking report execution history."""
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     report_id = db.Column(db.Integer, db.ForeignKey('scheduled_report.id'), nullable=False)
     status = db.Column(db.String(20), nullable=False)  # Status of execution (success, failure, partial)
@@ -387,11 +410,14 @@ class ReportExecution(db.Model):
     delivery_status = db.Column(db.String(20), nullable=True)  # Delivery status (sent, failed)
     error = db.Column(db.Text, nullable=True)  # Error message if status is failure
     
-    # Relationship with report
-    report = db.relationship('ScheduledReport', backref=db.backref('executions', lazy=True))
+    # Relationship with report - use string format to avoid circular import issues
+    report = db.relationship('TerraMinerScheduledReport', foreign_keys=[report_id], 
+                             backref=db.backref('executions', lazy=True))
     
 class ReportExecutionLog(db.Model):
     """Model for logging report execution history with more detailed information."""
+    __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
     report_id = db.Column(db.Integer, db.ForeignKey('scheduled_report.id'), nullable=True)
     report_type = db.Column(db.String(50), nullable=False)  # Type of report
@@ -404,7 +430,8 @@ class ReportExecutionLog(db.Model):
     parameters = db.Column(db.Text, nullable=True)  # JSON of parameters used for the report
     
     # Relationship with report (if associated with a scheduled report)
-    report = db.relationship('ScheduledReport', backref=db.backref('execution_logs', lazy=True))
+    report = db.relationship('TerraMinerScheduledReport', foreign_keys=[report_id], 
+                             backref=db.backref('execution_logs', lazy=True))
     
     def __repr__(self):
         return f"<ReportExecutionLog id={self.id} report_type={self.report_type} status={self.status}>"
@@ -412,6 +439,7 @@ class ReportExecutionLog(db.Model):
 class NarrprReports(db.Model):
     """Model for storing NARRPR property reports."""
     __tablename__ = 'narrpr_reports'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
@@ -429,6 +457,7 @@ class NarrprReports(db.Model):
 class PropertyLocation(db.Model):
     """Model for storing geocoded property locations for visualization."""
     __tablename__ = 'property_location'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     address = db.Column(db.String(255), nullable=False)
@@ -455,6 +484,7 @@ class PropertyLocation(db.Model):
 class PriceTrend(db.Model):
     """Model for storing price trends by location over time."""
     __tablename__ = 'price_trend'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     location_type = db.Column(db.String(20))  # city, state, zip, etc.

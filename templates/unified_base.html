@@ -94,9 +94,9 @@
                             CMA Tools
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDropdownCMA">
-                            <li><a class="dropdown-item" href="{{ url_for('cma_home') }}">CMA Dashboard</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('cma_generator') }}">Generate CMA</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('cma_reports') }}">View Reports</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('cma.cma_home') }}">CMA Dashboard</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('cma.cma_generator') }}">Generate CMA</a></li>
+                            <li><a class="dropdown-item" href="#">View Reports</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
@@ -110,7 +110,7 @@
                         </ul>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.path == url_for('voice_search') %}active{% endif %}" href="{{ url_for('voice_search') }}">
+                        <a class="nav-link {% if request.path == url_for('voice.voice_search') %}active{% endif %}" href="{{ url_for('voice.voice_search') }}">
                             <i class="bi bi-mic me-1"></i>
                             Voice Search
                         </a>

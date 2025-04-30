@@ -19,9 +19,21 @@ DB_NAME = os.getenv('PGDATABASE', 'real_estate')
 # Create database URL
 DB_URL = os.getenv('DATABASE_URL', f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}')
 
-# Initialize SQLAlchemy components
-Base = declarative_base()
-metadata = MetaData()
+# Import the SQLAlchemy instance from app.py
+import sys
+import os
+from flask import current_app
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+try:
+    from app import db
+    Base = db.Model
+    metadata = db.metadata
+    logger.info("Successfully imported SQLAlchemy db instance from app")
+except ImportError as e:
+    logger.warning(f"Could not import db from app, using local instances: {str(e)}")
+    # Fall back to local instances if import fails
+    Base = declarative_base()
+    metadata = MetaData()
 
 # Define tables
 narrpr_reports = Table(
@@ -33,6 +45,7 @@ narrpr_reports = Table(
     Column('address', String(255)),
     Column('price', String(50)),
     Column('created_at', DateTime, default=datetime.now),
+    extend_existing=True,
 )
 
 class Database:
