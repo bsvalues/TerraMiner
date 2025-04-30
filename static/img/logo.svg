@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00bfb3" />
+      <stop offset="100%" stop-color="#42e8dc" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Main Circle -->
+  <circle cx="50" cy="50" r="45" fill="#153249" stroke="url(#logoGradient)" stroke-width="2" />
+  
+  <!-- Mountain Silhouette -->
+  <path d="M20,80 L40,50 L50,65 L65,40 L80,80 Z" fill="url(#logoGradient)" />
+  
+  <!-- House with Roof -->
+  <path d="M40,55 L40,70 L60,70 L60,55 L50,45 Z" fill="#0c1623" stroke="url(#logoGradient)" stroke-width="1.5" />
+  
+  <!-- Grid Lines -->
+  <path d="M20,65 L80,65 M30,55 L70,55 M40,45 L60,45" stroke="url(#logoGradient)" stroke-width="1" opacity="0.6" stroke-dasharray="2,2" />
+  
+  <!-- Data Points -->
+  <circle cx="30" cy="60" r="2" fill="#ffffff" />
+  <circle cx="45" cy="50" r="2" fill="#ffffff" />
+  <circle cx="60" cy="55" r="2" fill="#ffffff" />
+  <circle cx="70" cy="45" r="2" fill="#ffffff" />
+  
+  <!-- T letter -->
+  <path d="M30,30 L70,30 M50,30 L50,40" stroke="url(#logoGradient)" stroke-width="3" stroke-linecap="round" />
+  
+  <!-- M letter -->
+  <path d="M35,27 L35,22 L42,22 L50,27 L58,22 L65,22 L65,27" stroke="url(#logoGradient)" stroke-width="2" fill="none" stroke-linecap="round" />
+</svg>

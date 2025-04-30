@@ -493,7 +493,10 @@ def export_data(format):
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
-    """Settings page for configuring the scraper."""
+    """Settings page for configuring the scraper and application."""
+    # Check if new UI should be used
+    use_new_ui = request.args.get('new_ui', '0') == '1'
+    
     if request.method == 'POST':
         try:
             # Get form data
@@ -554,13 +557,20 @@ def settings():
                 flash("Settings updated successfully.", "success")
             else:
                 flash("Failed to update settings.", "danger")
-                
-            return redirect(url_for('settings'))
+            
+            # Preserve the new_ui parameter in the redirect
+            redirect_url = url_for('settings')
+            if use_new_ui:
+                redirect_url += '?new_ui=1'
+            return redirect(redirect_url)
             
         except Exception as e:
             flash(f"Error updating settings: {str(e)}", "danger")
             logger.exception("Error in settings route")
-            return redirect(url_for('settings'))
+            redirect_url = url_for('settings')
+            if use_new_ui:
+                redirect_url += '?new_ui=1'
+            return redirect(redirect_url)
     
     # Load current configuration
     current_config = load_config()
@@ -575,7 +585,108 @@ def settings():
     except Exception as e:
         logger.error(f"Error retrieving credentials from database: {str(e)}")
     
-    return render_template('settings.html', config=current_config)
+    # Render appropriate template based on UI version
+    if use_new_ui:
+        # Mock data for the new settings UI
+        settings_data = {
+            'application_name': 'TerraMiner',
+            'application_description': 'Real Estate Data Intelligence Platform',
+            'default_location': 'sf',
+            'records_per_page': 25,
+            'date_format': 'MM/DD/YYYY',
+            'default_export_format': 'csv',
+            'data_refresh_interval': '300',
+            'enable_auto_refresh': True,
+            'save_export_history': True,
+            'theme': 'dark',
+            'accent_color': '#00bfb3',
+            'enable_animations': True,
+            'chart_theme': 'default',
+            'enable_chart_animations': True,
+            'show_chart_legends': True,
+            'dashboard_layout': 'grid',
+            'default_widgets': ['system', 'api', 'database', 'recent'],
+            'font_size': 'medium',
+            'high_contrast': False,
+            'reduce_motion': False,
+            'notification_channels': ['email', 'app'],
+            'notification_frequency': 'realtime',
+            'sms_phone': '',
+            'sms_alerts_only': True,
+            'slack_webhook': '',
+            'slack_channel': '#notifications'
+        }
+        
+        # Sample user data
+        user_data = {
+            'first_name': 'Admin',
+            'last_name': 'User',
+            'email': 'admin@example.com',
+            'phone': '(555) 123-4567',
+            'timezone': 'America/Los_Angeles',
+            'full_name': 'Admin User'
+        }
+        
+        # Sample API keys
+        api_keys = [
+            {
+                'service': 'Zillow API',
+                'is_set': True,
+                'required': True,
+                'updated_at': 'Apr 15, 2025'
+            },
+            {
+                'service': 'Realtor.com API',
+                'is_set': False,
+                'required': False,
+                'updated_at': 'Never'
+            },
+            {
+                'service': 'Google Maps API',
+                'is_set': True,
+                'required': True,
+                'updated_at': 'Apr 22, 2025'
+            },
+            {
+                'service': 'OpenAI API',
+                'is_set': True,
+                'required': False,
+                'updated_at': 'Apr 28, 2025'
+            }
+        ]
+        
+        # Sample notification types
+        notification_types = [
+            {
+                'id': 'system_alerts',
+                'name': 'System Alerts',
+                'channels': ['email', 'app', 'slack']
+            },
+            {
+                'id': 'data_updates',
+                'name': 'Data Updates',
+                'channels': ['app']
+            },
+            {
+                'id': 'report_ready',
+                'name': 'Report Ready',
+                'channels': ['email', 'app']
+            },
+            {
+                'id': 'price_alerts',
+                'name': 'Price Alerts',
+                'channels': ['email', 'sms', 'app']
+            }
+        ]
+        
+        return render_template('settings_new.html',
+                               config=current_config,
+                               settings=settings_data,
+                               user=user_data,
+                               api_keys=api_keys,
+                               notification_types=notification_types)
+    else:
+        return render_template('settings.html', config=current_config)
 
 @app.route('/api/status')
 def api_status():

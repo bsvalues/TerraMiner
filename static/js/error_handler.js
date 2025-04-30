@@ -1,255 +1,331 @@
 /**
- * TerraMiner Error Handling Utilities
- * Standardized error handling for API calls and UI components
+ * ErrorHandler.js
+ * 
+ * Standardized error handling for the TerraMiner application
  */
 
-/**
- * Error types with standardized messages and handling logic
- */
-const ErrorTypes = {
-    // API Errors
-    API_UNAVAILABLE: {
-        title: "API Unavailable",
-        message: "The API service is currently unavailable. Please try again later.",
-        icon: "exclamation-triangle",
-        retry: true
-    },
-    NETWORK_ERROR: {
-        title: "Network Error",
-        message: "There was a problem connecting to the server. Please check your internet connection.",
-        icon: "wifi-off",
-        retry: true
-    },
-    AUTHENTICATION_ERROR: {
-        title: "Authentication Error",
-        message: "Your session has expired or you do not have permission to access this resource.",
-        icon: "shield-lock",
-        action_text: "Login Again",
-        action_url: "/login"
-    },
-    SERVER_ERROR: {
-        title: "Server Error",
-        message: "The server encountered an error while processing your request.",
-        icon: "server",
-        retry: true
-    },
-    
-    // Data Errors
-    DATA_NOT_FOUND: {
-        title: "Data Not Found",
-        message: "The requested data could not be found.",
-        icon: "file-earmark-x",
-        retry: false
-    },
-    INVALID_DATA: {
-        title: "Invalid Data",
-        message: "The data format is invalid or corrupted.",
-        icon: "file-earmark-x",
-        retry: false
-    },
-    
-    // External API Errors
-    ZILLOW_API_ERROR: {
-        title: "Zillow API Error",
-        message: "There was an error retrieving data from the Zillow API.",
-        icon: "building",
-        retry: true
-    },
-    NARRPR_API_ERROR: {
-        title: "NARRPR API Error",
-        message: "There was an error retrieving data from the NARRPR API.",
-        icon: "building",
-        retry: true
-    },
-    
-    // Generic Error
-    UNKNOWN_ERROR: {
-        title: "Unknown Error",
-        message: "An unexpected error occurred. Please try again later.",
-        icon: "question-circle",
-        retry: true
-    }
-};
-
-/**
- * Show an error message in the specified container
- * @param {string} containerId - The ID of the container to show the error
- * @param {Object} error - The error object or error type
- * @param {Function} retryFunction - Optional function to call when retry button is clicked
- */
-function showErrorMessage(containerId, error, retryFunction = null) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    
-    // Determine error type
-    let errorConfig;
-    
-    if (typeof error === 'string' && ErrorTypes[error]) {
-        // If error is a key in ErrorTypes
-        errorConfig = ErrorTypes[error];
-    } else if (error.name && ErrorTypes[error.name]) {
-        // If error has a name property that's a key in ErrorTypes
-        errorConfig = ErrorTypes[error.name];
-    } else {
-        // Default to unknown error
-        errorConfig = ErrorTypes.UNKNOWN_ERROR;
+class ErrorHandler {
+    constructor() {
+        this.errorMap = new Map();
+        
+        // Define common error types
+        this.ERROR_TYPES = {
+            NETWORK: 'network',
+            API: 'api',
+            AUTH: 'auth',
+            VALIDATION: 'validation',
+            DATABASE: 'database',
+            TIMEOUT: 'timeout',
+            UNKNOWN: 'unknown'
+        };
+        
+        // Initialize error templates
+        this._initErrorTemplates();
     }
     
-    // Create error message element
-    const errorElement = document.createElement('div');
-    errorElement.className = 'error-container text-center py-4';
+    /**
+     * Initialize error message templates for different error types
+     * @private
+     */
+    _initErrorTemplates() {
+        this.errorTemplates = {
+            [this.ERROR_TYPES.NETWORK]: {
+                title: 'Network Error',
+                message: 'Unable to connect to the server. Please check your internet connection and try again.',
+                icon: 'wifi-off',
+                actionText: 'Retry'
+            },
+            [this.ERROR_TYPES.API]: {
+                title: 'API Error',
+                message: 'The server responded with an error. Please try again later.',
+                icon: 'exclamation-triangle',
+                actionText: 'Retry'
+            },
+            [this.ERROR_TYPES.AUTH]: {
+                title: 'Authentication Error',
+                message: 'You are not authorized to perform this action. Please sign in again.',
+                icon: 'person-x',
+                actionText: 'Sign In'
+            },
+            [this.ERROR_TYPES.VALIDATION]: {
+                title: 'Validation Error',
+                message: 'Please check the form for errors and try again.',
+                icon: 'exclamation-circle',
+                actionText: 'Fix Errors'
+            },
+            [this.ERROR_TYPES.DATABASE]: {
+                title: 'Database Error',
+                message: 'An error occurred while accessing the database. Please try again later.',
+                icon: 'database-x',
+                actionText: 'Retry'
+            },
+            [this.ERROR_TYPES.TIMEOUT]: {
+                title: 'Request Timeout',
+                message: 'The request took too long to complete. Please try again later.',
+                icon: 'hourglass',
+                actionText: 'Retry'
+            },
+            [this.ERROR_TYPES.UNKNOWN]: {
+                title: 'Unexpected Error',
+                message: 'An unexpected error occurred. Please try again later.',
+                icon: 'question-circle',
+                actionText: 'Retry'
+            }
+        };
+    }
     
-    // Build error message HTML
-    let errorHtml = `
-        <div class="error-icon mb-3">
-            <i class="bi bi-${errorConfig.icon} text-danger" style="font-size: 3rem;"></i>
-        </div>
-        <h4 class="error-title mb-2">${errorConfig.title}</h4>
-        <p class="error-message text-muted mb-3">${errorConfig.message}</p>
-    `;
+    /**
+     * Get error type based on the error object
+     * @param {Error|Object} error - The error object
+     * @returns {string} - Error type
+     */
+    getErrorType(error) {
+        if (!error) return this.ERROR_TYPES.UNKNOWN;
+        
+        // Network errors
+        if (error instanceof TypeError && error.message.includes('NetworkError')) {
+            return this.ERROR_TYPES.NETWORK;
+        }
+        
+        if (error.name === 'AbortError' || error.code === 'ECONNABORTED') {
+            return this.ERROR_TYPES.TIMEOUT;
+        }
+        
+        // API errors
+        if (error.status) {
+            if (error.status === 401 || error.status === 403) {
+                return this.ERROR_TYPES.AUTH;
+            }
+            if (error.status === 422 || error.status === 400) {
+                return this.ERROR_TYPES.VALIDATION;
+            }
+            if (error.status >= 500) {
+                return this.ERROR_TYPES.API;
+            }
+        }
+        
+        // Error messages related to database
+        if (error.message && (
+            error.message.includes('database') || 
+            error.message.includes('query') || 
+            error.message.includes('SQL')
+        )) {
+            return this.ERROR_TYPES.DATABASE;
+        }
+        
+        return this.ERROR_TYPES.UNKNOWN;
+    }
     
-    // Add error details if available
-    if (error.message && error.message !== errorConfig.message) {
-        errorHtml += `
-            <div class="error-details mb-4">
+    /**
+     * Display error message in the specified container
+     * @param {string} containerId - The ID of the container to display the error
+     * @param {Error|Object} error - The error object
+     * @param {Function} retryFn - Function to call when retry button is clicked
+     */
+    showError(containerId, error, retryFn = null) {
+        const container = document.getElementById(containerId);
+        if (!container) {
+            console.error(`Error container with ID '${containerId}' not found.`);
+            return;
+        }
+        
+        // Get error type and template
+        const errorType = this.getErrorType(error);
+        const template = this.errorTemplates[errorType];
+        
+        // Create error message
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'error-message p-4 text-center';
+        
+        // Get error details for display
+        let errorDetails = '';
+        if (error) {
+            if (error.message) errorDetails += error.message + '\n';
+            if (error.stack) errorDetails += error.stack;
+            if (error.response && error.response.data) {
+                try {
+                    errorDetails += JSON.stringify(error.response.data, null, 2);
+                } catch (e) {
+                    errorDetails += String(error.response.data);
+                }
+            }
+        }
+        
+        // Create error content
+        errorMessage.innerHTML = `
+            <div class="error-icon mb-3">
+                <i class="bi bi-${template.icon} text-danger" style="font-size: 3rem;"></i>
+            </div>
+            <h4 class="error-title mb-2">${template.title}</h4>
+            <p class="error-message text-muted mb-3">${template.message}</p>
+        `;
+        
+        // Add technical details if available
+        if (errorDetails) {
+            const detailsId = `error-details-${containerId}`;
+            const detailsSection = document.createElement('div');
+            detailsSection.className = 'error-details mb-4';
+            detailsSection.innerHTML = `
                 <div class="d-grid gap-2 col-md-6 mx-auto">
-                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#${containerId}-error-details" aria-expanded="false">
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" 
+                           data-bs-target="#${detailsId}" aria-expanded="false">
                         Show Technical Details
                     </button>
                 </div>
-                <div class="collapse mt-2" id="${containerId}-error-details">
+                <div class="collapse mt-2" id="${detailsId}">
                     <div class="card card-body text-start bg-dark">
-                        <pre class="mb-0 text-danger"><code>${error.message}</code></pre>
+                        <pre class="mb-0 text-danger"><code>${errorDetails}</code></pre>
                     </div>
                 </div>
-            </div>
-        `;
-    }
-    
-    // Add action button if configured
-    if (errorConfig.action_text && errorConfig.action_url) {
-        errorHtml += `<a href="${errorConfig.action_url}" class="btn btn-primary">${errorConfig.action_text}</a>`;
-    } else if (errorConfig.retry && retryFunction) {
-        errorHtml += `<button type="button" class="btn btn-primary retry-button">Retry</button>`;
-    }
-    
-    // Set the HTML and show the error container
-    errorElement.innerHTML = errorHtml;
-    
-    // Clear the container and add the error message
-    container.innerHTML = '';
-    container.appendChild(errorElement);
-    
-    // Add event listener to retry button if present
-    const retryButton = errorElement.querySelector('.retry-button');
-    if (retryButton && retryFunction) {
-        retryButton.addEventListener('click', retryFunction);
-    }
-}
-
-/**
- * API error handling middleware for fetch requests
- * @param {Response} response - The fetch response object
- * @returns {Promise} - Returns the response if ok, otherwise throws an error
- */
-function handleApiResponse(response) {
-    if (!response.ok) {
-        // Create an error object with the appropriate type
-        const error = new Error(`HTTP error ${response.status}: ${response.statusText}`);
-        
-        // Set error name based on status code
-        if (response.status === 401 || response.status === 403) {
-            error.name = 'AUTHENTICATION_ERROR';
-        } else if (response.status === 404) {
-            error.name = 'DATA_NOT_FOUND';
-        } else if (response.status >= 500) {
-            error.name = 'SERVER_ERROR';
-        } else {
-            error.name = 'UNKNOWN_ERROR';
+            `;
+            errorMessage.appendChild(detailsSection);
         }
         
-        throw error;
+        // Add retry button if retry function provided
+        if (retryFn && typeof retryFn === 'function') {
+            const retryButton = document.createElement('button');
+            retryButton.type = 'button';
+            retryButton.className = 'btn btn-primary retry-button';
+            retryButton.textContent = template.actionText;
+            retryButton.addEventListener('click', retryFn);
+            errorMessage.appendChild(retryButton);
+        }
+        
+        // Clear container and append error message
+        container.innerHTML = '';
+        container.appendChild(errorMessage);
+        
+        // Store error in map
+        this.errorMap.set(containerId, {
+            error,
+            timestamp: new Date(),
+            type: errorType
+        });
+        
+        // Log error to console
+        console.error(`[${errorType.toUpperCase()}]`, error);
     }
     
-    return response;
+    /**
+     * Clear error message from the specified container
+     * @param {string} containerId - The ID of the container
+     */
+    clearError(containerId) {
+        const container = document.getElementById(containerId);
+        if (container) {
+            const errorMessage = container.querySelector('.error-message');
+            if (errorMessage) {
+                errorMessage.remove();
+            }
+        }
+        
+        // Remove from error map
+        this.errorMap.delete(containerId);
+    }
+    
+    /**
+     * Handle fetch request errors
+     * @param {Response} response - The fetch Response object
+     * @throws {Object} - Throws an error object with status and message
+     */
+    handleFetchResponse(response) {
+        if (!response.ok) {
+            const error = new Error(`HTTP error ${response.status}: ${response.statusText}`);
+            error.status = response.status;
+            throw error;
+        }
+        return response;
+    }
 }
 
+// Create global error handler instance
+const errorHandler = new ErrorHandler();
+
 /**
- * Enhanced fetch function with standardized error handling
+ * Fetch wrapper with error handling
  * @param {string} url - The URL to fetch
  * @param {Object} options - Fetch options
- * @param {string} errorContainerId - Optional ID of container to show errors in
- * @param {Function} retryFunction - Optional function to call when retry is clicked
- * @returns {Promise} - The fetch promise
+ * @param {string} errorContainerId - Container ID for displaying errors
+ * @returns {Promise} - Promise resolving to the JSON response
  */
-function fetchWithErrorHandling(url, options = {}, errorContainerId = null, retryFunction = null) {
-    // Show loading state if a container ID is provided
-    if (errorContainerId) {
-        const container = document.getElementById(errorContainerId);
-        if (container) {
-            // You might want to add a loading indicator here
-            container.innerHTML = '<div class="loading-container"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+async function fetchWithErrorHandling(url, options = {}, errorContainerId = null) {
+    try {
+        // Clear any previous error
+        if (errorContainerId) {
+            errorHandler.clearError(errorContainerId);
         }
-    }
-    
-    return fetch(url, options)
-        .then(handleApiResponse)
-        .then(response => response.json())
-        .catch(error => {
-            console.error('API Error:', error);
-            
-            // Determine the type of error
-            if (!navigator.onLine) {
-                error.name = 'NETWORK_ERROR';
-            } else if (error.message && error.message.includes('Zillow')) {
-                error.name = 'ZILLOW_API_ERROR';
-            } else if (error.message && error.message.includes('NARRPR')) {
-                error.name = 'NARRPR_API_ERROR';
+        
+        // Add default headers
+        const defaultOptions = {
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
             }
-            
-            // Show error message if a container ID is provided
-            if (errorContainerId) {
-                showErrorMessage(errorContainerId, error, retryFunction);
-            }
-            
-            throw error;
+        };
+        
+        // Add timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+        
+        const response = await fetch(url, {
+            ...defaultOptions,
+            ...options,
+            signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
+        
+        // Handle HTTP errors
+        errorHandler.handleFetchResponse(response);
+        
+        // Parse JSON response
+        return await response.json();
+    } catch (error) {
+        // Display error if container ID provided
+        if (errorContainerId) {
+            errorHandler.showError(errorContainerId, error, () => {
+                // Retry function
+                fetchWithErrorHandling(url, options, errorContainerId)
+                    .catch(e => console.error('Error during retry:', e));
+            });
+        }
+        
+        // Re-throw the error for caller handling
+        throw error;
+    }
 }
 
 /**
- * Global error handler for uncaught exceptions
+ * Handle form submission errors
+ * @param {HTMLFormElement} form - The form element
+ * @param {Object} validationErrors - Validation errors object (field -> error message)
  */
-window.addEventListener('error', function(event) {
-    console.error('Uncaught error:', event.error);
+function handleFormErrors(form, validationErrors) {
+    // Clear previous errors
+    form.querySelectorAll('.is-invalid').forEach(el => {
+        el.classList.remove('is-invalid');
+    });
     
-    // You could log this to your server or show a notification
-    const errorToast = document.createElement('div');
-    errorToast.className = 'toast align-items-center text-white bg-danger border-0 position-fixed bottom-0 end-0 m-3';
-    errorToast.setAttribute('role', 'alert');
-    errorToast.setAttribute('aria-live', 'assertive');
-    errorToast.setAttribute('aria-atomic', 'true');
+    form.querySelectorAll('.invalid-feedback').forEach(el => {
+        el.remove();
+    });
     
-    errorToast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                An unexpected error occurred. Please reload the page.
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-    `;
-    
-    document.body.appendChild(errorToast);
-    
-    // Initialize and show the toast
-    const toast = new bootstrap.Toast(errorToast);
-    toast.show();
-});
+    // Display new errors
+    for (const [field, message] of Object.entries(validationErrors)) {
+        const input = form.querySelector(`[name="${field}"]`);
+        if (input) {
+            input.classList.add('is-invalid');
+            
+            const feedback = document.createElement('div');
+            feedback.className = 'invalid-feedback';
+            feedback.textContent = message;
+            
+            input.parentNode.appendChild(feedback);
+        }
+    }
+}
 
-// Export the error handling utilities
-window.ErrorHandler = {
-    ErrorTypes,
-    showErrorMessage,
-    handleApiResponse,
-    fetchWithErrorHandling
-};
+// Export globals
+window.errorHandler = errorHandler;
+window.fetchWithErrorHandling = fetchWithErrorHandling;
+window.handleFormErrors = handleFormErrors;
