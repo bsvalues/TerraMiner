@@ -2204,6 +2204,7 @@ def zillow_properties():
         return redirect(url_for('index'))
 
 @app.route('/property/search', methods=['GET'])
+@app.route('/property_search', methods=['GET'])
 def property_search():
     """Search for properties based on query parameters."""
     query = request.args.get('query', '')
@@ -2266,6 +2267,7 @@ def property_search():
     )
 
 @app.route('/property/<property_id>', methods=['GET'])
+@app.route('/property_details/<property_id>', methods=['GET'])
 def property_details(property_id):
     """Display detailed information about a specific property."""
     error = None
@@ -2341,6 +2343,71 @@ def property_details(property_id):
         error=error,
         maps_api_key=maps_api_key
     )
+
+# Test route specifically for 4234 Old Milton Hwy, Walla Walla, WA property
+@app.route('/test-property-walla-walla', methods=['GET'])
+def test_property_walla_walla():
+    """Direct route to test the specific Walla Walla property."""
+    # This is our demo property - 4234 OLD MILTON HWY, WALLA WALLA
+    property = {
+        'id': 'ww42',
+        'address': '4234 OLD MILTON HWY',
+        'city': 'WALLA WALLA',
+        'state': 'Washington',
+        'zip_code': '99362',
+        'latitude': 46.0578,
+        'longitude': -118.4108,
+        'price': 789000,
+        'price_per_sqft': 325,
+        'estimated_value': 795000,
+        'bedrooms': 4,
+        'bathrooms': 3.5,
+        'sqft': 2428,
+        'property_type': 'Single Family',
+        'year_built': 1992,
+        'lot_size': '1.2 acres',
+        'status': 'active',
+        'image_url': 'https://photos.zillowstatic.com/fp/eb40ee9b33b4f73c4801e21e1cfef69d-cc_ft_1536.webp',
+        'description': '''
+            <p>Beautiful single-family home on a 1.2-acre lot with fantastic views of the Blue Mountains. This home features 4 bedrooms, 3.5 bathrooms, and 2,428 square feet of living space.</p>
+            <p>The property includes a spacious kitchen with granite countertops, stainless steel appliances, and a large island. The primary bedroom offers a walk-in closet and an en-suite bathroom with a soaking tub.</p>
+            <p>Additional features include hardwood floors throughout the main level, a finished basement, central air conditioning, and an attached two-car garage.</p>
+            <p>The backyard features a covered patio, mature landscaping, and plenty of room for outdoor activities.</p>
+        ''',
+        'features': [
+            'Hardwood floors',
+            'Granite countertops',
+            'Stainless steel appliances',
+            'Central air conditioning',
+            'Attached 2-car garage',
+            'Finished basement',
+            'Covered patio',
+            'Mountain views',
+            'Fireplace',
+            'Master suite with walk-in closet'
+        ],
+        'tax_history': [
+            {'year': 2023, 'amount': 6842, 'change': 3.2},
+            {'year': 2022, 'amount': 6630, 'change': 2.5},
+            {'year': 2021, 'amount': 6468, 'change': 1.8},
+            {'year': 2020, 'amount': 6353, 'change': 0.8}
+        ],
+        'price_history': [
+            {'date': '2025-03-15', 'price': 789000, 'event': 'Listed for sale'},
+            {'date': '2019-07-10', 'price': 678000, 'event': 'Sold'},
+            {'date': '2019-05-22', 'price': 685000, 'event': 'Listed for sale'},
+            {'date': '2012-09-18', 'price': 585000, 'event': 'Sold'}
+        ],
+        'nearby_schools': [
+            {'name': 'Edison Elementary School', 'type': 'Public, K-5', 'rating': 8, 'distance': 0.8},
+            {'name': 'Pioneer Middle School', 'type': 'Public, 6-8', 'rating': 7, 'distance': 1.2},
+            {'name': 'Walla Walla High School', 'type': 'Public, 9-12', 'rating': 6, 'distance': 2.1},
+            {'name': 'St. Patrick Catholic School', 'type': 'Private, K-8', 'rating': 9, 'distance': 1.5}
+        ]
+    }
+    
+    maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY', '')
+    return render_template('property_details.html', property=property, error=None, maps_api_key=maps_api_key)
 
 # Initialize database tables
 with app.app_context():
