@@ -896,6 +896,9 @@ def ai_integration_automation():
 @template_preference_decorator
 def monitoring_dashboard():
     """Monitoring dashboard overview page"""
+    # Check if the UI should use Tailwind
+    use_tailwind = request.args.get('ui') == 'tailwind'
+    
     # Import locally to avoid circular import issues
     from models import (
         SystemMetric, APIUsageLog, AIAgentMetrics, 
@@ -1173,6 +1176,18 @@ def monitoring_dashboard():
     except Exception as e:
         logger.warning(f"Could not retrieve property/price stats: {str(e)}")
     
+    # Create system overview data structure (used by both UI versions)
+    system_overview = {
+        'reports': report_metrics['total_scheduled'],
+        'properties': location_stats['total_properties'],
+        'active_jobs': job_metrics['total_jobs_30d'],
+        'alerts': alerts_summary['active']['total'],
+        'db_connections': database_metrics['connection_count'].metric_value if database_metrics['connection_count'] else 0,
+        'api_requests': api_metrics['total_requests_24h'],
+        'ai_requests': ai_metrics['total_requests_24h'],
+        'health_score': health_score
+    }
+    
     # Convert data for the new template's expected format
     if g.ui_template == 'unified':
         system_overview = {
@@ -1210,8 +1225,11 @@ def monitoring_dashboard():
         
         logger.debug(f"Using template for UI preference: {g.ui_template}")
         
+        # Choose template based on the UI parameter
+        template_name = 'monitoring_dashboard_tailwind.html' if use_tailwind else 'monitoring_dashboard.html'
+        
         return render_template(
-            'monitoring_dashboard.html',
+            template_name,
             alerts_summary=alerts_summary,
             system_metrics=system_metrics,
             api_metrics=api_metrics,
@@ -1231,8 +1249,11 @@ def monitoring_dashboard():
             recent_activity=recent_activity
         )
     else:
+        # Choose template based on the UI parameter
+        template_name = 'monitoring_dashboard_tailwind.html' if use_tailwind else 'monitoring_dashboard.html'
+        
         return render_template(
-            'monitoring_dashboard.html',
+            template_name,
             alerts_summary=alerts_summary,
             system_metrics=system_metrics,
             api_metrics=api_metrics,
@@ -1244,7 +1265,8 @@ def monitoring_dashboard():
             health_status=health_status,
             current_time=current_time,
             location_stats=location_stats,
-            price_stats=price_stats
+            price_stats=price_stats,
+            system_overview=system_overview
         )
     
 @app.route('/monitoring/system', methods=['GET'])
