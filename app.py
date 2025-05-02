@@ -37,13 +37,58 @@ render_template_with_fallback = init_template_middleware(app)
 # Load configuration
 config = load_config()
 
+# Utility function to safely render template with fallback
+def render_template_with_fallback(template_name, use_tailwind=False, **context):
+    """
+    Render a template with fallback to legacy version if modern version doesn't exist.
+    
+    Args:
+        template_name (str): The base template name (without _modern suffix)
+        use_tailwind (bool): Whether to try modern template first
+        **context: Template context variables
+    """
+    if use_tailwind:
+        # Construct modern template name (append _modern before extension)
+        name_parts = template_name.rsplit('.', 1)
+        modern_template = f"{name_parts[0]}_modern.{name_parts[1]}" if len(name_parts) > 1 else f"{template_name}_modern"
+        
+        try:
+            # Try to render the modern template
+            return render_template(modern_template, **context)
+        except Exception as e:
+            # Log the failure and fall back to legacy template
+            logger.debug(f"Modern template '{modern_template}' not found, using legacy template: {str(e)}")
+    
+    # Fall back to legacy template
+    return render_template(template_name, **context)
+
 # Define UI preference decorator
 def tailwind_ui_preference_decorator(view_func):
     """Decorator to set Tailwind UI as the default for modern pages"""
     @wraps(view_func)
     def wrapper(*args, **kwargs):
-        # Set Tailwind UI as default, but allow override
-        g.use_tailwind_ui = request.args.get('ui', 'tailwind') == 'tailwind'
+        # Check if there's a UI preference in the session
+        ui_preference = session.get('ui_preference', 'legacy')
+        
+        # Check if there's a UI preference in the query parameters (temporary override)
+        if request.args.get('ui') == 'modern':
+            ui_preference = 'modern'
+        elif request.args.get('ui') == 'legacy':
+            ui_preference = 'legacy'
+        
+        # Set the preference in the session if it changed
+        if session.get('ui_preference') != ui_preference:
+            session['ui_preference'] = ui_preference
+        
+        # Store the UI preference in Flask's g object for access in the view function
+        g.use_tailwind_ui = (ui_preference == 'modern')
+        
+        # Store the render helper in Flask's g object for use in the view function
+        g.render_template = render_template_with_fallback
+        
+        # Log the current UI preference for debugging
+        logger.debug(f"Current UI template preference: {ui_preference}")
+        
         return view_func(*args, **kwargs)
     return wrapper
 
@@ -1358,8 +1403,8 @@ def monitoring_system():
     """System performance monitoring page"""
     # Get UI preference from the decorator
     use_tailwind = g.use_tailwind_ui
-    template_name = 'monitoring_system_modern.html' if use_tailwind else 'monitoring_system.html'
-    return render_template(template_name)
+    # Use our fallback render function
+    return render_template_with_fallback('monitoring_system.html', use_tailwind=use_tailwind)
     
 @app.route('/monitoring/api', methods=['GET'])
 @tailwind_ui_preference_decorator
@@ -1367,8 +1412,8 @@ def monitoring_api():
     """API performance monitoring page"""
     # Get UI preference from the decorator
     use_tailwind = g.use_tailwind_ui
-    template_name = 'monitoring_api_modern.html' if use_tailwind else 'monitoring_api.html'
-    return render_template(template_name)
+    # Use our fallback render function
+    return render_template_with_fallback('monitoring_api.html', use_tailwind=use_tailwind)
 
 @app.route('/api/location/data', methods=['GET'])
 def api_location_data():
