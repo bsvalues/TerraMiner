@@ -1,6 +1,7 @@
 import os
 import logging
 from datetime import datetime, timedelta
+from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, send_file, g
 from werkzeug.middleware.proxy_fix import ProxyFix
 from sqlalchemy import text, func
@@ -35,6 +36,16 @@ render_template_with_fallback = init_template_middleware(app)
 
 # Load configuration
 config = load_config()
+
+# Define UI preference decorator
+def tailwind_ui_preference_decorator(view_func):
+    """Decorator to set Tailwind UI as the default for modern pages"""
+    @wraps(view_func)
+    def wrapper(*args, **kwargs):
+        # Set Tailwind UI as default, but allow override
+        g.use_tailwind_ui = request.args.get('ui', 'tailwind') == 'tailwind'
+        return view_func(*args, **kwargs)
+    return wrapper
 
 # Register Jinja filters
 @app.template_filter('datetime')
@@ -862,20 +873,29 @@ def ai_status():
     return jsonify(status_data)
 
 @app.route('/ai-demo')
+@tailwind_ui_preference_decorator
 def ai_demo():
     """AI capabilities demonstration page"""
-    return render_template('ai_demo.html')
+    # Get UI preference from the decorator
+    use_tailwind = g.use_tailwind_ui
+    template_name = 'ai_demo_modern.html' if use_tailwind else 'ai_demo.html'
+    return render_template(template_name)
 
 @app.route('/ai-feedback-analytics')
+@tailwind_ui_preference_decorator
 def ai_feedback_analytics():
     """AI feedback analytics dashboard"""
-    return render_template('ai_feedback_analytics.html')
-    
+    # Get UI preference from the decorator
+    use_tailwind = g.use_tailwind_ui
+    template_name = 'ai_feedback_analytics_modern.html' if use_tailwind else 'ai_feedback_analytics.html'
+    return render_template(template_name)
+
 @app.route('/ai/prompt-testing', methods=['GET', 'POST'])
+@tailwind_ui_preference_decorator
 def ai_prompt_testing():
     """AI prompt A/B testing page"""
-    # Get UI preference - use Tailwind UI by default for this page
-    use_tailwind = request.args.get('ui', 'tailwind') == 'tailwind'
+    # Get UI preference from the decorator
+    use_tailwind = g.use_tailwind_ui
     
     # Placeholder result data for testing the template
     result_a = None
@@ -928,27 +948,39 @@ def ai_prompt_testing():
     return render_template(template_name, result_a=result_a, result_b=result_b)
     
 @app.route('/ai/continuous-learning', methods=['GET'])
+@tailwind_ui_preference_decorator
 def ai_continuous_learning():
     """AI continuous learning system page"""
-    return render_template('ai_continuous_learning.html')
+    # Get UI preference from the decorator
+    use_tailwind = g.use_tailwind_ui
+    template_name = 'ai_continuous_learning_modern.html' if use_tailwind else 'ai_continuous_learning.html'
+    return render_template(template_name)
     
 @app.route('/ai/advanced-analytics', methods=['GET'])
+@tailwind_ui_preference_decorator
 def ai_advanced_analytics():
     """AI advanced analytics dashboard"""
-    return render_template('ai_advanced_analytics.html')
+    # Get UI preference from the decorator
+    use_tailwind = g.use_tailwind_ui
+    template_name = 'ai_advanced_analytics_modern.html' if use_tailwind else 'ai_advanced_analytics.html'
+    return render_template(template_name)
     
 @app.route('/ai/integration-automation', methods=['GET'])
+@tailwind_ui_preference_decorator
 def ai_integration_automation():
     """AI integration and automation configuration page"""
-    return render_template('ai_integration_automation.html')
+    # Get UI preference from the decorator
+    use_tailwind = g.use_tailwind_ui
+    template_name = 'ai_integration_automation_modern.html' if use_tailwind else 'ai_integration_automation.html'
+    return render_template(template_name)
     
 # Monitoring routes
 @app.route('/monitoring/dashboard', methods=['GET'])
-@template_preference_decorator
+@tailwind_ui_preference_decorator
 def monitoring_dashboard():
     """Monitoring dashboard overview page"""
-    # Check if the UI should use Tailwind
-    use_tailwind = request.args.get('ui') == 'tailwind'
+    # Get UI preference from the decorator 
+    use_tailwind = g.use_tailwind_ui
     
     # Import locally to avoid circular import issues
     from models import (
@@ -1321,14 +1353,22 @@ def monitoring_dashboard():
         )
     
 @app.route('/monitoring/system', methods=['GET'])
+@tailwind_ui_preference_decorator
 def monitoring_system():
     """System performance monitoring page"""
-    return render_template('monitoring_system.html')
+    # Get UI preference from the decorator
+    use_tailwind = g.use_tailwind_ui
+    template_name = 'monitoring_system_modern.html' if use_tailwind else 'monitoring_system.html'
+    return render_template(template_name)
     
 @app.route('/monitoring/api', methods=['GET'])
+@tailwind_ui_preference_decorator
 def monitoring_api():
     """API performance monitoring page"""
-    return render_template('monitoring_api.html')
+    # Get UI preference from the decorator
+    use_tailwind = g.use_tailwind_ui
+    template_name = 'monitoring_api_modern.html' if use_tailwind else 'monitoring_api.html'
+    return render_template(template_name)
 
 @app.route('/api/location/data', methods=['GET'])
 def api_location_data():
@@ -1499,10 +1539,14 @@ def api_price_trends():
         }), 500
     
 @app.route('/monitoring/database', methods=['GET'])
+@tailwind_ui_preference_decorator
 def monitoring_database():
     """Database performance monitoring page"""
     from utils.db_metrics import get_all_db_metrics
     import time
+    
+    # Get UI preference from the decorator
+    use_tailwind = g.use_tailwind_ui
     
     start_time = time.time()
     # Get real database metrics with error handling
@@ -1531,8 +1575,9 @@ def monitoring_database():
             "action": "Check database connectivity and configuration."
         }
     
+    template_name = 'monitoring_database_modern.html' if use_tailwind else 'monitoring_database.html'
     return render_template(
-        'monitoring_database.html', 
+        template_name, 
         db_metrics=db_metrics,
         error_message=error_message,
         metrics_load_time=locals().get('metrics_load_time', 0)
@@ -1567,13 +1612,21 @@ def api_database_metrics():
     return jsonify(response)
     
 @app.route('/monitoring/ai', methods=['GET'])
+@tailwind_ui_preference_decorator
 def monitoring_ai():
     """AI performance monitoring page"""
-    return render_template('monitoring_ai.html')
+    # Get UI preference from the decorator
+    use_tailwind = g.use_tailwind_ui
+    template_name = 'monitoring_ai_modern.html' if use_tailwind else 'monitoring_ai.html'
+    return render_template(template_name)
     
 @app.route('/monitoring/locations', methods=['GET'])
+@tailwind_ui_preference_decorator
 def monitoring_locations():
     """Property locations map visualization page"""
+    # Get UI preference from the decorator
+    use_tailwind = g.use_tailwind_ui
+    
     # Get available states and cities for filters
     try:
         from models import ModelsPropertyLocation
@@ -1594,7 +1647,8 @@ def monitoring_locations():
         cities = []
         location_count = 0
     
-    return render_template('monitoring_locations.html', 
+    template_name = 'monitoring_locations_modern.html' if use_tailwind else 'monitoring_locations.html'
+    return render_template(template_name, 
                           states=states,
                           cities=cities,
                           location_count=location_count)
