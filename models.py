@@ -412,7 +412,8 @@ class ReportExecution(db.Model):
     
     # Relationship with report - use string format to avoid circular import issues
     report = db.relationship('TerraMinerScheduledReport', foreign_keys=[report_id], 
-                             backref=db.backref('executions', lazy=True))
+                             backref=db.backref('executions', lazy=True),
+                             overlaps="executions,report")
     
 class ReportExecutionLog(db.Model):
     """Model for logging report execution history with more detailed information."""
@@ -431,7 +432,8 @@ class ReportExecutionLog(db.Model):
     
     # Relationship with report (if associated with a scheduled report)
     report = db.relationship('TerraMinerScheduledReport', foreign_keys=[report_id], 
-                             backref=db.backref('execution_logs', lazy=True))
+                             backref=db.backref('execution_logs', lazy=True),
+                             overlaps="execution_logs,report")
     
     def __repr__(self):
         return f"<ReportExecutionLog id={self.id} report_type={self.report_type} status={self.status}>"

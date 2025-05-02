@@ -14,8 +14,8 @@ from services.cma_service import CMAService
 # Configure logger
 logger = logging.getLogger(__name__)
 
-# Create blueprint
-cma_bp = Blueprint('cma', __name__, url_prefix='/cma')
+# Create blueprint with a unique name to avoid conflicts with the API blueprint
+cma_bp = Blueprint('cma_ui', __name__, url_prefix='/cma')
 
 # Create CMA service
 cma_service = CMAService()

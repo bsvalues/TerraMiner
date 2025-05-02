@@ -132,7 +132,8 @@ class ReportExecution(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
     
     # Relationship
-    report = db.relationship('ModelsScheduledReport', backref=db.backref('executions', lazy=True))
+    report = db.relationship('ModelsScheduledReport', backref=db.backref('executions', lazy=True),
+                             overlaps="executions,report")
     
 class ReportExecutionLog(db.Model):
     """Model for logging report execution history with more detailed information."""
@@ -150,7 +151,8 @@ class ReportExecutionLog(db.Model):
     parameters = db.Column(db.Text, nullable=True)  # JSON of parameters used for the report
     
     # Relationship with report (if associated with a scheduled report)
-    report = db.relationship('ModelsScheduledReport', backref=db.backref('execution_logs', lazy=True))
+    report = db.relationship('ModelsScheduledReport', backref=db.backref('execution_logs', lazy=True),
+                            overlaps="execution_logs,report")
 
 class ModelsPropertyLocation(db.Model):
     """Model for property location data."""
