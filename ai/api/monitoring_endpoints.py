@@ -1768,19 +1768,22 @@ def get_report_executions():
         status = request.args.get('status')
         days = request.args.get('days', default=30, type=int)
         
+        # Import models inside function to avoid circular imports
+        from models import TerraReportExecution
+        
         # Calculate start date
         start_date = datetime.now() - timedelta(days=days)
         
         # Build query
-        query = ReportExecution.query.filter(ReportExecution.execution_start >= start_date)
+        query = TerraReportExecution.query.filter(TerraReportExecution.execution_start >= start_date)
         
         if report_id:
-            query = query.filter(ReportExecution.report_id == report_id)
+            query = query.filter(TerraReportExecution.report_id == report_id)
         if status:
-            query = query.filter(ReportExecution.status == status)
+            query = query.filter(TerraReportExecution.status == status)
             
         # Execute query with order by execution_start descending (newest first)
-        executions = query.order_by(ReportExecution.execution_start.desc()).all()
+        executions = query.order_by(TerraReportExecution.execution_start.desc()).all()
         
         # Format result
         result = []
@@ -1969,7 +1972,10 @@ def get_dashboard_data():
                 alerts_by_component[component]['resolved'] += 1
         
         # Get report execution stats
-        report_executions = ReportExecution.query.filter(ReportExecution.execution_start >= start_date).all()
+        # Import renamed model
+        from models import TerraReportExecution
+        
+        report_executions = TerraReportExecution.query.filter(TerraReportExecution.execution_start >= start_date).all()
         
         total_reports = len(report_executions)
         successful_reports = sum(1 for ex in report_executions if ex.status == 'success')

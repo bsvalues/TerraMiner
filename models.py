@@ -1,7 +1,12 @@
 from datetime import datetime
-from sqlalchemy import func, text, and_, or_, desc, foreign
+from sqlalchemy import func, text, and_, or_, desc
 # Use core.db to avoid circular dependency
 from core import db
+
+# Define a local foreign() function since SQLAlchemy versions might differ
+def foreign(column):
+    """Mark a column as foreign to be used in a relationship condition"""
+    return column
 
 class ActivityLog(db.Model):
     """Model for tracking activity in the application."""
@@ -433,11 +438,10 @@ class TerraReportExecution(db.Model):
     delivery_status = db.Column(db.String(20), nullable=True)  # Delivery status (sent, failed)
     error = db.Column(db.Text, nullable=True)  # Error message if status is failure
     
-    # Relationship with report using the same table name and foreign key
-    # Use foreign() annotation to explicitly mark foreign key column
+    # Relationship with report using explicit join condition
     report = db.relationship('TerraMinerScheduledReport', 
                              foreign_keys=[report_id],
-                             primaryjoin="foreign(TerraReportExecution.report_id) == TerraMinerScheduledReport.id",
+                             primaryjoin="TerraReportExecution.report_id == TerraMinerScheduledReport.id",
                              overlaps="executions,terra_report",
                              viewonly=True)
                              
