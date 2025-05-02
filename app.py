@@ -1654,8 +1654,12 @@ def monitoring_locations():
                           location_count=location_count)
                           
 @app.route('/monitoring/price-trends', methods=['GET'])
+@tailwind_ui_preference_decorator
 def monitoring_price_trends():
     """Price trends visualization page"""
+    # Get UI preference from the decorator
+    use_tailwind = g.use_tailwind_ui
+    
     # Get available states and cities for filters
     try:
         from models import PriceTrend
@@ -1688,7 +1692,8 @@ def monitoring_price_trends():
         trend_count = 0
         city_count = 0
     
-    return render_template('monitoring_price_trends.html', 
+    template_name = 'monitoring_price_trends_modern.html' if use_tailwind else 'monitoring_price_trends.html'
+    return render_template(template_name, 
                           states=states,
                           cities=cities,
                           date_range=date_range,
@@ -1784,8 +1789,12 @@ def api_property_search():
         }), 500
 
 @app.route('/property/comparison', methods=['GET'])
+@tailwind_ui_preference_decorator
 def property_comparison():
     """One-click property comparison dashboard"""
+    # Get UI preference from the decorator
+    use_tailwind = g.use_tailwind_ui
+    
     try:
         from models import ModelsPropertyLocation
         from sqlalchemy import func
@@ -1851,7 +1860,8 @@ def property_comparison():
             else:
                 prop.price_per_sqft = None
         
-        return render_template('property_comparison.html',
+        template_name = 'property_comparison_modern.html' if use_tailwind else 'property_comparison.html'
+        return render_template(template_name,
                             property_types=property_types,
                             states=states,
                             cities=cities,
@@ -1864,7 +1874,8 @@ def property_comparison():
                             
     except Exception as e:
         logger.error(f"Error loading property comparison page: {str(e)}")
-        return render_template('property_comparison.html',
+        template_name = 'property_comparison_modern.html' if use_tailwind else 'property_comparison.html'
+        return render_template(template_name,
                             property_types=[],
                             states=[],
                             cities=[],
@@ -1877,8 +1888,12 @@ def property_comparison():
                             error=str(e))
     
 @app.route('/monitoring/alerts/active', methods=['GET'])
+@tailwind_ui_preference_decorator
 def monitoring_alerts_active():
     """Active alerts monitoring page"""
+    # Get UI preference from the decorator
+    use_tailwind = g.use_tailwind_ui
+    
     from models import MonitoringAlert
     
     # Retrieve all active alerts
@@ -1901,7 +1916,8 @@ def monitoring_alerts_active():
         else:
             alerts_by_severity['info'].append(alert)
     
-    return render_template('monitoring_alerts_active_fixed.html', 
+    template_name = 'monitoring_alerts_active_modern.html' if use_tailwind else 'monitoring_alerts_active_fixed.html'
+    return render_template(template_name, 
                           alerts=alerts,
                           alerts_by_severity=alerts_by_severity)
                           
@@ -1940,8 +1956,12 @@ def resolve_alert(alert_id):
     return redirect(url_for('monitoring_alerts_active'))
     
 @app.route('/monitoring/alerts/history', methods=['GET'])
+@tailwind_ui_preference_decorator
 def monitoring_alerts_history():
     """Alert history page"""
+    # Get UI preference from the decorator
+    use_tailwind = g.use_tailwind_ui
+    
     from models import MonitoringAlert
     
     # Get query parameters
@@ -1978,7 +1998,8 @@ def monitoring_alerts_history():
     severities = ['critical', 'error', 'warning', 'info']
     statuses = ['active', 'acknowledged', 'resolved']
     
-    return render_template('monitoring_alerts_history.html', 
+    template_name = 'monitoring_alerts_history_modern.html' if use_tailwind else 'monitoring_alerts_history.html'
+    return render_template(template_name, 
                           alerts=alerts,
                           components=components,
                           severities=severities,
@@ -1989,8 +2010,12 @@ def monitoring_alerts_history():
                           current_status=status)
     
 @app.route('/monitoring/reports/scheduled', methods=['GET'])
+@tailwind_ui_preference_decorator
 def monitoring_reports_scheduled():
     """Scheduled reports page"""
+    # Get UI preference from the decorator
+    use_tailwind = g.use_tailwind_ui
+    
     from models import ModelsScheduledReport
     import json
     
@@ -2007,7 +2032,8 @@ def monitoring_reports_scheduled():
         else:
             report.recipients_count = 0
     
-    return render_template('monitoring_reports_scheduled.html', reports=reports)
+    template_name = 'monitoring_reports_scheduled_modern.html' if use_tailwind else 'monitoring_reports_scheduled.html'
+    return render_template(template_name, reports=reports)
     
 @app.route('/monitoring/reports/create', methods=['GET', 'POST'])
 def monitoring_reports_create():
@@ -2206,8 +2232,12 @@ def monitoring_reports_delete(report_id):
     return redirect(url_for('monitoring_reports_scheduled'))
     
 @app.route('/monitoring/reports/history', methods=['GET'])
+@tailwind_ui_preference_decorator
 def monitoring_reports_history():
     """Report execution history page"""
+    # Get UI preference from the decorator
+    use_tailwind = g.use_tailwind_ui
+    
     from models import ReportExecutionLog
     from datetime import datetime, timedelta
     
@@ -2251,8 +2281,9 @@ def monitoring_reports_history():
         total_seconds = sum((log.completion_time - log.execution_time).total_seconds() for log in successful_logs if log.completion_time)
         avg_execution_time = total_seconds / len(successful_logs) if successful_logs else None
     
+    template_name = 'monitoring_reports_history_modern.html' if use_tailwind else 'monitoring_reports_history.html'
     return render_template(
-        'monitoring_reports_history.html', 
+        template_name, 
         logs=logs,
         report_types=report_types,
         statuses=statuses,
@@ -2266,8 +2297,12 @@ def monitoring_reports_history():
     )
 
 @app.route('/ai/reports/settings', methods=['GET', 'POST'])
+@tailwind_ui_preference_decorator
 def ai_report_settings():
     """AI feedback report settings page"""
+    # Get UI preference from the decorator
+    use_tailwind = g.use_tailwind_ui
+    
     from models import AIFeedbackReportSettings
     import json
     
@@ -2333,7 +2368,8 @@ def ai_report_settings():
             # If there's an error parsing JSON, leave it empty
             pass
     
-    return render_template('ai_report_settings.html', settings=settings, additional_recipients=additional_recipients)
+    template_name = 'ai_report_settings_modern.html' if use_tailwind else 'ai_report_settings.html'
+    return render_template(template_name, settings=settings, additional_recipients=additional_recipients)
 
 @app.route('/api/ai/feedback/report/settings', methods=['GET'])
 def get_ai_report_settings():
