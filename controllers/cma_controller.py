@@ -60,7 +60,7 @@ def cma_generator():
             
             # Redirect to report page
             flash('CMA report generated successfully', 'success')
-            return redirect(url_for('cma.view_report', report_id=report_id))
+            return redirect(url_for('cma_ui.view_report', report_id=report_id))
             
         except Exception as e:
             logger.exception(f"Error generating CMA report: {str(e)}")
@@ -90,12 +90,12 @@ def view_report(report_id):
         
     except ValueError as e:
         flash(f"Report not found: {str(e)}", 'error')
-        return redirect(url_for('cma.list_reports'))
+        return redirect(url_for('cma_ui.list_reports'))
         
     except Exception as e:
         logger.exception(f"Error viewing CMA report: {str(e)}")
         flash(f"Error viewing CMA report: {str(e)}", 'error')
-        return redirect(url_for('cma.list_reports'))
+        return redirect(url_for('cma_ui.list_reports'))
 
 @cma_bp.route('/reports/<int:report_id>/delete', methods=['POST'])
 def delete_report(report_id):
@@ -110,15 +110,25 @@ def delete_report(report_id):
             flash('Report not found', 'error')
         
         # Redirect to reports list
-        return redirect(url_for('cma.list_reports'))
+        return redirect(url_for('cma_ui.list_reports'))
         
     except Exception as e:
         logger.exception(f"Error deleting CMA report: {str(e)}")
         flash(f"Error deleting CMA report: {str(e)}", 'error')
-        return redirect(url_for('cma.list_reports'))
+        return redirect(url_for('cma_ui.list_reports'))
 
 # Function to register blueprint with Flask app
 def register_cma_blueprint(app):
     """Register the CMA blueprint with the Flask app."""
-    app.register_blueprint(cma_bp)
-    logger.info("Registered CMA controller blueprint")
+    try:
+        # Import here to avoid circular imports
+        from core import register_blueprint_once
+        
+        # Register blueprint only once
+        if register_blueprint_once(app, cma_bp):
+            logger.info("CMA controller registered successfully")
+        else:
+            logger.info("CMA controller was already registered")
+    except Exception as e:
+        # If there's an error with the blueprint registration, log it
+        logger.warning(f"CMA controller blueprint registration issue: {str(e)}")

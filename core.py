@@ -3,8 +3,10 @@ Core application components to avoid circular dependencies.
 """
 import os
 import logging
+from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Initialize logger
 logging.basicConfig(
@@ -19,6 +21,39 @@ class Base(DeclarativeBase):
 
 # Create SQLAlchemy instance
 db = SQLAlchemy(model_class=Base)
+
+# Blueprint registry to track registered blueprints
+registered_blueprints = set()
+
+def register_blueprint_once(app, blueprint, name=None):
+    """
+    Register a blueprint only once to avoid duplicate registrations.
+    
+    Args:
+        app: Flask application instance
+        blueprint: Blueprint to register
+        name: Optional name override for the blueprint
+    
+    Returns:
+        bool: True if registration was successful, False if already registered
+    """
+    blueprint_id = name or blueprint.name
+    
+    if blueprint_id in registered_blueprints:
+        logger.warning(f"Blueprint '{blueprint_id}' already registered, skipping")
+        return False
+    
+    try:
+        if name:
+            app.register_blueprint(blueprint, name=name)
+        else:
+            app.register_blueprint(blueprint)
+        registered_blueprints.add(blueprint_id)
+        logger.info(f"Registered blueprint: {blueprint_id}")
+        return True
+    except Exception as e:
+        logger.warning(f"Failed to register blueprint '{blueprint_id}': {str(e)}")
+        return False
 
 # ETL workflow function moved from main.py to break circular dependency
 def run_etl_workflow(scrape_options=None):

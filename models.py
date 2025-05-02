@@ -1,5 +1,7 @@
 from datetime import datetime
-from app import db
+from sqlalchemy import func, text, and_, or_, desc, foreign
+# Use core.db to avoid circular dependency
+from core import db
 
 class ActivityLog(db.Model):
     """Model for tracking activity in the application."""
@@ -394,11 +396,32 @@ class TerraMinerScheduledReport(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
     
+    # Define relationships with our renamed classes and use explicit foreign keys with viewonly mode
+    executions = db.relationship(
+        'TerraReportExecution',
+        foreign_keys="TerraReportExecution.report_id",
+        primaryjoin="TerraMinerScheduledReport.id == TerraReportExecution.report_id",
+        backref=db.backref('terra_report', lazy=True),
+        overlaps="executions,terra_report",
+        viewonly=True  # Set to viewonly to avoid bidirectional issues
+    )
+                                
+    # Define relationship with explicit foreign key and viewonly mode
+    execution_logs = db.relationship(
+        'TerraReportExecutionLog',
+        foreign_keys="TerraReportExecutionLog.report_id",
+        primaryjoin="TerraMinerScheduledReport.id == TerraReportExecutionLog.report_id",
+        backref=db.backref('terra_report', lazy=True),
+        overlaps="execution_logs,terra_report",
+        viewonly=True  # Set to viewonly to avoid bidirectional issues
+    )
+    
     def __repr__(self):
         return f"<TerraMinerScheduledReport id={self.id} name={self.name} type={self.report_type}>"
         
-class ReportExecution(db.Model):
+class TerraReportExecution(db.Model):
     """Model for tracking report execution history."""
+    __tablename__ = 'report_execution'
     __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
@@ -410,13 +433,20 @@ class ReportExecution(db.Model):
     delivery_status = db.Column(db.String(20), nullable=True)  # Delivery status (sent, failed)
     error = db.Column(db.Text, nullable=True)  # Error message if status is failure
     
-    # Relationship with report - use string format to avoid circular import issues
-    report = db.relationship('TerraMinerScheduledReport', foreign_keys=[report_id], 
-                             backref=db.backref('executions', lazy=True),
-                             overlaps="executions,report")
+    # Relationship with report using the same table name and foreign key
+    # Use foreign() annotation to explicitly mark foreign key column
+    report = db.relationship('TerraMinerScheduledReport', 
+                             foreign_keys=[report_id],
+                             primaryjoin="foreign(TerraReportExecution.report_id) == TerraMinerScheduledReport.id",
+                             overlaps="executions,terra_report",
+                             viewonly=True)
+                             
+    def __repr__(self):
+        return f"<TerraReportExecution id={self.id} report_id={self.report_id} status={self.status}>"
     
-class ReportExecutionLog(db.Model):
+class TerraReportExecutionLog(db.Model):
     """Model for logging report execution history with more detailed information."""
+    __tablename__ = 'report_execution_log'
     __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
@@ -430,13 +460,15 @@ class ReportExecutionLog(db.Model):
     error_message = db.Column(db.Text, nullable=True)  # Error message if status is 'error'
     parameters = db.Column(db.Text, nullable=True)  # JSON of parameters used for the report
     
-    # Relationship with report (if associated with a scheduled report)
-    report = db.relationship('TerraMinerScheduledReport', foreign_keys=[report_id], 
-                             backref=db.backref('execution_logs', lazy=True),
-                             overlaps="execution_logs,report")
+    # Relationship with report using the same table name and foreign key with explicit foreign annotation
+    report = db.relationship('TerraMinerScheduledReport', 
+                             foreign_keys=[report_id],
+                             primaryjoin="foreign(TerraReportExecutionLog.report_id) == TerraMinerScheduledReport.id",
+                             overlaps="execution_logs,terra_report",
+                             viewonly=True)
     
     def __repr__(self):
-        return f"<ReportExecutionLog id={self.id} report_type={self.report_type} status={self.status}>"
+        return f"<TerraReportExecutionLog id={self.id} report_type={self.report_type} status={self.status}>"
         
 class NarrprReports(db.Model):
     """Model for storing NARRPR property reports."""
