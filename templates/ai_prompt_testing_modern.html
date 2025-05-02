@@ -1,0 +1,349 @@
+{% extends "unified_base.html" %}
+
+{% block title %}TerraMiner - AI Prompt A/B Testing{% endblock %}
+
+{% block additional_head %}
+<!-- Alpine.js for dynamic interactions -->
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.12.0/dist/cdn.min.js" defer></script>
+<!-- JSON formatter for pretty response display -->
+<script src="https://cdn.jsdelivr.net/npm/json-formatter-js@2.3.4/dist/json-formatter.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6 space-y-8">
+  <div class="flex items-center justify-between">
+    <h1 class="text-3xl font-semibold text-gray-900 dark:text-white">🧪 AI Prompt A/B Testing</h1>
+    <div class="flex space-x-3">
+      <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+        </svg>
+        New Test
+      </span>
+      <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+        </svg>
+        History
+      </span>
+    </div>
+  </div>
+
+  <!-- Experiment Setup -->
+  <div class="bg-white dark:bg-gray-800 shadow rounded-xl p-6 space-y-4" x-data="{ loading: false }">
+    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Create New A/B Test</h2>
+    <form class="space-y-4" id="create-ab-test-form" method="POST" action="{{ url_for('ai_prompt_testing') }}">
+      <div>
+        <label for="agent-type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Agent Type</label>
+        <select id="agent-type" name="agent_type" class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm">
+          <option value="summarizer">Text Summarizer</option>
+          <option value="market_analyzer">Market Analyzer</option>
+          <option value="recommender">Property Recommender</option>
+          <option value="nl_search">Natural Language Search</option>
+          <option value="comparison">Property Comparison</option>
+        </select>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="original-prompt" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Prompt A</label>
+          <textarea id="original-prompt" name="original_prompt" rows="5" placeholder="Enter your baseline prompt here..."
+            class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm"></textarea>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Standard formulation (baseline)</p>
+        </div>
+        <div>
+          <label for="variant-prompt" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Prompt B</label>
+          <textarea id="variant-prompt" name="variant_prompt" rows="5" placeholder="Enter your alternative prompt here..."
+            class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm"></textarea>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Alternative formulation (test)</p>
+        </div>
+      </div>
+
+      <div>
+        <label for="test-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Test Input</label>
+        <textarea id="test-input" name="test_input" rows="3" placeholder="Enter sample data for the prompts to process..."
+          class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm"></textarea>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Sample data for prompts to process (e.g., property details, market data)</p>
+      </div>
+
+      <div class="flex justify-between items-center pt-2">
+        <div class="flex space-x-4">
+          <div class="flex items-center">
+            <input id="use-gpt4" name="use_gpt4" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
+            <label for="use-gpt4" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">Use GPT-4</label>
+          </div>
+          <div class="flex items-center">
+            <input id="save-results" name="save_results" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded" checked>
+            <label for="save-results" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">Save Results</label>
+          </div>
+        </div>
+        <button type="submit" x-on:click="loading = true"
+          class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md shadow-sm disabled:opacity-50"
+          x-bind:disabled="loading">
+          <svg x-show="loading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span x-show="!loading">🚀 Run A/B Test</span>
+          <span x-show="loading">Processing...</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Results Panel -->
+  <div class="grid md:grid-cols-2 gap-6" x-data="{ viewMode: 'formatted' }">
+    <!-- Response A -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow overflow-hidden">
+      <div class="bg-blue-50 dark:bg-blue-900 p-3 border-b border-blue-100 dark:border-blue-800 flex justify-between items-center">
+        <h3 class="text-md font-semibold text-blue-800 dark:text-blue-200">Response A (Baseline)</h3>
+        <div class="flex space-x-2">
+          <button @click="viewMode = 'formatted'" class="text-xs px-2 py-1 rounded" :class="viewMode === 'formatted' ? 'bg-blue-200 dark:bg-blue-700 text-blue-800 dark:text-blue-200' : 'text-blue-600 dark:text-blue-400'">Formatted</button>
+          <button @click="viewMode = 'raw'" class="text-xs px-2 py-1 rounded" :class="viewMode === 'raw' ? 'bg-blue-200 dark:bg-blue-700 text-blue-800 dark:text-blue-200' : 'text-blue-600 dark:text-blue-400'">Raw</button>
+          <button @click="viewMode = 'tokens'" class="text-xs px-2 py-1 rounded" :class="viewMode === 'tokens' ? 'bg-blue-200 dark:bg-blue-700 text-blue-800 dark:text-blue-200' : 'text-blue-600 dark:text-blue-400'">Tokens</button>
+        </div>
+      </div>
+      <div class="p-4">
+        <div class="flex flex-wrap gap-2 mb-3">
+          {% if result_a and result_a.metadata %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+              ⏱️ {{ result_a.metadata.time_taken|default('?') }}ms
+            </span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+              🔤 {{ result_a.metadata.token_count|default('?') }} tokens
+            </span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+              📈 {{ result_a.metadata.quality_score|default('?') }}% quality
+            </span>
+          {% endif %}
+        </div>
+        <div x-show="viewMode === 'formatted'" class="bg-gray-50 dark:bg-gray-700 p-3 rounded border border-gray-200 dark:border-gray-600 overflow-auto max-h-96">
+          {% if result_a %}
+            <div id="response-a-formatted" class="prose dark:prose-invert prose-sm max-w-none">
+              {{ result_a.content|safe if result_a.content else 'No response content available.' }}
+            </div>
+          {% else %}
+            <div class="text-gray-500 dark:text-gray-400 italic">Awaiting execution...</div>
+          {% endif %}
+        </div>
+        <div x-show="viewMode === 'raw'" class="bg-gray-50 dark:bg-gray-700 p-3 rounded border border-gray-200 dark:border-gray-600 overflow-auto max-h-96">
+          {% if result_a %}
+            <pre class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{{ result_a.raw|default('No raw response available.') }}</pre>
+          {% else %}
+            <div class="text-gray-500 dark:text-gray-400 italic">Awaiting execution...</div>
+          {% endif %}
+        </div>
+        <div x-show="viewMode === 'tokens'" class="bg-gray-50 dark:bg-gray-700 p-3 rounded border border-gray-200 dark:border-gray-600 overflow-auto max-h-96">
+          {% if result_a and result_a.metadata and result_a.metadata.tokens %}
+            <div class="text-sm text-gray-800 dark:text-gray-200">
+              {% for token in result_a.metadata.tokens %}
+                <span class="inline-block px-1 py-0.5 m-0.5 rounded bg-gray-200 dark:bg-gray-600 text-xs">{{ token }}</span>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-gray-500 dark:text-gray-400 italic">No token data available.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Response B -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow overflow-hidden">
+      <div class="bg-green-50 dark:bg-green-900 p-3 border-b border-green-100 dark:border-green-800 flex justify-between items-center">
+        <h3 class="text-md font-semibold text-green-800 dark:text-green-200">Response B (Test Variant)</h3>
+        <div class="flex space-x-2">
+          <button @click="viewMode = 'formatted'" class="text-xs px-2 py-1 rounded" :class="viewMode === 'formatted' ? 'bg-green-200 dark:bg-green-700 text-green-800 dark:text-green-200' : 'text-green-600 dark:text-green-400'">Formatted</button>
+          <button @click="viewMode = 'raw'" class="text-xs px-2 py-1 rounded" :class="viewMode === 'raw' ? 'bg-green-200 dark:bg-green-700 text-green-800 dark:text-green-200' : 'text-green-600 dark:text-green-400'">Raw</button>
+          <button @click="viewMode = 'tokens'" class="text-xs px-2 py-1 rounded" :class="viewMode === 'tokens' ? 'bg-green-200 dark:bg-green-700 text-green-800 dark:text-green-200' : 'text-green-600 dark:text-green-400'">Tokens</button>
+        </div>
+      </div>
+      <div class="p-4">
+        <div class="flex flex-wrap gap-2 mb-3">
+          {% if result_b and result_b.metadata %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+              ⏱️ {{ result_b.metadata.time_taken|default('?') }}ms
+            </span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+              🔤 {{ result_b.metadata.token_count|default('?') }} tokens
+            </span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+              📈 {{ result_b.metadata.quality_score|default('?') }}% quality
+            </span>
+          {% endif %}
+        </div>
+        <div x-show="viewMode === 'formatted'" class="bg-gray-50 dark:bg-gray-700 p-3 rounded border border-gray-200 dark:border-gray-600 overflow-auto max-h-96">
+          {% if result_b %}
+            <div id="response-b-formatted" class="prose dark:prose-invert prose-sm max-w-none">
+              {{ result_b.content|safe if result_b.content else 'No response content available.' }}
+            </div>
+          {% else %}
+            <div class="text-gray-500 dark:text-gray-400 italic">Awaiting execution...</div>
+          {% endif %}
+        </div>
+        <div x-show="viewMode === 'raw'" class="bg-gray-50 dark:bg-gray-700 p-3 rounded border border-gray-200 dark:border-gray-600 overflow-auto max-h-96">
+          {% if result_b %}
+            <pre class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{{ result_b.raw|default('No raw response available.') }}</pre>
+          {% else %}
+            <div class="text-gray-500 dark:text-gray-400 italic">Awaiting execution...</div>
+          {% endif %}
+        </div>
+        <div x-show="viewMode === 'tokens'" class="bg-gray-50 dark:bg-gray-700 p-3 rounded border border-gray-200 dark:border-gray-600 overflow-auto max-h-96">
+          {% if result_b and result_b.metadata and result_b.metadata.tokens %}
+            <div class="text-sm text-gray-800 dark:text-gray-200">
+              {% for token in result_b.metadata.tokens %}
+                <span class="inline-block px-1 py-0.5 m-0.5 rounded bg-gray-200 dark:bg-gray-600 text-xs">{{ token }}</span>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-gray-500 dark:text-gray-400 italic">No token data available.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comparison Analysis (appears only when both results are available) -->
+  {% if result_a and result_b %}
+  <div class="bg-white dark:bg-gray-800 shadow rounded-xl overflow-hidden">
+    <div class="bg-purple-50 dark:bg-purple-900 p-3 border-b border-purple-100 dark:border-purple-800">
+      <h3 class="text-md font-semibold text-purple-800 dark:text-purple-200">Comparison Analysis</h3>
+    </div>
+    <div class="p-4 space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div class="space-y-2">
+          <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Response Time</h4>
+          <div class="flex items-center">
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+              {% if result_a.metadata and result_b.metadata %}
+                {% set time_a = result_a.metadata.time_taken|default(0)|int %}
+                {% set time_b = result_b.metadata.time_taken|default(0)|int %}
+                {% if time_a > 0 and time_b > 0 %}
+                  {% set max_time = [time_a, time_b]|max %}
+                  {% set time_a_percent = (time_a / max_time * 100)|round|int %}
+                  {% set time_b_percent = (time_b / max_time * 100)|round|int %}
+                  <div class="bg-blue-600 h-2.5 rounded-full" style="width: {{ time_a_percent }}%"></div>
+                {% endif %}
+              {% endif %}
+            </div>
+            <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">{{ result_a.metadata.time_taken|default('?') }}ms</span>
+          </div>
+          <div class="flex items-center">
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+              {% if result_a.metadata and result_b.metadata %}
+                {% if time_a > 0 and time_b > 0 %}
+                  <div class="bg-green-600 h-2.5 rounded-full" style="width: {{ time_b_percent }}%"></div>
+                {% endif %}
+              {% endif %}
+            </div>
+            <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">{{ result_b.metadata.time_taken|default('?') }}ms</span>
+          </div>
+        </div>
+        <div class="space-y-2">
+          <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Token Usage</h4>
+          <div class="flex items-center">
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+              {% if result_a.metadata and result_b.metadata %}
+                {% set tokens_a = result_a.metadata.token_count|default(0)|int %}
+                {% set tokens_b = result_b.metadata.token_count|default(0)|int %}
+                {% if tokens_a > 0 and tokens_b > 0 %}
+                  {% set max_tokens = [tokens_a, tokens_b]|max %}
+                  {% set tokens_a_percent = (tokens_a / max_tokens * 100)|round|int %}
+                  {% set tokens_b_percent = (tokens_b / max_tokens * 100)|round|int %}
+                  <div class="bg-blue-600 h-2.5 rounded-full" style="width: {{ tokens_a_percent }}%"></div>
+                {% endif %}
+              {% endif %}
+            </div>
+            <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">{{ result_a.metadata.token_count|default('?') }} tokens</span>
+          </div>
+          <div class="flex items-center">
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+              {% if result_a.metadata and result_b.metadata %}
+                {% if tokens_a > 0 and tokens_b > 0 %}
+                  <div class="bg-green-600 h-2.5 rounded-full" style="width: {{ tokens_b_percent }}%"></div>
+                {% endif %}
+              {% endif %}
+            </div>
+            <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">{{ result_b.metadata.token_count|default('?') }} tokens</span>
+          </div>
+        </div>
+      </div>
+      <div class="pt-2">
+        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Key Differences</h4>
+        <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded border border-gray-200 dark:border-gray-600">
+          <ul class="list-disc list-inside text-sm text-gray-800 dark:text-gray-200 space-y-1">
+            {% if result_a.metadata and result_b.metadata and result_a.metadata.differences %}
+              {% for diff in result_a.metadata.differences %}
+                <li>{{ diff }}</li>
+              {% endfor %}
+            {% else %}
+              <li class="text-gray-500 dark:text-gray-400 italic">Automatic difference analysis not available.</li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+      <div class="pt-2 flex justify-end">
+        <button type="button" class="inline-flex items-center px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-md shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          Save as Winner
+        </button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Handle form submission with AJAX (optional enhancement)
+    const form = document.getElementById('create-ab-test-form');
+    
+    // Example data for demonstration purposes
+    const examplePrompts = {
+      summarizer: {
+        promptA: "Summarize the following property details into a concise single paragraph highlighting the key selling points.",
+        promptB: "Create a brief but comprehensive summary of this real estate listing, emphasizing unique features and neighborhood benefits.",
+        input: "4 bedroom, 3 bathroom single-family home in Westlake neighborhood. Built in 2005, recently renovated kitchen with granite countertops and stainless steel appliances. Hardwood floors throughout, large backyard with deck and built-in BBQ. Attached 2-car garage, zoned for top-rated Westlake Elementary. Walking distance to Westlake Village and major shopping center. Listed at $875,000."
+      },
+      market_analyzer: {
+        promptA: "Analyze these market trends and explain what they mean for property values in the area.",
+        promptB: "Interpret the following real estate market data and provide actionable insights for investors considering this market.",
+        input: "Q1 2023 data for Phoenix metro area: Median home price $425,000 (up 3.2% YoY but down 1.8% QoQ). Average days on market 45 (up from 22 last year). Housing inventory 2.3 months (up from 0.9 last year). New construction permits down 15% YoY. Mortgage rates currently at 6.5% for 30-year fixed. Rental vacancy rate 4.2% with average rents up 5.1% YoY."
+      },
+      recommender: {
+        promptA: "Based on the client's preferences, recommend 3 properties they might be interested in viewing.",
+        promptB: "Considering the client's needs and preferences, suggest 3 properties that would be good matches, explaining why each one would appeal to them.",
+        input: "Client profile: Couple in their mid-30s with one child (age 3) and another on the way. Budget $650K-$750K. Priorities: good school district, minimum 3 bedrooms, yard space for kids, relatively modern kitchen, prefer to avoid major renovations. Need home office space for remote work. Location preference for south side of town near the tech corridor. Would like community amenities like parks and pools."
+      }
+    };
+    
+    // Populate example data when agent type changes
+    const agentSelect = document.getElementById('agent-type');
+    agentSelect.addEventListener('change', function() {
+      const exampleData = examplePrompts[this.value];
+      if (exampleData) {
+        document.getElementById('original-prompt').value = exampleData.promptA;
+        document.getElementById('variant-prompt').value = exampleData.promptB;
+        document.getElementById('test-input').value = exampleData.input;
+      }
+    });
+    
+    // Initialize with default example
+    if (agentSelect && agentSelect.value && examplePrompts[agentSelect.value]) {
+      const defaultExample = examplePrompts[agentSelect.value];
+      if (document.getElementById('original-prompt').value === '') {
+        document.getElementById('original-prompt').value = defaultExample.promptA;
+      }
+      if (document.getElementById('variant-prompt').value === '') {
+        document.getElementById('variant-prompt').value = defaultExample.promptB;
+      }
+      if (document.getElementById('test-input').value === '') {
+        document.getElementById('test-input').value = defaultExample.input;
+      }
+    }
+  });
+</script>
+{% endblock %}

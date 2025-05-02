@@ -871,10 +871,61 @@ def ai_feedback_analytics():
     """AI feedback analytics dashboard"""
     return render_template('ai_feedback_analytics.html')
     
-@app.route('/ai/prompt-testing', methods=['GET'])
+@app.route('/ai/prompt-testing', methods=['GET', 'POST'])
 def ai_prompt_testing():
     """AI prompt A/B testing page"""
-    return render_template('ai_prompt_testing.html')
+    # Get UI preference - use Tailwind UI by default for this page
+    use_tailwind = request.args.get('ui', 'tailwind') == 'tailwind'
+    
+    # Placeholder result data for testing the template
+    result_a = None
+    result_b = None
+    
+    # Check if we have form data for processing
+    if request.method == 'POST':
+        # Extract form data
+        agent_type = request.form.get('agent_type')
+        prompt_a = request.form.get('original_prompt')
+        prompt_b = request.form.get('variant_prompt')
+        test_input = request.form.get('test_input')
+        use_gpt4 = 'use_gpt4' in request.form
+        save_results = 'save_results' in request.form
+        
+        # Initialize AI module
+        try:
+            from ai.prompt_testing import run_prompt_comparison, save_prompt_comparison
+            
+            # Run the comparison with proper timeout handling
+            results = run_prompt_comparison(
+                agent_type=agent_type,
+                prompt_a=prompt_a,
+                prompt_b=prompt_b,
+                test_input=test_input,
+                use_gpt4=use_gpt4
+            )
+            
+            # Extract results
+            result_a = results.get('result_a')
+            result_b = results.get('result_b')
+            
+            # Save results if requested
+            if save_results:
+                save_prompt_comparison(
+                    agent_type=agent_type,
+                    prompt_a=prompt_a,
+                    prompt_b=prompt_b,
+                    result_a=result_a,
+                    result_b=result_b
+                )
+                
+        except Exception as e:
+            logger.error(f"Error during prompt testing: {str(e)}")
+            flash(f"Error processing prompts: {str(e)}", "error")
+    
+    # Choose the appropriate template based on UI preference
+    template_name = 'ai_prompt_testing_modern.html' if use_tailwind else 'ai_prompt_testing.html'
+    
+    return render_template(template_name, result_a=result_a, result_b=result_b)
     
 @app.route('/ai/continuous-learning', methods=['GET'])
 def ai_continuous_learning():
