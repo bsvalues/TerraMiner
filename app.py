@@ -3,6 +3,7 @@ import logging
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, send_file, g
 from werkzeug.middleware.proxy_fix import ProxyFix
+from sqlalchemy import text, func
 from etl.narrpr_scraper import NarrprScraper
 from db.database import save_to_database, Database
 from utils.logger import setup_logger
@@ -912,92 +913,158 @@ def monitoring_dashboard():
     last_7d = now - timedelta(days=7)
     last_30d = now - timedelta(days=30)
     
-    # Get alert metrics
+    # Get alert metrics - optimized using a single query for counts
+    alerts_counts_query = text("""
+        SELECT 
+            SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_total,
+            SUM(CASE WHEN status = 'active' AND severity = 'critical' THEN 1 ELSE 0 END) as active_critical,
+            SUM(CASE WHEN status = 'active' AND severity = 'error' THEN 1 ELSE 0 END) as active_error,
+            SUM(CASE WHEN status = 'active' AND severity = 'warning' THEN 1 ELSE 0 END) as active_warning,
+            SUM(CASE WHEN status = 'active' AND severity = 'info' THEN 1 ELSE 0 END) as active_info,
+            SUM(CASE WHEN created_at >= :last_24h THEN 1 ELSE 0 END) as last_24h_count,
+            SUM(CASE WHEN created_at >= :last_7d THEN 1 ELSE 0 END) as last_7d_count
+        FROM monitoring_alert
+    """)
+    
+    alerts_counts = db.session.execute(alerts_counts_query, {
+        'last_24h': last_24h,
+        'last_7d': last_7d
+    }).fetchone()
+    
+    # Get latest alerts - still need a separate query
+    latest_alerts = MonitoringAlert.query.order_by(MonitoringAlert.created_at.desc()).limit(5).all()
+    
+    # Construct the alerts summary dictionary
     alerts_summary = {
         'active': {
-            'total': MonitoringAlert.query.filter_by(status='active').count(),
-            'critical': MonitoringAlert.query.filter_by(status='active', severity='critical').count(),
-            'error': MonitoringAlert.query.filter_by(status='active', severity='error').count(),
-            'warning': MonitoringAlert.query.filter_by(status='active', severity='warning').count(),
-            'info': MonitoringAlert.query.filter_by(status='active', severity='info').count(),
+            'total': alerts_counts.active_total or 0,
+            'critical': alerts_counts.active_critical or 0,
+            'error': alerts_counts.active_error or 0,
+            'warning': alerts_counts.active_warning or 0,
+            'info': alerts_counts.active_info or 0,
         },
-        'latest': MonitoringAlert.query.order_by(MonitoringAlert.created_at.desc()).limit(5).all(),
-        'last_24h': MonitoringAlert.query.filter(MonitoringAlert.created_at >= last_24h).count(),
-        'last_7d': MonitoringAlert.query.filter(MonitoringAlert.created_at >= last_7d).count(),
+        'latest': latest_alerts,
+        'last_24h': alerts_counts.last_24h_count or 0,
+        'last_7d': alerts_counts.last_7d_count or 0,
     }
     
-    # Get system metrics
+    # Get system metrics - optimized to reduce the number of queries
+    # First, get all the latest metrics we need in a single query
+    metric_names = ['cpu_percent', 'memory_percent', 'disk_percent', 'db_connection_count', 'db_query_time_avg']
+    latest_metrics = {}
+    
+    # Get the latest values for each metric in a single query using a window function
+    # This replaces multiple individual queries with a single optimized query
+    metrics_query = text("""
+        WITH ranked_metrics AS (
+            SELECT 
+                id, metric_name, metric_value, metric_unit, component, timestamp,
+                ROW_NUMBER() OVER (PARTITION BY metric_name, component ORDER BY timestamp DESC) as rn
+            FROM system_metric
+            WHERE (component = 'system' AND metric_name IN :system_metrics)
+               OR (component = 'database' AND metric_name IN :db_metrics)
+        )
+        SELECT id, metric_name, metric_value, metric_unit, component, timestamp
+        FROM ranked_metrics
+        WHERE rn = 1
+    """)
+    
+    metrics_result = db.session.execute(
+        metrics_query, 
+        {
+            'system_metrics': tuple(['cpu_percent', 'memory_percent', 'disk_percent']),
+            'db_metrics': tuple(['db_connection_count', 'db_query_time_avg'])
+        }
+    ).fetchall()
+    
+    # Organize the results
+    for row in metrics_result:
+        latest_metrics[(row.component, row.metric_name)] = row
+    
+    # Get the latest 10 system metrics in a separate query (still needed for the timeline)
+    latest_system_metrics = SystemMetric.query.filter_by(
+        component='system'
+    ).order_by(SystemMetric.timestamp.desc()).limit(10).all()
+    
     system_metrics = {
-        'latest': SystemMetric.query.filter_by(
-            component='system'
-        ).order_by(SystemMetric.timestamp.desc()).limit(10).all(),
+        'latest': latest_system_metrics,
         'performance': {
-            'cpu': SystemMetric.query.filter_by(
-                metric_name='cpu_percent', 
-                component='system'
-            ).order_by(SystemMetric.timestamp.desc()).first(),
-            'memory': SystemMetric.query.filter_by(
-                metric_name='memory_percent', 
-                component='system'
-            ).order_by(SystemMetric.timestamp.desc()).first(),
-            'disk': SystemMetric.query.filter_by(
-                metric_name='disk_percent', 
-                component='system'
-            ).order_by(SystemMetric.timestamp.desc()).first(),
+            'cpu': latest_metrics.get(('system', 'cpu_percent')),
+            'memory': latest_metrics.get(('system', 'memory_percent')),
+            'disk': latest_metrics.get(('system', 'disk_percent')),
         }
     }
     
-    # Get API metrics
+    # Get API metrics - Now using a single query with aggregates instead of multiple queries
+    api_metrics_query = text("""
+        SELECT 
+            COUNT(*) as total_requests,
+            COALESCE(AVG(response_time), 0) as avg_response_time,
+            COALESCE((SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0)), 0) as error_rate
+        FROM api_usage_log
+        WHERE timestamp >= :last_24h
+    """)
+    
+    api_result = db.session.execute(api_metrics_query, {'last_24h': last_24h}).fetchone()
+    
     api_metrics = {
-        'total_requests_24h': APIUsageLog.query.filter(
-            APIUsageLog.timestamp >= last_24h
-        ).count(),
-        'error_rate_24h': db.session.query(
-            func.cast(
-                func.count(APIUsageLog.id).filter(APIUsageLog.status_code >= 400) * 100.0, 
-                db.Float
-            ) / func.nullif(func.count(APIUsageLog.id), 0)
-        ).filter(APIUsageLog.timestamp >= last_24h).scalar() or 0,
-        'avg_response_time': db.session.query(
-            func.avg(APIUsageLog.response_time)
-        ).filter(APIUsageLog.timestamp >= last_24h).scalar() or 0,
+        'total_requests_24h': api_result.total_requests,
+        'error_rate_24h': api_result.error_rate,
+        'avg_response_time': api_result.avg_response_time,
     }
     
-    # Get database metrics
+    # Get database metrics - now using our optimized metrics query results
     database_metrics = {
-        'connection_count': SystemMetric.query.filter_by(
-            metric_name='db_connection_count', 
-            component='database'
-        ).order_by(SystemMetric.timestamp.desc()).first(),
-        'query_time_avg': SystemMetric.query.filter_by(
-            metric_name='db_query_time_avg', 
-            component='database'
-        ).order_by(SystemMetric.timestamp.desc()).first(),
+        'connection_count': latest_metrics.get(('database', 'db_connection_count')),
+        'query_time_avg': latest_metrics.get(('database', 'db_query_time_avg')),
     }
     
-    # Get AI metrics
+    # Get AI metrics - using a single optimized query
+    ai_metrics_query = text("""
+        SELECT 
+            COALESCE(SUM(CASE WHEN date >= :last_24h_date THEN request_count ELSE 0 END), 0) as total_requests_24h,
+            COALESCE(AVG(CASE WHEN date >= :last_7d_date THEN average_rating ELSE NULL END), 0) as avg_rating_7d
+        FROM ai_agent_metrics
+        WHERE date >= :last_7d_date
+    """)
+    
+    ai_result = db.session.execute(
+        ai_metrics_query, 
+        {
+            'last_24h_date': last_24h.date(),
+            'last_7d_date': last_7d.date()
+        }
+    ).fetchone()
+    
+    # Still need a separate query for the performance metrics list
+    agent_performance = AIAgentMetrics.query.filter(
+        AIAgentMetrics.date >= last_7d.date()
+    ).order_by(AIAgentMetrics.date.desc()).all()
+    
     ai_metrics = {
-        'total_requests_24h': db.session.query(
-            func.sum(AIAgentMetrics.request_count)
-        ).filter(AIAgentMetrics.date >= last_24h.date()).scalar() or 0,
-        'avg_rating': db.session.query(
-            func.avg(AIAgentMetrics.average_rating)
-        ).filter(AIAgentMetrics.date >= last_7d.date()).scalar() or 0,
-        'agent_performance': AIAgentMetrics.query.filter(
-            AIAgentMetrics.date >= last_7d.date()
-        ).order_by(AIAgentMetrics.date.desc()).all(),
+        'total_requests_24h': ai_result.total_requests_24h,
+        'avg_rating': ai_result.avg_rating_7d,
+        'agent_performance': agent_performance,
     }
     
-    # Get job metrics
+    # Get job metrics - optimized with a single query
+    job_metrics_query = text("""
+        SELECT 
+            COUNT(*) as total_jobs,
+            COALESCE((SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0)), 0) as success_rate
+        FROM job_run
+        WHERE start_time >= :last_30d
+    """)
+    
+    job_result = db.session.execute(job_metrics_query, {'last_30d': last_30d}).fetchone()
+    
+    # We still need a separate query for the latest jobs list
+    latest_jobs = JobRun.query.order_by(JobRun.start_time.desc()).limit(5).all()
+    
     job_metrics = {
-        'total_jobs_30d': JobRun.query.filter(JobRun.start_time >= last_30d).count(),
-        'success_rate_30d': db.session.query(
-            func.cast(
-                func.count(JobRun.id).filter(JobRun.status == 'completed') * 100.0, 
-                db.Float
-            ) / func.nullif(func.count(JobRun.id), 0)
-        ).filter(JobRun.start_time >= last_30d).scalar() or 0,
-        'latest_jobs': JobRun.query.order_by(JobRun.start_time.desc()).limit(5).all(),
+        'total_jobs_30d': job_result.total_jobs,
+        'success_rate_30d': job_result.success_rate,
+        'latest_jobs': latest_jobs,
     }
     
     # Get report metrics
