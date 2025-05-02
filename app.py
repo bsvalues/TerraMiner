@@ -1620,9 +1620,10 @@ def monitoring_database():
             "action": "Check database connectivity and configuration."
         }
     
-    template_name = 'monitoring_database_modern.html' if use_tailwind else 'monitoring_database.html'
-    return render_template(
-        template_name, 
+    # Use our fallback render function
+    return render_template_with_fallback(
+        'monitoring_database.html', 
+        use_tailwind=use_tailwind,
         db_metrics=db_metrics,
         error_message=error_message,
         metrics_load_time=locals().get('metrics_load_time', 0)
@@ -1662,8 +1663,8 @@ def monitoring_ai():
     """AI performance monitoring page"""
     # Get UI preference from the decorator
     use_tailwind = g.use_tailwind_ui
-    template_name = 'monitoring_ai_modern.html' if use_tailwind else 'monitoring_ai.html'
-    return render_template(template_name)
+    # Use our fallback render function
+    return render_template_with_fallback('monitoring_ai.html', use_tailwind=use_tailwind)
     
 @app.route('/monitoring/locations', methods=['GET'])
 @tailwind_ui_preference_decorator
@@ -1692,11 +1693,14 @@ def monitoring_locations():
         cities = []
         location_count = 0
     
-    template_name = 'monitoring_locations_modern.html' if use_tailwind else 'monitoring_locations.html'
-    return render_template(template_name, 
-                          states=states,
-                          cities=cities,
-                          location_count=location_count)
+    # Use our fallback render function
+    return render_template_with_fallback(
+        'monitoring_locations.html', 
+        use_tailwind=use_tailwind,
+        states=states,
+        cities=cities,
+        location_count=location_count
+    )
                           
 @app.route('/monitoring/price-trends', methods=['GET'])
 @tailwind_ui_preference_decorator
@@ -1737,13 +1741,16 @@ def monitoring_price_trends():
         trend_count = 0
         city_count = 0
     
-    template_name = 'monitoring_price_trends_modern.html' if use_tailwind else 'monitoring_price_trends.html'
-    return render_template(template_name, 
-                          states=states,
-                          cities=cities,
-                          date_range=date_range,
-                          trend_count=trend_count,
-                          city_count=city_count)
+    # Use our fallback render function
+    return render_template_with_fallback(
+        'monitoring_price_trends.html', 
+        use_tailwind=use_tailwind,
+        states=states,
+        cities=cities,
+        date_range=date_range,
+        trend_count=trend_count,
+        city_count=city_count
+    )
                           
 @app.route('/api/property/search', methods=['GET'])
 def api_property_search():
@@ -1961,10 +1968,13 @@ def monitoring_alerts_active():
         else:
             alerts_by_severity['info'].append(alert)
     
-    template_name = 'monitoring_alerts_active_modern.html' if use_tailwind else 'monitoring_alerts_active_fixed.html'
-    return render_template(template_name, 
-                          alerts=alerts,
-                          alerts_by_severity=alerts_by_severity)
+    # Use our fallback render function
+    return render_template_with_fallback(
+        'monitoring_alerts_active.html', 
+        use_tailwind=use_tailwind,
+        alerts=alerts,
+        alerts_by_severity=alerts_by_severity
+    )
                           
 @app.route('/monitoring/alerts/<int:alert_id>/acknowledge', methods=['POST'])
 def acknowledge_alert(alert_id):
@@ -2043,16 +2053,19 @@ def monitoring_alerts_history():
     severities = ['critical', 'error', 'warning', 'info']
     statuses = ['active', 'acknowledged', 'resolved']
     
-    template_name = 'monitoring_alerts_history_modern.html' if use_tailwind else 'monitoring_alerts_history.html'
-    return render_template(template_name, 
-                          alerts=alerts,
-                          components=components,
-                          severities=severities,
-                          statuses=statuses,
-                          current_days=days,
-                          current_severity=severity,
-                          current_component=component,
-                          current_status=status)
+    # Use our fallback render function
+    return render_template_with_fallback(
+        'monitoring_alerts_history.html', 
+        use_tailwind=use_tailwind,
+        alerts=alerts,
+        components=components,
+        severities=severities,
+        statuses=statuses,
+        current_days=days,
+        current_severity=severity,
+        current_component=component,
+        current_status=status
+    )
     
 @app.route('/monitoring/reports/scheduled', methods=['GET'])
 @tailwind_ui_preference_decorator
@@ -2077,8 +2090,12 @@ def monitoring_reports_scheduled():
         else:
             report.recipients_count = 0
     
-    template_name = 'monitoring_reports_scheduled_modern.html' if use_tailwind else 'monitoring_reports_scheduled.html'
-    return render_template(template_name, reports=reports)
+    # Use our fallback render function
+    return render_template_with_fallback(
+        'monitoring_reports_scheduled.html', 
+        use_tailwind=use_tailwind,
+        reports=reports
+    )
     
 @app.route('/monitoring/reports/create', methods=['GET', 'POST'])
 def monitoring_reports_create():
@@ -2326,9 +2343,10 @@ def monitoring_reports_history():
         total_seconds = sum((log.completion_time - log.execution_time).total_seconds() for log in successful_logs if log.completion_time)
         avg_execution_time = total_seconds / len(successful_logs) if successful_logs else None
     
-    template_name = 'monitoring_reports_history_modern.html' if use_tailwind else 'monitoring_reports_history.html'
-    return render_template(
-        template_name, 
+    # Use our fallback render function
+    return render_template_with_fallback(
+        'monitoring_reports_history.html', 
+        use_tailwind=use_tailwind,
         logs=logs,
         report_types=report_types,
         statuses=statuses,
@@ -2413,8 +2431,13 @@ def ai_report_settings():
             # If there's an error parsing JSON, leave it empty
             pass
     
-    template_name = 'ai_report_settings_modern.html' if use_tailwind else 'ai_report_settings.html'
-    return render_template(template_name, settings=settings, additional_recipients=additional_recipients)
+    # Use our fallback render function
+    return render_template_with_fallback(
+        'ai_report_settings.html', 
+        use_tailwind=use_tailwind,
+        settings=settings, 
+        additional_recipients=additional_recipients
+    )
 
 @app.route('/api/ai/feedback/report/settings', methods=['GET'])
 def get_ai_report_settings():
