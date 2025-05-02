@@ -12,7 +12,10 @@ from utils.test_data import insert_test_data
 from middleware import init_template_middleware, template_preference_decorator
 
 # Import the database instance from our new db_utils.py
-from db_utils import db, init_db
+from core import db
+
+# Import the database initialization function
+from db_utils import init_db
 
 # Initialize logger
 setup_logger()
@@ -335,7 +338,7 @@ def advanced_scraper():
             session['scrape_options'] = scrape_options
             
             # Import here to avoid circular import
-            from main import run_etl_workflow
+            from core import run_etl_workflow
             
             # Run the ETL workflow with the advanced options
             with app.app_context():

@@ -1,23 +1,17 @@
 """
 Database configuration and initialization module.
-This module defines the SQLAlchemy instance and provides helper functions
-for working with the database while avoiding circular imports.
+This module provides helper functions for working with the database
+while avoiding circular imports.
 """
 
 import os
 import logging
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
+
+# Import the database instance from core module
+from core import db
 
 # Initialize logger
 logger = logging.getLogger(__name__)
-
-# Create a new base class for declarative models
-class Base(DeclarativeBase):
-    pass
-
-# Create the SQLAlchemy extension instance
-db = SQLAlchemy(model_class=Base)
 
 def init_db(app):
     """Initialize the database with the Flask app."""
