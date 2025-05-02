@@ -1,505 +1,215 @@
 {% extends "layout.html" %}
 
-{% block title %}AI Prompt A/B Testing{% endblock %}
+{% block title %}TerraMiner - AI Prompt A/B Testing{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h1 class="mb-4">AI Prompt A/B Testing</h1>
-    
-    <div class="row mb-4">
-        <div class="col-md-6 col-12">
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-12">
+            <h1>AI Prompt A/B Testing</h1>
+            <p class="text-muted">Compare different prompt formulations to see which performs better.</p>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> Try the <a href="{{ url_for('ai_prompt_testing') }}?ui=tailwind" class="alert-link">enhanced Tailwind UI version</a> of this interface for a better experience.
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
             <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Create New A/B Test</h5>
+                </div>
                 <div class="card-body">
-                    <h5 class="card-title">Create New A/B Test</h5>
-                    <form id="create-ab-test-form">
+                    <form id="create-ab-test-form" method="POST" action="{{ url_for('ai_prompt_testing') }}">
                         <div class="mb-3">
                             <label for="agent-type" class="form-label">Agent Type</label>
-                            <select class="form-select" id="agent-type" name="agent_type" required>
+                            <select id="agent-type" name="agent_type" class="form-select">
                                 <option value="summarizer">Text Summarizer</option>
                                 <option value="market_analyzer">Market Analyzer</option>
-                                <option value="recommender">Recommendation Agent</option>
+                                <option value="recommender">Property Recommender</option>
                                 <option value="nl_search">Natural Language Search</option>
                             </select>
                         </div>
-                        <div class="mb-3">
-                            <label for="original-prompt" class="form-label">Original Prompt (Version A)</label>
-                            <textarea class="form-control" id="original-prompt" name="original_prompt" rows="4" required></textarea>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="original-prompt" class="form-label">Prompt A (Baseline)</label>
+                                    <textarea id="original-prompt" name="original_prompt" rows="5" class="form-control"></textarea>
+                                    <div class="form-text">Standard formulation</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="variant-prompt" class="form-label">Prompt B (Variant)</label>
+                                    <textarea id="variant-prompt" name="variant_prompt" rows="5" class="form-control"></textarea>
+                                    <div class="form-text">Alternative formulation</div>
+                                </div>
+                            </div>
                         </div>
+
                         <div class="mb-3">
-                            <label for="improved-prompt" class="form-label">Improved Prompt (Version B)</label>
-                            <textarea class="form-control" id="improved-prompt" name="improved_prompt" rows="4" required></textarea>
+                            <label for="test-input" class="form-label">Test Input</label>
+                            <textarea id="test-input" name="test_input" rows="3" class="form-control"></textarea>
+                            <div class="form-text">Sample data to test the prompts against</div>
                         </div>
+
                         <div class="mb-3">
-                            <label for="duration-days" class="form-label">Test Duration (Days)</label>
-                            <input type="number" class="form-control" id="duration-days" name="duration_days" min="1" max="30" value="7">
+                            <div class="form-check">
+                                <input id="use-gpt4" name="use_gpt4" type="checkbox" class="form-check-input">
+                                <label for="use-gpt4" class="form-check-label">Use GPT-4</label>
+                            </div>
                         </div>
-                        <button type="submit" class="btn btn-primary">Create Test</button>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input id="save-results" name="save_results" type="checkbox" class="form-check-input" checked>
+                                <label for="save-results" class="form-check-label">Save Results</label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Run A/B Test</button>
                     </form>
                 </div>
             </div>
         </div>
-        
-        <div class="col-md-6 col-12 mt-3 mt-md-0">
+    </div>
+
+    {% if result_a or result_b %}
+    <div class="row mt-4">
+        <div class="col-md-6">
             <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Response A (Baseline)</h5>
+                </div>
                 <div class="card-body">
-                    <h5 class="card-title">Active A/B Tests</h5>
-                    <div id="active-tests">
-                        <div class="text-center py-4" id="tests-loading">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
+                    {% if result_a %}
+                        {% if result_a.metadata %}
+                        <div class="mb-3">
+                            <span class="badge bg-info me-2">⏱️ {{ result_a.metadata.time_taken|default('?') }}ms</span>
+                            <span class="badge bg-success me-2">🔤 {{ result_a.metadata.token_count|default('?') }} tokens</span>
+                            <span class="badge bg-primary">📈 {{ result_a.metadata.quality_score|default('?') }}% quality</span>
                         </div>
-                        <div id="tests-content" class="d-none">
-                            <!-- Active tests will be loaded here -->
+                        {% endif %}
+                        <div class="border rounded p-3 bg-light">
+                            {{ result_a.content|safe if result_a.content else 'No response content available.' }}
                         </div>
-                        <div id="no-tests-message" class="alert alert-info d-none">
-                            No active A/B tests found.
+                    {% else %}
+                        <p class="text-muted fst-italic">Awaiting execution...</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">Response B (Variant)</h5>
+                </div>
+                <div class="card-body">
+                    {% if result_b %}
+                        {% if result_b.metadata %}
+                        <div class="mb-3">
+                            <span class="badge bg-info me-2">⏱️ {{ result_b.metadata.time_taken|default('?') }}ms</span>
+                            <span class="badge bg-success me-2">🔤 {{ result_b.metadata.token_count|default('?') }} tokens</span>
+                            <span class="badge bg-primary">📈 {{ result_b.metadata.quality_score|default('?') }}% quality</span>
                         </div>
-                    </div>
+                        {% endif %}
+                        <div class="border rounded p-3 bg-light">
+                            {{ result_b.content|safe if result_b.content else 'No response content available.' }}
+                        </div>
+                    {% else %}
+                        <p class="text-muted fst-italic">Awaiting execution...</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
-    
-    <div class="row">
+
+    {% if result_a and result_b %}
+    <div class="row mt-4">
         <div class="col-12">
             <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">Comparison Analysis</h5>
+                </div>
                 <div class="card-body">
-                    <h5 class="card-title">Test Results</h5>
-                    <ul class="nav nav-tabs" id="testResultsTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="completed-tab" data-bs-toggle="tab" 
-                                    data-bs-target="#completed" type="button" role="tab" 
-                                    aria-controls="completed" aria-selected="true">Completed</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="all-tab" data-bs-toggle="tab" 
-                                    data-bs-target="#all" type="button" role="tab" 
-                                    aria-controls="all" aria-selected="false">All Tests</button>
-                        </li>
+                    <h6>Key Differences</h6>
+                    <ul class="list-group mb-3">
+                        {% if result_a.metadata and result_a.metadata.differences %}
+                            {% for diff in result_a.metadata.differences %}
+                                <li class="list-group-item">{{ diff }}</li>
+                            {% endfor %}
+                        {% else %}
+                            <li class="list-group-item text-muted fst-italic">No difference analysis available.</li>
+                        {% endif %}
                     </ul>
-                    <div class="tab-content mt-3" id="testResultsContent">
-                        <div class="tab-pane fade show active" id="completed" role="tabpanel" aria-labelledby="completed-tab">
-                            <div class="text-center py-4" id="completed-loading">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                            </div>
-                            <div id="completed-content" class="d-none">
-                                <!-- Completed tests will be loaded here -->
-                            </div>
-                            <div id="no-completed-message" class="alert alert-info d-none">
-                                No completed A/B tests found.
-                            </div>
-                        </div>
-                        <div class="tab-pane fade" id="all" role="tabpanel" aria-labelledby="all-tab">
-                            <div class="text-center py-4" id="all-loading">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                            </div>
-                            <div id="all-content" class="d-none">
-                                <!-- All tests will be loaded here -->
-                            </div>
-                            <div id="no-all-message" class="alert alert-info d-none">
-                                No A/B tests found.
-                            </div>
-                        </div>
+
+                    <div class="d-flex justify-content-end mt-3">
+                        <button type="button" class="btn btn-primary me-2">Save A as Winner</button>
+                        <button type="button" class="btn btn-success">Save B as Winner</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Test Details Modal -->
-    <div class="modal fade" id="testDetailsModal" tabindex="-1" aria-labelledby="testDetailsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="testDetailsModalLabel">Test Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body" id="test-details-content">
-                    <!-- Test details will be loaded here -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="evaluate-test-btn">Evaluate Test</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    {% endif %}
+    {% endif %}
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Load active tests
-    loadTests('active');
-    
-    // Load completed tests
-    loadTests('completed');
-    
-    // Load all tests
-    loadTests('all');
-    
-    // Form submission
-    document.getElementById('create-ab-test-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const formData = {
-            agent_type: document.getElementById('agent-type').value,
-            original_prompt: document.getElementById('original-prompt').value,
-            improved_prompt: document.getElementById('improved-prompt').value,
-            duration_days: parseInt(document.getElementById('duration-days').value)
-        };
-        
-        // Send API request
-        fetch('/api/ai/prompts/ab-tests', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle agent type selection to show example prompts
+        const agentSelect = document.getElementById('agent-type');
+        const promptA = document.getElementById('original-prompt');
+        const promptB = document.getElementById('variant-prompt');
+        const testInput = document.getElementById('test-input');
+
+        // Example data for different agent types
+        const examplePrompts = {
+            summarizer: {
+                promptA: "Summarize the following property details into a concise single paragraph highlighting the key selling points.",
+                promptB: "Create a brief but comprehensive summary of this real estate listing, emphasizing unique features and neighborhood benefits.",
+                input: "4 bedroom, 3 bathroom single-family home in Westlake neighborhood. Built in 2005, recently renovated kitchen with granite countertops and stainless steel appliances. Hardwood floors throughout, large backyard with deck and built-in BBQ. Attached 2-car garage, zoned for top-rated Westlake Elementary. Walking distance to Westlake Village and major shopping center. Listed at $875,000."
             },
-            body: JSON.stringify(formData)
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                // Show success message
-                alert('A/B test created successfully!');
-                
-                // Reset form
-                document.getElementById('create-ab-test-form').reset();
-                
-                // Reload tests
-                loadTests('active');
-                loadTests('all');
-            } else {
-                // Show error message
-                alert('Error creating A/B test: ' + data.message);
+            market_analyzer: {
+                promptA: "Analyze these market trends and explain what they mean for property values in the area.",
+                promptB: "Interpret the following real estate market data and provide actionable insights for investors considering this market.",
+                input: "Q1 2023 data for Phoenix metro area: Median home price $425,000 (up 3.2% YoY but down 1.8% QoQ). Average days on market 45 (up from 22 last year). Housing inventory 2.3 months (up from 0.9 last year). New construction permits down 15% YoY. Mortgage rates currently at 6.5% for 30-year fixed. Rental vacancy rate 4.2% with average rents up 5.1% YoY."
+            },
+            recommender: {
+                promptA: "Based on the client's preferences, recommend 3 properties they might be interested in viewing.",
+                promptB: "Considering the client's needs and preferences, suggest 3 properties that would be good matches, explaining why each one would appeal to them.",
+                input: "Client profile: Couple in their mid-30s with one child (age 3) and another on the way. Budget $650K-$750K. Priorities: good school district, minimum 3 bedrooms, yard space for kids, relatively modern kitchen, prefer to avoid major renovations. Need home office space for remote work. Location preference for south side of town near the tech corridor. Would like community amenities like parks and pools."
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while creating the A/B test.');
-        });
-    });
-    
-    // Evaluate test button
-    document.getElementById('evaluate-test-btn').addEventListener('click', function() {
-        const testId = this.getAttribute('data-test-id');
-        
-        if (!testId) {
-            alert('No test selected');
-            return;
-        }
-        
-        // Send API request
-        fetch(`/api/ai/prompts/ab-tests/${testId}/evaluate`, {
-            method: 'POST'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                // Show success message
-                alert('Test evaluated successfully!');
-                
-                // Reload tests
-                loadTests('completed');
-                loadTests('all');
-                
-                // Load test details
-                loadTestDetails(testId);
-            } else {
-                // Show error message
-                alert('Error evaluating test: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while evaluating the test.');
-        });
-    });
-});
+        };
 
-function loadTests(status) {
-    // Show loading spinner
-    document.getElementById(`${status}-loading`).classList.remove('d-none');
-    document.getElementById(`${status}-content`).classList.add('d-none');
-    document.getElementById(`no-${status}-message`).classList.add('d-none');
-    
-    // Determine URL
-    let url = '/api/ai/prompts/ab-tests';
-    if (status === 'active') {
-        url += '?status=active';
-    } else if (status === 'completed') {
-        url += '?status=completed';
-    }
-    
-    // Send API request
-    fetch(url)
-    .then(response => response.json())
-    .then(data => {
-        // Hide loading spinner
-        document.getElementById(`${status}-loading`).classList.add('d-none');
-        
-        if (data.status === 'success' && data.tests && data.tests.length > 0) {
-            // Show content
-            document.getElementById(`${status}-content`).classList.remove('d-none');
-            
-            // Render tests
-            renderTests(data.tests, status);
-        } else {
-            // Show no tests message
-            document.getElementById(`no-${status}-message`).classList.remove('d-none');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        
-        // Hide loading spinner
-        document.getElementById(`${status}-loading`).classList.add('d-none');
-        
-        // Show no tests message
-        document.getElementById(`no-${status}-message`).classList.remove('d-none');
-        document.getElementById(`no-${status}-message`).textContent = 'Error loading tests.';
-    });
-}
-
-function renderTests(tests, containerId) {
-    const container = document.getElementById(`${containerId}-content`);
-    container.innerHTML = '';
-    
-    if (containerId === 'active') {
-        // Render active tests as cards
-        tests.forEach(test => {
-            const card = document.createElement('div');
-            card.className = 'card mb-3';
-            
-            const startDate = new Date(test.start_date);
-            const endDate = new Date(test.end_date);
-            const now = new Date();
-            
-            const progress = Math.min(100, Math.max(0, 
-                ((now - startDate) / (endDate - startDate)) * 100));
-            
-            card.innerHTML = `
-                <div class="card-body">
-                    <h6 class="card-title">${test.agent_type} Test #${test.id}</h6>
-                    <p class="card-text mb-1">Start: ${new Date(test.start_date).toLocaleDateString()}</p>
-                    <p class="card-text mb-2">End: ${new Date(test.end_date).toLocaleDateString()}</p>
-                    <div class="progress mb-2">
-                        <div class="progress-bar" role="progressbar" style="width: ${progress}%" 
-                             aria-valuenow="${progress}" aria-valuemin="0" aria-valuemax="100">
-                            ${Math.round(progress)}%
-                        </div>
-                    </div>
-                    <button class="btn btn-sm btn-secondary view-test-btn" data-test-id="${test.id}">
-                        View Details
-                    </button>
-                </div>
-            `;
-            
-            container.appendChild(card);
-            
-            // Add event listener
-            card.querySelector('.view-test-btn').addEventListener('click', function() {
-                loadTestDetails(test.id);
-            });
-        });
-    } else {
-        // Render as table
-        const table = document.createElement('table');
-        table.className = 'table table-striped';
-        
-        table.innerHTML = `
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Agent</th>
-                    <th>Status</th>
-                    <th>Start Date</th>
-                    <th>End Date</th>
-                    <th>Results</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${tests.map(test => `
-                    <tr>
-                        <td>${test.id}</td>
-                        <td>${test.agent_type}</td>
-                        <td><span class="badge bg-${test.status === 'active' ? 'primary' : test.status === 'completed' ? 'success' : 'secondary'}">${test.status}</span></td>
-                        <td>${new Date(test.start_date).toLocaleDateString()}</td>
-                        <td>${new Date(test.end_date).toLocaleDateString()}</td>
-                        <td>${test.results && test.results.winner ? 
-                               `Winner: ${test.results.winner}` : 
-                               test.status === 'active' ? 'In progress' : 'Not evaluated'}</td>
-                        <td>
-                            <button class="btn btn-sm btn-secondary view-test-btn" data-test-id="${test.id}">
-                                View
-                            </button>
-                        </td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        `;
-        
-        container.appendChild(table);
-        
-        // Add event listeners
-        table.querySelectorAll('.view-test-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                loadTestDetails(this.getAttribute('data-test-id'));
-            });
-        });
-    }
-}
-
-function loadTestDetails(testId) {
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('testDetailsModal'));
-    modal.show();
-    
-    // Set loading state
-    document.getElementById('test-details-content').innerHTML = `
-        <div class="text-center py-4">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-        </div>
-    `;
-    
-    // Disable evaluate button by default
-    const evaluateBtn = document.getElementById('evaluate-test-btn');
-    evaluateBtn.setAttribute('data-test-id', testId);
-    evaluateBtn.disabled = true;
-    
-    // Send API request
-    fetch(`/api/ai/prompts/ab-tests/${testId}`)
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success' && data.test) {
-            const test = data.test;
-            
-            // Set evaluate button state
-            evaluateBtn.disabled = test.status !== 'active';
-            
-            // Render test details
-            let resultsHtml = '';
-            if (test.results && Object.keys(test.results).length > 0) {
-                if (test.results.version_a && test.results.version_b) {
-                    resultsHtml = `
-                        <h5 class="mt-4">Results</h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="card ${test.results.winner === 'A' ? 'border-success' : ''}">
-                                    <div class="card-header">
-                                        Version A (Original) ${test.results.winner === 'A' ? '<span class="badge bg-success">Winner</span>' : ''}
-                                    </div>
-                                    <div class="card-body">
-                                        <p>Sample size: ${test.results.version_a.sample_size}</p>
-                                        <p>Average rating: ${test.results.version_a.avg_rating} / 5</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card ${test.results.winner === 'B' ? 'border-success' : ''}">
-                                    <div class="card-header">
-                                        Version B (Improved) ${test.results.winner === 'B' ? '<span class="badge bg-success">Winner</span>' : ''}
-                                    </div>
-                                    <div class="card-body">
-                                        <p>Sample size: ${test.results.version_b.sample_size}</p>
-                                        <p>Average rating: ${test.results.version_b.avg_rating} / 5</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        ${test.results.improvement !== 0 ? `
-                            <div class="alert alert-info mt-3">
-                                Improvement: ${test.results.improvement}%
-                            </div>
-                        ` : ''}
-                        <div class="mt-3">
-                            <h6>Conclusion</h6>
-                            <p>${test.results.conclusion}</p>
-                        </div>
-                    `;
-                } else {
-                    resultsHtml = `
-                        <div class="alert alert-warning mt-4">
-                            ${test.results.message || 'Test results are incomplete or not available.'}
-                        </div>
-                    `;
+        // Update example prompts when agent type changes
+        if (agentSelect) {
+            agentSelect.addEventListener('change', function() {
+                const selected = this.value;
+                if (examplePrompts[selected]) {
+                    promptA.value = examplePrompts[selected].promptA;
+                    promptB.value = examplePrompts[selected].promptB;
+                    testInput.value = examplePrompts[selected].input;
                 }
-            } else if (test.status === 'active') {
-                resultsHtml = `
-                    <div class="alert alert-info mt-4">
-                        This test is still active. Results will be available after evaluation.
-                    </div>
-                `;
-            } else {
-                resultsHtml = `
-                    <div class="alert alert-warning mt-4">
-                        No results are available for this test.
-                    </div>
-                `;
+            });
+
+            // Initialize with default examples
+            if (agentSelect.value && examplePrompts[agentSelect.value]) {
+                const defaultExample = examplePrompts[agentSelect.value];
+                if (promptA.value === '') promptA.value = defaultExample.promptA;
+                if (promptB.value === '') promptB.value = defaultExample.promptB;
+                if (testInput.value === '') testInput.value = defaultExample.input;
+            } else if (examplePrompts['summarizer']) {
+                // Default to summarizer examples if nothing is selected
+                if (promptA.value === '') promptA.value = examplePrompts['summarizer'].promptA;
+                if (promptB.value === '') promptB.value = examplePrompts['summarizer'].promptB;
+                if (testInput.value === '') testInput.value = examplePrompts['summarizer'].input;
             }
-            
-            document.getElementById('test-details-content').innerHTML = `
-                <h5>Test Information</h5>
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>ID:</strong> ${test.id}</p>
-                        <p><strong>Agent Type:</strong> ${test.agent_type}</p>
-                        <p><strong>Status:</strong> <span class="badge bg-${test.status === 'active' ? 'primary' : test.status === 'completed' ? 'success' : 'secondary'}">${test.status}</span></p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Start Date:</strong> ${new Date(test.start_date).toLocaleString()}</p>
-                        <p><strong>End Date:</strong> ${new Date(test.end_date).toLocaleString()}</p>
-                        <p><strong>Created:</strong> ${new Date(test.created_at).toLocaleString()}</p>
-                    </div>
-                </div>
-                
-                <h5 class="mt-4">Prompts</h5>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">Version A (Original)</div>
-                            <div class="card-body">
-                                <pre>${test.original_prompt}</pre>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">Version B (Improved)</div>
-                            <div class="card-body">
-                                <pre>${test.improved_prompt}</pre>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                ${resultsHtml}
-            `;
-        } else {
-            document.getElementById('test-details-content').innerHTML = `
-                <div class="alert alert-danger">
-                    Error loading test details: ${data.message || 'Unknown error'}
-                </div>
-            `;
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        document.getElementById('test-details-content').innerHTML = `
-            <div class="alert alert-danger">
-                An error occurred while loading test details.
-            </div>
-        `;
     });
-}
 </script>
 {% endblock %}

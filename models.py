@@ -608,3 +608,42 @@ class ScraperLog(db.Model):
     
     def __repr__(self):
         return f"<ScraperLog id={self.id} name={self.scraper_name} status={self.status}>"
+
+
+# AI Prompt Testing Models
+class AIPromptResult(db.Model):
+    """Model for storing individual prompt test results."""
+    __tablename__ = 'ai_prompt_result'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    test_id = db.Column(db.Integer, db.ForeignKey('ai_prompt_test.id'), nullable=False)
+    variant = db.Column(db.String(1), nullable=False)  # 'A' or 'B'
+    content = db.Column(db.Text, nullable=False)
+    raw_response = db.Column(db.Text)
+    response_metadata = db.Column(db.Text)  # JSON string of metadata - renamed to avoid SQLAlchemy reserved word
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    def __repr__(self):
+        return f"<AIPromptResult id={self.id} test_id={self.test_id} variant={self.variant}>"
+
+
+class AIPromptTest(db.Model):
+    """Model for storing A/B prompt test information."""
+    __tablename__ = 'ai_prompt_test'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    agent_type = db.Column(db.String(50), nullable=False)
+    prompt_a = db.Column(db.Text, nullable=False)
+    prompt_b = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    metrics = db.Column(db.Text)  # JSON string of metrics
+    winner = db.Column(db.String(1))  # 'A', 'B', or null if no winner declared
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    # Relationship to results
+    results = db.relationship('AIPromptResult', backref='test', lazy=True, foreign_keys=[AIPromptResult.test_id])
+    
+    def __repr__(self):
+        return f"<AIPromptTest id={self.id} agent={self.agent_type} winner={self.winner}>"

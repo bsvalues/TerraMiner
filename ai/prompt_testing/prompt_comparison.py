@@ -340,7 +340,7 @@ def save_prompt_comparison(
             variant="A",
             content=result_a.get("content", ""),
             raw_response=result_a.get("raw", ""),
-            metadata=json.dumps(result_a.get("metadata", {}))
+            response_metadata=json.dumps(result_a.get("metadata", {}))
         )
         
         result_record_b = AIPromptResult(
@@ -348,7 +348,7 @@ def save_prompt_comparison(
             variant="B",
             content=result_b.get("content", ""),
             raw_response=result_b.get("raw", ""),
-            metadata=json.dumps(result_b.get("metadata", {}))
+            response_metadata=json.dumps(result_b.get("metadata", {}))
         )
         
         # Add the results to the session

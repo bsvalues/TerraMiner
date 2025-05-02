@@ -138,6 +138,13 @@
                             </svg>
                             AI Analytics
                         </a>
+                        
+                        <a href="{{ url_for('ai_prompt_testing') }}?ui=tailwind" class="flex items-center px-4 py-2 text-sm font-medium rounded-md {% if request.path == '/ai/prompt-testing' %}bg-primary-100 text-primary-600 dark:bg-primary-900 dark:text-primary-400{% else %}text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700{% endif %}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                            </svg>
+                            AI Prompt Testing
+                        </a>
                     </div>
                     
                     <div class="mt-8">
