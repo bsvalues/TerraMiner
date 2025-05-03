@@ -2481,6 +2481,12 @@ def get_ai_report_settings():
             "message": str(e)
         }), 500
 
+# UI Pattern Library route
+@app.route('/ui/dev/patterns')
+def ui_pattern_library():
+    """UI Pattern Library for developers and designers."""
+    return render_template('ui_pattern_library.html')
+
 # Zillow routes
 @app.route('/zillow/market-data')
 def zillow_market_data():
