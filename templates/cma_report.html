@@ -7,13 +7,13 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb bg-transparent p-0 mb-0">
-                <li class="breadcrumb-item"><a href="{{ url_for('cma.cma_home') }}">CMA Home</a></li>
-                <li class="breadcrumb-item"><a href="{{ url_for('cma.list_reports') }}">Reports</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('cma_ui.cma_home') }}">CMA Home</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('cma_ui.list_reports') }}">Reports</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Report Details</li>
             </ol>
         </nav>
         <div class="btn-group">
-            <a href="{{ url_for('cma.cma_generator') }}" class="btn btn-outline-primary">
+            <a href="{{ url_for('cma_ui.cma_generator') }}" class="btn btn-outline-primary">
                 <i class="fas fa-plus mr-2"></i> New Report
             </a>
             <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
@@ -323,7 +323,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <form id="deleteReportForm" method="post" action="{{ url_for('cma.delete_report', report_id=report.id) }}">
+                <form id="deleteReportForm" method="post" action="{{ url_for('cma_ui.delete_report', report_id=report.id) }}">
                     <button type="submit" class="btn btn-danger">Delete Report</button>
                 </form>
             </div>

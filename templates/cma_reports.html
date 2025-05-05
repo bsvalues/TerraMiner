@@ -52,7 +52,7 @@
                                 </div>
                                 <div class="col-md-1">
                                     <div class="btn-group btn-group-sm">
-                                        <a href="{{ url_for('cma.view_report', report_id=report.id) }}" class="btn btn-outline-primary" title="View Report">
+                                        <a href="{{ url_for('cma_ui.view_report', report_id=report.id) }}" class="btn btn-outline-primary" title="View Report">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                         <button type="button" class="btn btn-outline-danger" title="Delete Report" 
@@ -73,7 +73,7 @@
                 <i class="fas fa-chart-line fa-4x text-muted mb-3"></i>
                 <h3>No CMA Reports Yet</h3>
                 <p class="text-muted mb-4">Generate your first CMA report to get started.</p>
-                <a href="{{ url_for('cma.cma_generator') }}" class="btn btn-primary btn-lg">
+                <a href="{{ url_for('cma_ui.cma_generator') }}" class="btn btn-primary btn-lg">
                     <i class="fas fa-plus mr-2"></i> Create Your First Report
                 </a>
             </div>
@@ -108,7 +108,7 @@
 <script>
     function confirmDelete(reportId, propertyAddress) {
         document.getElementById('deletePropertyName').textContent = propertyAddress;
-        document.getElementById('deleteReportForm').action = "{{ url_for('cma.delete_report', report_id=0) }}".replace('0', reportId);
+        document.getElementById('deleteReportForm').action = "{{ url_for('cma_ui.delete_report', report_id=0) }}".replace('0', reportId);
         $('#deleteConfirmModal').modal('show');
     }
 </script>
