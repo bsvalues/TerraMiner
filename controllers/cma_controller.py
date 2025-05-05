@@ -10,6 +10,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from werkzeug.exceptions import BadRequest
 
 from services.cma_service import CMAService
+from ai.rag.property_retriever import PropertyRetriever
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -19,6 +20,9 @@ cma_bp = Blueprint('cma_ui', __name__, url_prefix='/cma')
 
 # Create CMA service
 cma_service = CMAService()
+
+# Create property retriever
+property_retriever = PropertyRetriever()
 
 @cma_bp.route('/', methods=['GET'])
 def cma_home():
@@ -96,6 +100,49 @@ def view_report(report_id):
         logger.exception(f"Error viewing CMA report: {str(e)}")
         flash(f"Error viewing CMA report: {str(e)}", 'error')
         return redirect(url_for('cma_ui.list_reports'))
+
+@cma_bp.route('/api/lookup-property', methods=['GET'])
+def lookup_property():
+    """API endpoint to lookup a property by address."""
+    try:
+        # Get address from query parameters
+        address = request.args.get('address', '')
+        
+        if not address or len(address) < 3:
+            return jsonify({'error': 'Address must be at least 3 characters long'}), 400
+        
+        # Use the property retriever to search for properties by address
+        properties = property_retriever.retrieve_by_address(address, limit=5)
+        
+        # If no properties found, return empty result
+        if not properties:
+            return jsonify({'properties': []}), 200
+        
+        # Format the results for the frontend
+        formatted_properties = []
+        for prop in properties:
+            # Convert property data to the format expected by the CMA form
+            formatted_property = {
+                'id': prop.get('id'),
+                'address': prop.get('address', ''),
+                'city': prop.get('city', ''),
+                'state': prop.get('state', ''),
+                'zip_code': prop.get('zip_code', ''),
+                'beds': prop.get('beds', 0) or prop.get('bedrooms', 0) or 3,
+                'baths': prop.get('baths', 0) or prop.get('bathrooms', 0) or 2,
+                'sqft': prop.get('sqft', 0) or prop.get('square_feet', 0) or 1800,
+                'lot_size': prop.get('lot_size', 0) or prop.get('lot_square_feet', 0) or 5000,
+                'year_built': prop.get('year_built', 0) or 2000,
+                'property_type': prop.get('property_type', 'Single Family'),
+                'price': prop.get('price', 0) or prop.get('estimated_value', 0)
+            }
+            formatted_properties.append(formatted_property)
+        
+        return jsonify({'properties': formatted_properties}), 200
+        
+    except Exception as e:
+        logger.exception(f"Error looking up property: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @cma_bp.route('/reports/<int:report_id>/delete', methods=['POST'])
 def delete_report(report_id):

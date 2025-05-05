@@ -13,14 +13,26 @@
         <div class="card-body">
             <p class="mb-4">Enter the subject property details below to generate a comprehensive comparative market analysis report.</p>
             
-            <form method="post" action="{{ url_for('cma_ui.cma_generator') }}">
+            <form method="post" action="{{ url_for('cma_ui.cma_generator') }}" id="cma-generator-form">
                 <div class="row">
                     <div class="col-md-8">
                         <h5 class="mb-3">Property Location</h5>
                         <div class="form-group">
                             <label for="subject_address">Address*</label>
-                            <input type="text" class="form-control" id="subject_address" name="subject_address" 
-                                   placeholder="123 Main St" value="{{ form_data.subject_address if form_data else '' }}" required>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="subject_address" name="subject_address" 
+                                       placeholder="123 Main St" value="{{ form_data.subject_address if form_data else '' }}" required>
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-secondary" type="button" id="lookup-property-btn">
+                                        <i class="fas fa-search"></i> Lookup
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="property-suggestions" class="d-none mt-2">
+                                <div class="list-group" id="property-suggestions-list">
+                                    <!-- Property suggestions will be populated here -->
+                                </div>
+                            </div>
                         </div>
                 
                         <div class="form-row">
@@ -46,6 +58,9 @@
                             <div class="card-body">
                                 <h6 class="card-title">Why this matters?</h6>
                                 <p class="card-text small">We use the property location to find comparable properties in the same area. Accurate location information helps ensure the most relevant comparable properties are included in your analysis.</p>
+                                <div class="alert alert-info small mb-0">
+                                    <i class="fas fa-info-circle mr-1"></i> Tip: Use the lookup button to automatically fill in property details from our database.
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -127,4 +142,154 @@
         </div>
     </div>
 </div>
+
+<!-- JavaScript for property lookup functionality -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const addressInput = document.getElementById('subject_address');
+    const lookupBtn = document.getElementById('lookup-property-btn');
+    const suggestionsContainer = document.getElementById('property-suggestions');
+    const suggestionsList = document.getElementById('property-suggestions-list');
+    
+    // Function to populate form with property data
+    function populatePropertyData(property) {
+        // Fill in the form fields with property data
+        document.getElementById('subject_address').value = property.address;
+        document.getElementById('subject_city').value = property.city;
+        document.getElementById('subject_state').value = property.state;
+        document.getElementById('subject_zip').value = property.zip_code;
+        document.getElementById('subject_beds').value = property.beds;
+        document.getElementById('subject_baths').value = property.baths;
+        document.getElementById('subject_sqft').value = property.sqft;
+        document.getElementById('subject_lot_size').value = property.lot_size;
+        document.getElementById('subject_year_built').value = property.year_built;
+        
+        // Set property type if it matches one of our options
+        const propertyTypeSelect = document.getElementById('subject_property_type');
+        const propertyType = property.property_type;
+        
+        for (let i = 0; i < propertyTypeSelect.options.length; i++) {
+            if (propertyTypeSelect.options[i].value === propertyType) {
+                propertyTypeSelect.selectedIndex = i;
+                break;
+            }
+        }
+        
+        // Set price if available
+        if (property.price) {
+            document.getElementById('subject_price').value = property.price;
+        }
+        
+        // Hide suggestions
+        suggestionsContainer.classList.add('d-none');
+    }
+    
+    // Event listener for lookup button
+    lookupBtn.addEventListener('click', function() {
+        const address = addressInput.value.trim();
+        
+        if (address.length < 3) {
+            alert('Please enter at least 3 characters for address lookup');
+            return;
+        }
+        
+        // Show loading state
+        lookupBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Searching...';
+        lookupBtn.disabled = true;
+        
+        // Make API call to lookup property
+        fetch(`/cma/api/lookup-property?address=${encodeURIComponent(address)}`)
+            .then(response => response.json())
+            .then(data => {
+                // Reset button state
+                lookupBtn.innerHTML = '<i class="fas fa-search"></i> Lookup';
+                lookupBtn.disabled = false;
+                
+                // Clear previous suggestions
+                suggestionsList.innerHTML = '';
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                const properties = data.properties || [];
+                
+                if (properties.length === 0) {
+                    suggestionsList.innerHTML = `
+                        <div class="list-group-item text-center text-muted">
+                            <i class="fas fa-home"></i> No properties found
+                        </div>
+                    `;
+                    suggestionsContainer.classList.remove('d-none');
+                    return;
+                }
+                
+                // If only one property found, auto-populate
+                if (properties.length === 1) {
+                    populatePropertyData(properties[0]);
+                    return;
+                }
+                
+                // Add found properties to suggestions
+                properties.forEach(property => {
+                    const item = document.createElement('a');
+                    item.className = 'list-group-item list-group-item-action';
+                    item.href = '#';
+                    
+                    // Format display of property
+                    const displayAddress = `${property.address}, ${property.city}, ${property.state} ${property.zip_code}`;
+                    const details = `${property.beds} beds, ${property.baths} baths, ${property.sqft} sqft`;
+                    
+                    item.innerHTML = `
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">${displayAddress}</h6>
+                            ${property.price ? `<span class="text-success">$${property.price.toLocaleString()}</span>` : ''}
+                        </div>
+                        <p class="mb-1 small">${details}</p>
+                        <small>${property.property_type} | Built ${property.year_built}</small>
+                    `;
+                    
+                    // Add click event to populate form
+                    item.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        populatePropertyData(property);
+                    });
+                    
+                    suggestionsList.appendChild(item);
+                });
+                
+                // Show suggestions
+                suggestionsContainer.classList.remove('d-none');
+            })
+            .catch(error => {
+                console.error('Error looking up property:', error);
+                lookupBtn.innerHTML = '<i class="fas fa-search"></i> Lookup';
+                lookupBtn.disabled = false;
+                
+                // Show error
+                suggestionsList.innerHTML = `
+                    <div class="list-group-item text-center text-danger">
+                        <i class="fas fa-exclamation-circle"></i> Error: ${error.message || 'Failed to lookup property'}
+                    </div>
+                `;
+                suggestionsContainer.classList.remove('d-none');
+            });
+    });
+    
+    // Also trigger lookup when pressing Enter in address field
+    addressInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // Prevent form submission
+            lookupBtn.click();
+        }
+    });
+    
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!suggestionsContainer.contains(e.target) && e.target !== lookupBtn && e.target !== addressInput) {
+            suggestionsContainer.classList.add('d-none');
+        }
+    });
+});
+</script>
 {% endblock %}
