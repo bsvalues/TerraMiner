@@ -139,6 +139,12 @@
                                 <span>On target with estimate</span>
                                 {% endif %}
                             </p>
+                            <div class="mt-3">
+                                <a href="{{ url_for('cma_ui.cma_generator', property_id=property.id) }}" class="btn btn-sm {% if ui_template == 'unified' %}btn-teal{% else %}btn-primary{% endif %}">
+                                    <i class="fas fa-chart-bar me-1"></i> Create CMA Report
+                                </a>
+                                <span class="text-muted ms-2 small">Compare with similar properties</span>
+                            </div>
                         </div>
                     </div>
                     

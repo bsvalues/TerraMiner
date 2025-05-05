@@ -72,7 +72,38 @@ def cma_generator():
             return render_template('cma_generator.html', form_data=request.form)
     
     # GET request, show form
-    return render_template('cma_generator.html')
+    property_id = request.args.get('property_id')
+    form_data = {}
+    
+    # If property_id provided, pre-populate form with property data
+    if property_id:
+        try:
+            # Get property details from Zillow service
+            property_data = cma_service.zillow_service.get_property_details(property_id)
+            
+            if property_data:
+                # Map property fields to form data
+                form_data = {
+                    'subject_address': property_data.get('address'),
+                    'subject_city': property_data.get('city'),
+                    'subject_state': property_data.get('state'),
+                    'subject_zip': property_data.get('zip_code'),
+                    'subject_beds': property_data.get('beds', 3),
+                    'subject_baths': property_data.get('baths', 2),
+                    'subject_sqft': property_data.get('sqft', 1800),
+                    'subject_lot_size': property_data.get('lot_size', 5000),
+                    'subject_year_built': property_data.get('year_built', 2000),
+                    'subject_property_type': property_data.get('property_type', 'Single Family'),
+                    'subject_price': property_data.get('price')
+                }
+                flash('Property details loaded successfully', 'success')
+            else:
+                flash('Property not found', 'error')
+        except Exception as e:
+            logger.exception(f"Error loading property details: {str(e)}")
+            flash(f"Error loading property details: {str(e)}", 'error')
+    
+    return render_template('cma_generator.html', form_data=form_data)
 
 @cma_bp.route('/reports', methods=['GET'])
 def list_reports():
