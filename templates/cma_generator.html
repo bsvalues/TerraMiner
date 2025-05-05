@@ -13,6 +13,38 @@
         <div class="card-body">
             <p class="mb-4">Enter the subject property details below to generate a comprehensive comparative market analysis report.</p>
             
+            {% if sample_properties %}
+            <div class="card mb-4 bg-light">
+                <div class="card-header">
+                    <h5 class="mb-0">Sample Properties</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Select one of our sample properties to get started quickly:</p>
+                    <div class="row">
+                        {% for key, property in sample_properties.items() %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ property.subject_city }}</h5>
+                                    <p class="card-text">{{ property.subject_address }}</p>
+                                    <div class="small text-muted mb-3">
+                                        {{ property.subject_beds }} beds, {{ property.subject_baths }} baths, {{ property.subject_sqft }} sqft
+                                    </div>
+                                    <a href="{{ url_for('cma_ui.cma_generator', template=key) }}" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-file-import mr-1"></i> Use This Property
+                                    </a>
+                                </div>
+                                <div class="card-footer text-right">
+                                    <strong>${{ "{:,}".format(property.subject_price) }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
             <form method="post" action="{{ url_for('cma_ui.cma_generator') }}" id="cma-generator-form">
                 <div class="row">
                     <div class="col-md-8">

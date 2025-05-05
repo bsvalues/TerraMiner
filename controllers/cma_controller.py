@@ -32,6 +32,49 @@ def cma_home():
 @cma_bp.route('/generator', methods=['GET', 'POST'])
 def cma_generator():
     """CMA generator page."""
+    # Sample properties for different locations
+    sample_properties = {
+        "walla_walla": {
+            'subject_address': '4234 OLD MILTON HWY',
+            'subject_city': 'WALLA WALLA',
+            'subject_state': 'WA',
+            'subject_zip': '99362',
+            'subject_beds': 4,
+            'subject_baths': 3.5,
+            'subject_sqft': 2426,
+            'subject_lot_size': 14000,
+            'subject_year_built': 2008,
+            'subject_property_type': 'Single Family',
+            'subject_price': 789000
+        },
+        "seattle": {
+            'subject_address': '123 QUEEN ANNE AVE N',
+            'subject_city': 'SEATTLE',
+            'subject_state': 'WA',
+            'subject_zip': '98109',
+            'subject_beds': 3,
+            'subject_baths': 2.5,
+            'subject_sqft': 1850,
+            'subject_lot_size': 3200,
+            'subject_year_built': 2005,
+            'subject_property_type': 'Condo',
+            'subject_price': 950000
+        },
+        "spokane": {
+            'subject_address': '456 SOUTH HILL BLVD',
+            'subject_city': 'SPOKANE',
+            'subject_state': 'WA',
+            'subject_zip': '99203',
+            'subject_beds': 4,
+            'subject_baths': 3.0,
+            'subject_sqft': 2750,
+            'subject_lot_size': 9500,
+            'subject_year_built': 1995,
+            'subject_property_type': 'Single Family',
+            'subject_price': 625000
+        }
+    }
+    
     if request.method == 'POST':
         try:
             # Get form data
@@ -54,7 +97,7 @@ def cma_generator():
             for field in required_fields:
                 if not data.get(field):
                     flash(f"Missing required field: {field.replace('subject_', '')}", 'error')
-                    return render_template('cma_generator.html', form_data=data)
+                    return render_template('cma_generator.html', form_data=data, sample_properties=sample_properties)
             
             # Create report
             report_id = cma_service.create_report(data)
@@ -69,14 +112,20 @@ def cma_generator():
         except Exception as e:
             logger.exception(f"Error generating CMA report: {str(e)}")
             flash(f"Error generating CMA report: {str(e)}", 'error')
-            return render_template('cma_generator.html', form_data=request.form)
+            return render_template('cma_generator.html', form_data=request.form, sample_properties=sample_properties)
     
     # GET request, show form
     property_id = request.args.get('property_id')
+    template_id = request.args.get('template')
     form_data = {}
     
-    # If property_id provided, pre-populate form with property data
-    if property_id:
+    # If template ID is provided, use a sample property template
+    if template_id and template_id in sample_properties:
+        form_data = sample_properties[template_id]
+        flash(f'Sample property from {form_data["subject_city"]} loaded successfully', 'success')
+    
+    # If property_id provided, try to get property details
+    elif property_id:
         try:
             # Get property details from Zillow service
             property_data = cma_service.zillow_service.get_property_details(property_id)
@@ -98,12 +147,12 @@ def cma_generator():
                 }
                 flash('Property details loaded successfully', 'success')
             else:
-                flash('Property not found', 'error')
+                flash('Property not found, try using one of our sample properties instead', 'warning')
         except Exception as e:
             logger.exception(f"Error loading property details: {str(e)}")
-            flash(f"Error loading property details: {str(e)}", 'error')
+            flash(f"Error loading property details. Try using a sample property instead.", 'warning')
     
-    return render_template('cma_generator.html', form_data=form_data)
+    return render_template('cma_generator.html', form_data=form_data, sample_properties=sample_properties)
 
 @cma_bp.route('/reports', methods=['GET'])
 def list_reports():
