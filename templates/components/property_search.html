@@ -114,7 +114,7 @@
                 Details
             </a>
             {% if property.has_cma %}
-            <a href="{{ url_for('cma.view_cma', property_id=property.id) }}" class="btn btn-sm btn-outline-secondary ms-1">
+            <a href="{{ url_for('cma_ui.view_report', report_id=property.id) }}" class="btn btn-sm btn-outline-secondary ms-1">
                 CMA
             </a>
             {% endif %}
