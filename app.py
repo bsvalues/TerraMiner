@@ -2730,6 +2730,14 @@ try:
 except Exception as e:
     logger.error(f"Failed to register AI suggestions API: {str(e)}")
 
+# Register Southeastern Washington routes
+try:
+    from regional.routes import se_wa_blueprint
+    app.register_blueprint(se_wa_blueprint, url_prefix='/regional')
+    logger.info("Registered Southeastern Washington blueprint")
+except Exception as e:
+    logger.error(f"Failed to register Southeastern Washington blueprint: {str(e)}")
+
 # Initialize database tables
 with app.app_context():
     # Create tables
