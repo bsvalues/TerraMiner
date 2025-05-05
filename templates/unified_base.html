@@ -297,7 +297,8 @@
                         <a href="{{ url_for('monitoring_dashboard') }}" class="{% if request.path == url_for('monitoring_dashboard') %}nav-link-active{% else %}nav-link{% endif %}">Dashboard</a>
                         <a href="{{ url_for('monitoring_system') }}" class="{% if 'monitoring' in request.path and request.path != url_for('monitoring_dashboard') %}nav-link-active{% else %}nav-link{% endif %}">Monitoring</a>
                         <a href="{{ url_for('ai_demo') }}" class="{% if 'ai' in request.path %}nav-link-active{% else %}nav-link{% endif %}">AI Tools</a>
-                        <a href="{{ url_for('property_search') }}" class="{% if 'property' in request.path %}nav-link-active{% else %}nav-link{% endif %}">Properties</a>
+                        <a href="{{ url_for('property_search') }}" class="{% if 'property' in request.path and not 'regional' in request.path %}nav-link-active{% else %}nav-link{% endif %}">Properties</a>
+                        <a href="{{ url_for('se_wa.se_washington_overview') }}" class="{% if 'regional' in request.path %}nav-link-active{% else %}nav-link{% endif %}">SE Washington</a>
                     </nav>
                 </div>
                 <div class="flex items-center">
