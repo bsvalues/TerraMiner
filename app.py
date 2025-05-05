@@ -2486,6 +2486,12 @@ def get_ai_report_settings():
 def ui_pattern_library():
     """UI Pattern Library for developers and designers."""
     return render_template('ui_pattern_library.html')
+    
+# AI Sidebar Demo route
+@app.route('/ui/dev/ai-sidebar')
+def ai_sidebar_demo():
+    """Demo page for the AI Suggestions Sidebar."""
+    return render_template('ai_sidebar_demo.html')
 
 # Zillow routes
 @app.route('/zillow/market-data')
@@ -2715,6 +2721,14 @@ def test_property_walla_walla():
     
     maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY', '')
     return render_template('property_details.html', property=property, error=None, maps_api_key=maps_api_key)
+
+# Register AI suggestions API
+try:
+    from api.ai_suggestions import ai_suggestions_api
+    app.register_blueprint(ai_suggestions_api)
+    logger.info("Registered AI suggestions API blueprint")
+except Exception as e:
+    logger.error(f"Failed to register AI suggestions API: {str(e)}")
 
 # Initialize database tables
 with app.app_context():

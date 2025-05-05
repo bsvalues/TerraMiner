@@ -495,5 +495,9 @@
     </script>
     
     {% block scripts %}{% endblock %}
+    
+    <!-- AI Suggestions Sidebar -->
+    {% from 'components/ai_sidebar.html' import ai_sidebar %}
+    {{ ai_sidebar() }}
 </body>
 </html>
