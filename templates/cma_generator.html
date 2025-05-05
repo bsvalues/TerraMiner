@@ -13,7 +13,7 @@
         <div class="card-body">
             <p class="mb-4">Enter the subject property details below to generate a comprehensive comparative market analysis report.</p>
             
-            <form method="post" action="{{ url_for('cma.cma_generator') }}">
+            <form method="post" action="{{ url_for('cma_ui.cma_generator') }}">
                 <div class="row">
                     <div class="col-md-8">
                         <h5 class="mb-3">Property Location</h5>
@@ -121,7 +121,7 @@
                     <button type="submit" class="btn btn-primary btn-lg">
                         <i class="fas fa-magic mr-2"></i> Generate Report
                     </button>
-                    <a href="{{ url_for('cma.cma_home') }}" class="btn btn-secondary btn-lg ml-2">Cancel</a>
+                    <a href="{{ url_for('cma_ui.cma_home') }}" class="btn btn-secondary btn-lg ml-2">Cancel</a>
                 </div>
             </form>
         </div>
