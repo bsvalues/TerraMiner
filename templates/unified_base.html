@@ -299,6 +299,7 @@
                         <a href="{{ url_for('ai_demo') }}" class="{% if 'ai' in request.path %}nav-link-active{% else %}nav-link{% endif %}">AI Tools</a>
                         <a href="{{ url_for('property_search') }}" class="{% if 'property' in request.path and not 'regional' in request.path %}nav-link-active{% else %}nav-link{% endif %}">Properties</a>
                         <a href="{{ url_for('se_wa.se_washington_overview') }}" class="{% if 'regional' in request.path %}nav-link-active{% else %}nav-link{% endif %}">SE Washington</a>
+                        <a href="{{ url_for('property_search') }}" class="{% if request.path == url_for('property_search') %}nav-link-active{% else %}nav-link{% endif %}">Benton County Search</a>
                     </nav>
                 </div>
                 <div class="flex items-center">
@@ -328,8 +329,11 @@
                         </div>
                         <div id="user-menu" class="dropdown-menu hidden">
                             <div class="py-1">
+                                <a href="{{ url_for('property_search') }}" class="dropdown-item">Benton County Search</a>
                                 <a href="{{ url_for('se_wa.se_washington_overview') }}" class="dropdown-item">SE Washington</a>
-                                <a href="#" class="dropdown-item">Your Profile</a>
+                                <a href="{{ url_for('monitoring_dashboard') }}" class="dropdown-item">Dashboard</a>
+                                <a href="{{ url_for('ai_demo') }}" class="dropdown-item">AI Tools</a>
+                                <div class="border-t border-secondary-200 dark:border-secondary-700"></div>
                                 <a href="#" class="dropdown-item">Settings</a>
                                 <a href="#" class="dropdown-item">Help</a>
                                 <div class="border-t border-secondary-200 dark:border-secondary-700"></div>
@@ -355,8 +359,9 @@
                     &copy; 2025 TerraMiner. All rights reserved.
                 </div>
                 <div class="flex space-x-4">
-                    <a href="#" class="text-sm text-secondary-500 hover:text-secondary-700 dark:text-secondary-400 dark:hover:text-secondary-300">Terms</a>
-                    <a href="#" class="text-sm text-secondary-500 hover:text-secondary-700 dark:text-secondary-400 dark:hover:text-secondary-300">Privacy</a>
+                    <a href="{{ url_for('property_search') }}" class="text-sm text-secondary-500 hover:text-secondary-700 dark:text-secondary-400 dark:hover:text-secondary-300">Benton County Search</a>
+                    <a href="{{ url_for('monitoring_dashboard') }}" class="text-sm text-secondary-500 hover:text-secondary-700 dark:text-secondary-400 dark:hover:text-secondary-300">Dashboard</a>
+                    <a href="{{ url_for('ai_demo') }}" class="text-sm text-secondary-500 hover:text-secondary-700 dark:text-secondary-400 dark:hover:text-secondary-300">AI Tools</a>
                     <a href="#" class="text-sm text-secondary-500 hover:text-secondary-700 dark:text-secondary-400 dark:hover:text-secondary-300">Contact</a>
                 </div>
             </div>
