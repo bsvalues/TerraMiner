@@ -51,6 +51,14 @@ try:
     logger.info("Registered Property Record Card blueprint")
 except Exception as e:
     logger.error(f"Failed to register Property Record Card blueprint: {str(e)}")
+    
+# Register property views
+try:
+    from views import register_property_views
+    register_property_views(app)
+    logger.info("Registered Property Views blueprint")
+except Exception as e:
+    logger.error(f"Failed to register Property Views blueprint: {str(e)}")
 
 # Setup API monitoring
 setup_monitoring(app)
