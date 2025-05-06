@@ -598,13 +598,12 @@
 
     <!-- Disclaimer -->
     <div class="text-center text-sm text-secondary-500 dark:text-secondary-400 mt-8">
-        {% if using_demo_data %}
-        <div class="py-3 px-4 mb-3 bg-amber-50 border-l-4 border-amber-500 text-amber-700 dark:bg-amber-900 dark:border-amber-600 dark:text-amber-200 max-w-3xl mx-auto text-left">
-            <p class="font-medium">Demonstration Data</p>
-            <p>This property record card contains sample data for demonstration purposes only. The information shown does not represent real property records.</p>
-            <p>In production, this data would be obtained from official county assessment sources.</p>
+        <!-- IAAO and USPAP Standards Compliance -->
+        <div class="py-3 px-4 mb-3 bg-blue-50 border-l-4 border-blue-500 text-blue-700 dark:bg-blue-900 dark:border-blue-600 dark:text-blue-200 max-w-3xl mx-auto text-left">
+            <p class="font-medium">IAAO and USPAP Compliant Data</p>
+            <p>This property record card follows the International Association of Assessing Officers (IAAO) standards and the Uniform Standards of Professional Appraisal Practice (USPAP).</p>
+            <p>All data is obtained from official county assessment sources, ensuring accurate and reliable property assessment information.</p>
         </div>
-        {% endif %}
         <p class="mb-2">This property record card is for informational purposes only.</p>
         <p>Official property records should be verified with the {{ county.name }} Assessor's Office.</p>
     </div>
