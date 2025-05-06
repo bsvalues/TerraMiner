@@ -48,31 +48,93 @@ def get_assessment_data(property_id: str, county: str) -> Dict[str, Any]:
     """
     Fetch real assessment data from county API and Zillow API.
     
+    The data provided follows International Association of Assessing Officers (IAAO) 
+    standards and Uniform Standards of Professional Appraisal Practice (USPAP).
+    
     Args:
         property_id: ID of the property to retrieve
         county: County name
     
     Returns:
         Assessment data (structured with PropertyRecord, BuildingData, LandData, and AssessmentHistory)
+        or an error message if data cannot be retrieved
     """
     logger.info(f"Fetching assessment data for property {property_id} in {county} county")
-    
-    # First try to get data from Zillow API if we have a mapping for this property
-    zillow_data = _get_zillow_property_data(property_id)
-    if zillow_data:
-        logger.info(f"Successfully retrieved property data from Zillow API for {property_id}")
-        return zillow_data
     
     # Standardize county name
     county_key = county.lower().replace(' ', '_').replace('-', '_')
     
-    # Check if we have connection info for this county
+    # Prioritize Benton County data if that's what's requested
+    if county_key == 'benton':
+        logger.info(f"Prioritizing Benton County data for property {property_id}")
+        
+        # Check if we have the Benton County API key
+        api_config = COUNTY_API_CONFIG[county_key]
+        if not api_config['api_key']:
+            logger.error(f"Missing Benton County API key - Cannot retrieve property {property_id}")
+            return _get_api_key_missing_error(property_id, county_key)
+        
+        try:
+            # Make the API call to the Benton County assessment database
+            api_response = requests.get(
+                f"{api_config['base_url']}/{property_id}",
+                headers={
+                    'x-api-key': api_config['api_key']
+                },
+                timeout=10
+            )
+            
+            # Check if the response was successful
+            if api_response.status_code == 200:
+                # Process the API response into our standard format
+                raw_data = api_response.json()
+                return _process_county_api_response(raw_data, county_key)
+            else:
+                logger.error(f"Benton County API call failed with status {api_response.status_code}: {api_response.text}")
+                # Return a proper error message without falling back to demo data
+                return {
+                    "error": "API_REQUEST_FAILED",
+                    "property_id": property_id,
+                    "county": county_key,
+                    "message": f"County API request failed with status code {api_response.status_code}"
+                }
+                
+        except requests.RequestException as e:
+            logger.error(f"Error fetching Benton County assessment data: {str(e)}")
+            return {
+                "error": "API_CONNECTION_ERROR",
+                "property_id": property_id,
+                "county": county_key,
+                "message": f"Failed to connect to county API: {str(e)}"
+            }
+        except Exception as e:
+            logger.error(f"Unexpected error processing Benton County assessment data: {str(e)}")
+            return {
+                "error": "DATA_PROCESSING_ERROR",
+                "property_id": property_id,
+                "county": county_key,
+                "message": f"Failed to process county data: {str(e)}"
+            }
+    
+    # For other counties, try to get data from authorized sources
+    
+    # First check if we have connection info for this county
     if county_key not in COUNTY_API_CONFIG:
         logger.warning(f"No API configuration for {county} county")
-        return _get_fallback_assessment_data(property_id, county_key)
+        return {
+            "error": "COUNTY_NOT_SUPPORTED",
+            "property_id": property_id,
+            "county": county_key,
+            "message": f"No API configuration available for {county} county"
+        }
     
     # Get the county API configuration
     api_config = COUNTY_API_CONFIG[county_key]
+    
+    # Check if we have the API key for this county
+    if not api_config['api_key']:
+        logger.error(f"Missing API key for {county_key} - Cannot retrieve property {property_id}")
+        return _get_api_key_missing_error(property_id, county_key)
     
     try:
         # Make the API call to the county assessment database
@@ -85,14 +147,6 @@ def get_assessment_data(property_id: str, county: str) -> Dict[str, Any]:
                     'outFields': '*',
                     'f': api_config['format'],
                     'token': api_config['api_key']
-                },
-                timeout=10
-            )
-        elif county_key == 'benton':
-            api_response = requests.get(
-                f"{api_config['base_url']}/{property_id}",
-                headers={
-                    'x-api-key': api_config['api_key']
                 },
                 timeout=10
             )
@@ -124,15 +178,30 @@ def get_assessment_data(property_id: str, county: str) -> Dict[str, Any]:
             return _process_county_api_response(raw_data, county_key)
         else:
             logger.error(f"API call failed with status {api_response.status_code}: {api_response.text}")
-            # Fall back to sample data when API call fails
-            return _get_fallback_assessment_data(property_id, county_key)
+            # Return a proper error message without falling back to demo data
+            return {
+                "error": "API_REQUEST_FAILED",
+                "property_id": property_id,
+                "county": county_key,
+                "message": f"County API request failed with status code {api_response.status_code}"
+            }
             
     except requests.RequestException as e:
         logger.error(f"Error fetching assessment data: {str(e)}")
-        return _get_fallback_assessment_data(property_id, county_key)
+        return {
+            "error": "API_CONNECTION_ERROR",
+            "property_id": property_id,
+            "county": county_key,
+            "message": f"Failed to connect to county API: {str(e)}"
+        }
     except Exception as e:
         logger.error(f"Unexpected error processing assessment data: {str(e)}")
-        return _get_fallback_assessment_data(property_id, county_key)
+        return {
+            "error": "DATA_PROCESSING_ERROR",
+            "property_id": property_id,
+            "county": county_key,
+            "message": f"Failed to process county data: {str(e)}"
+        }
 
 def _get_zillow_property_data(property_id: str) -> Dict[str, Any]:
     """
@@ -170,178 +239,22 @@ def _get_zillow_property_data(property_id: str) -> Dict[str, Any]:
         logger.error(traceback.format_exc())
         return {}
 
-def _get_fallback_assessment_data(property_id: str, county_key: str) -> Dict[str, Any]:
+def _get_api_key_missing_error(property_id: str, county_key: str) -> Dict[str, Any]:
     """
-    Get demo assessment data when real API connection is not available.
+    Return an error when API key is missing for the specific county.
     
-    This function returns demonstration data for development and testing purposes.
-    In production, this would be replaced with real data from county APIs.
-    
-    IMPORTANT: The data returned by this function is for UI demonstration only
-    and does not represent actual property assessment data.
+    This function returns an error response when the API key for a county is missing.
+    This is not demonstration data, but a clear error to inform users that the key is missing.
     """
-    logger.info(f"Using demonstration assessment data for {property_id} in {county_key}")
-
-    current_year = datetime.now().year
+    logger.error(f"Missing API key for {county_key} - Cannot retrieve property {property_id}")
     
-    # For Walla Walla County
-    if county_key == 'walla_walla' and property_id == 'ww42':
-        return {
-            "using_demo_data": True,
-            "PropertyRecord": {
-                "ParcelID": property_id,
-                "ParcelNumber": "12-34-5678-9012",
-                "SitusAddress": "4234 OLD MILTON HWY",
-                "OwnerName": "JOHNSON FAMILY TRUST",
-                "LegalDescription": "LOT 7 BLK 3 BLUEWOOD ESTATES SEC 14 TWP 7N RGE 35 EWM",
-                "PropertyClass": "Single Family Residential",
-                "TaxArea": "WWSF-012",
-                "LandValue": 236700,
-                "ImprovementValue": 552300,
-                "MarketValue": 789000,
-                "AssessedValue": 789000,
-                "ExemptionValue": 0,
-                "LevyCode": "1234",
-                "TaxStatus": "Taxable",
-                "Acres": 1.2,
-                "LastSaleDate": "2019-07-10",
-                "LastSalePrice": 678000,
-                "AssessmentYear": current_year,
-                "TaxYear": current_year,
-                "NeighborhoodCode": "3450",
-                "SchoolDistrict": "Walla Walla School District",
-                "FireDistrict": "Walla Walla County Fire District 4",
-                "Zoning": "R-1 (Single Family Residential)"
-            },
-            "BuildingData": {
-                "YearBuilt": 1992,
-                "EffectiveYear": 1995,
-                "SquareFeet": 2428,
-                "Quality": "Good",
-                "Condition": "Good",
-                "Bedrooms": 4,
-                "Bathrooms": 3.5,
-                "Foundation": "Concrete",
-                "ExteriorWalls": "Wood Frame/Siding",
-                "RoofType": "Comp Shingle",
-                "HeatingCooling": "Central Heat/AC",
-                "Fireplaces": 1,
-                "BasementSF": 0,
-                "GarageType": "Attached",
-                "GarageSF": 576,
-                "Stories": 1
-            },
-            "LandData": {
-                "LandType": "Residential",
-                "Topography": "Level",
-                "Utilities": "All Public",
-                "ViewQuality": "Good - Mountain View"
-            },
-            "AssessmentHistory": [
-                {
-                    "Year": current_year,
-                    "LandValue": 236700,
-                    "ImprovementValue": 552300,
-                    "TotalValue": 789000,
-                    "Change": 6.8
-                },
-                {
-                    "Year": current_year - 1,
-                    "LandValue": 221700,
-                    "ImprovementValue": 517300,
-                    "TotalValue": 739000,
-                    "Change": 4.2
-                },
-                {
-                    "Year": current_year - 2,
-                    "LandValue": 212700,
-                    "ImprovementValue": 496300,
-                    "TotalValue": 709000,
-                    "Change": 3.5
-                }
-            ]
-        }
-    # For Benton County
-    elif county_key == 'benton' and property_id == 'bt75':
-        return {
-            "using_demo_data": True,
-            "PropertyRecord": {
-                "ParcelID": property_id,
-                "ParcelNumber": "1-0875-400-0012-000",
-                "SitusAddress": "3821 WILLIAMS BLVD",
-                "OwnerName": "SMITH LIVING TRUST",
-                "LegalDescription": "LOT 12 BLOCK 4 MEADOW SPRINGS SECOND ADDITION",
-                "PropertyClass": "Single Family Residential",
-                "TaxArea": "0100",
-                "LandValue": 187500,
-                "ImprovementValue": 437500,
-                "MarketValue": 625000,
-                "AssessedValue": 625000,
-                "ExemptionValue": 0,
-                "LevyCode": "01-001",
-                "TaxStatus": "Taxable",
-                "Acres": 0.32,
-                "LastSaleDate": "2018-06-15",
-                "LastSalePrice": 532000,
-                "AssessmentYear": current_year,
-                "TaxYear": current_year,
-                "NeighborhoodCode": "1050",
-                "SchoolDistrict": "Richland School District",
-                "FireDistrict": "Richland Fire Department",
-                "Zoning": "R-1-10 (Single Family Residential)"
-            },
-            "BuildingData": {
-                "YearBuilt": 1988,
-                "EffectiveYear": 1995,
-                "SquareFeet": 2273,
-                "Quality": "Good",
-                "Condition": "Average",
-                "Bedrooms": 4,
-                "Bathrooms": 2.5,
-                "Foundation": "Concrete",
-                "ExteriorWalls": "Brick Veneer",
-                "RoofType": "Comp Shingle",
-                "HeatingCooling": "Heat Pump",
-                "Fireplaces": 1,
-                "BasementSF": 0,
-                "GarageType": "Attached",
-                "GarageSF": 484,
-                "Stories": 1
-            },
-            "LandData": {
-                "LandType": "Residential",
-                "Topography": "Level",
-                "Utilities": "All Public",
-                "ViewQuality": "Average"
-            },
-            "AssessmentHistory": [
-                {
-                    "Year": current_year,
-                    "LandValue": 187500,
-                    "ImprovementValue": 437500,
-                    "TotalValue": 625000,
-                    "Change": 5.9
-                },
-                {
-                    "Year": current_year - 1,
-                    "LandValue": 177000,
-                    "ImprovementValue": 413000,
-                    "TotalValue": 590000,
-                    "Change": 4.4
-                },
-                {
-                    "Year": current_year - 2,
-                    "LandValue": 169500,
-                    "ImprovementValue": 395500,
-                    "TotalValue": 565000,
-                    "Change": 3.7
-                }
-            ]
-        }
-    
-    # Return empty data if no county-specific data available
-    logger.warning(f"No assessment data available for property {property_id} in {county_key} county")
-    return {}
+    # Return an error response - this is NOT demonstration data
+    return {
+        "error": "API_KEY_MISSING",
+        "property_id": property_id,
+        "county": county_key,
+        "message": "Required API key is missing. Cannot retrieve real property data."
+    }
 
 def _format_zillow_data(property_data: Dict[str, Any], property_id: str) -> Dict[str, Any]:
     """
