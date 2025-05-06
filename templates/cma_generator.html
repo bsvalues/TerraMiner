@@ -55,7 +55,7 @@
                                    placeholder="Start typing to search for an address..." 
                                    value="{{ form_data.subject_address if form_data else '' }}" required 
                                    autocomplete="off">
-                            <div id="property-suggestions" class="shadow-sm border rounded position-absolute bg-white w-100 z-index-100 d-none">
+                            <div id="property-suggestions" class="shadow-sm border rounded position-absolute bg-white w-100 z-index-dropdown d-none" style="z-index: 1000; max-height: 300px; overflow-y: auto;">
                                 <div class="list-group list-group-flush" id="property-suggestions-list">
                                     <!-- Property suggestions will be populated here -->
                                 </div>
@@ -222,14 +222,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Function to fetch and display property suggestions
     function lookupProperty(address) {
+        console.log(`Searching for: "${address}"`);
+        
         // Check if address has changed
         if (address === currentSearchTerm) {
+            console.log('Search term unchanged, skipping search');
             return;
         }
         
         currentSearchTerm = address;
         
         if (address.length < 3) {
+            console.log('Search term too short, hiding suggestions');
             suggestionsContainer.classList.add('d-none');
             return;
         }
@@ -238,11 +242,18 @@ document.addEventListener('DOMContentLoaded', function() {
         suggestionsList.innerHTML = '';
         searchStatus.classList.remove('d-none');
         suggestionsContainer.classList.remove('d-none');
+        console.log('Showing suggestions container and loading indicator');
         
         // Make API call to lookup property
+        console.log(`Making API call to /cma/api/lookup-property?address=${encodeURIComponent(address)}`);
         fetch(`/cma/api/lookup-property?address=${encodeURIComponent(address)}`)
-            .then(response => response.json())
+            .then(response => {
+                console.log(`API response status: ${response.status}`);
+                return response.json();
+            })
             .then(data => {
+                console.log('API response data:', data);
+                
                 // Hide loading indicator
                 searchStatus.classList.add('d-none');
                 
@@ -254,8 +265,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 const properties = data.properties || [];
+                console.log(`Found ${properties.length} properties`);
                 
                 if (properties.length === 0) {
+                    console.log('No properties found, showing empty message');
                     suggestionsList.innerHTML = `
                         <div class="list-group-item text-center text-muted py-3">
                             <i class="fas fa-home mr-2"></i> No properties found
@@ -267,12 +280,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 // If only one property found and exact match, auto-populate
                 if (properties.length === 1 && 
                     properties[0].address.toLowerCase() === address.toLowerCase()) {
+                    console.log('Exact match found, auto-populating form');
                     populatePropertyData(properties[0]);
                     return;
                 }
                 
                 // Add found properties to suggestions
-                properties.forEach(property => {
+                console.log('Adding properties to suggestion list');
+                properties.forEach((property, index) => {
+                    console.log(`Adding property ${index + 1}:`, property);
                     const item = document.createElement('a');
                     item.className = 'list-group-item list-group-item-action';
                     item.href = '#';
@@ -280,6 +296,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Format display of property
                     const displayAddress = `${property.address}, ${property.city}, ${property.state} ${property.zip_code}`;
                     const details = `${property.beds} beds, ${property.baths} baths, ${property.sqft} sqft`;
+                    console.log(`Display address: ${displayAddress}`);
                     
                     item.innerHTML = `
                         <div class="d-flex w-100 justify-content-between">
@@ -293,6 +310,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Add click event to populate form
                     item.addEventListener('click', function(e) {
                         e.preventDefault();
+                        console.log('Property selected:', property);
                         populatePropertyData(property);
                     });
                     
