@@ -341,61 +341,49 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-secondary-200 dark:divide-secondary-700">
-                        {% set land_value = property.land_value or (property.price * 0.3 if property.price else 0) %}
-                        {% set improvement_value = property.improvement_value or (property.price * 0.7 if property.price else 0) %}
-                        {% set total_value = property.total_value or property.price or 0 %}
-                        
-                        <tr>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-secondary-900 dark:text-white">
-                                2025
-                            </td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                ${{ '{:,.0f}'.format(land_value) }}
-                            </td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                ${{ '{:,.0f}'.format(improvement_value) }}
-                            </td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                ${{ '{:,.0f}'.format(total_value) }}
-                            </td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                <span class="text-primary-600 dark:text-primary-400">+6.8%</span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-secondary-900 dark:text-white">
-                                2024
-                            </td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                ${{ '{:,.0f}'.format(land_value / 1.068) }}
-                            </td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                ${{ '{:,.0f}'.format(improvement_value / 1.068) }}
-                            </td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                ${{ '{:,.0f}'.format(total_value / 1.068) }}
-                            </td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                <span class="text-primary-600 dark:text-primary-400">+4.2%</span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-secondary-900 dark:text-white">
-                                2023
-                            </td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                ${{ '{:,.0f}'.format(land_value / 1.068 / 1.042) }}
-                            </td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                ${{ '{:,.0f}'.format(improvement_value / 1.068 / 1.042) }}
-                            </td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                ${{ '{:,.0f}'.format(total_value / 1.068 / 1.042) }}
-                            </td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                <span class="text-primary-600 dark:text-primary-400">+3.5%</span>
-                            </td>
-                        </tr>
+                        {% if assessment_history and assessment_history|length > 0 %}
+                            {% for history in assessment_history %}
+                            <tr>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-secondary-900 dark:text-white">
+                                    {{ history.Year }}
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
+                                    ${{ '{:,.0f}'.format(history.LandValue) }}
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
+                                    ${{ '{:,.0f}'.format(history.ImprovementValue) }}
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
+                                    ${{ '{:,.0f}'.format(history.TotalValue) }}
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
+                                    <span class="text-primary-600 dark:text-primary-400">+{{ history.Change }}%</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            {% set land_value = property.land_value or (property.price * 0.3 if property.price else 0) %}
+                            {% set improvement_value = property.improvement_value or (property.price * 0.7 if property.price else 0) %}
+                            {% set total_value = property.assessed_value or property.market_value or property.total_value or property.price or 0 %}
+                            
+                            <tr>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-secondary-900 dark:text-white">
+                                    {{ property.assessment_year or 2025 }}
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
+                                    ${{ '{:,.0f}'.format(land_value) }}
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
+                                    ${{ '{:,.0f}'.format(improvement_value) }}
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
+                                    ${{ '{:,.0f}'.format(total_value) }}
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
+                                    <span class="text-muted-500 dark:text-muted-400">N/A</span>
+                                </td>
+                            </tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
@@ -456,7 +444,7 @@
                                     2025
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    ${{ '{:,.0f}'.format(total_value * 0.011) }}
+                                    ${{ '{:,.0f}'.format((property.assessed_value or property.market_value or property.total_value or property.price or 0) * 0.011) }}
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
                                     <span class="text-primary-600 dark:text-primary-400">+4.5%</span>
@@ -472,7 +460,7 @@
                                     2024
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    ${{ '{:,.0f}'.format((total_value / 1.068) * 0.0107) }}
+                                    ${{ '{:,.0f}'.format(((property.assessed_value or property.market_value or property.total_value or property.price or 0) / 1.068) * 0.0107) }}
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
                                     <span class="text-primary-600 dark:text-primary-400">+3.2%</span>
@@ -488,7 +476,7 @@
                                     2023
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    ${{ '{:,.0f}'.format((total_value / 1.068 / 1.042) * 0.0104) }}
+                                    ${{ '{:,.0f}'.format(((property.assessed_value or property.market_value or property.total_value or property.price or 0) / 1.068 / 1.042) * 0.0104) }}
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
                                     <span class="text-primary-600 dark:text-primary-400">+2.8%</span>
