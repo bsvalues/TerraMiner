@@ -2740,8 +2740,8 @@ except Exception as e:
 
 # Register Property Record Card controller
 try:
-    from controllers.property_record_controller import property_record_blueprint
-    app.register_blueprint(property_record_blueprint)
+    from controllers.property_record_controller import property_record_bp, register_blueprints
+    register_blueprints(app)
     logger.info("Registered Property Record Card blueprint")
 except Exception as e:
     logger.error(f"Failed to register Property Record Card blueprint: {str(e)}")

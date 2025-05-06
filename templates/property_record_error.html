@@ -3,56 +3,48 @@
 {% block title %}Property Record Error{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 max-w-4xl mx-auto">
-        <div class="flex items-center mb-6">
-            <div class="rounded-full bg-red-100 p-3 mr-4">
-                <svg class="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                </svg>
+<div class="container mx-auto mt-8 p-8 bg-white rounded-xl shadow-md dark:bg-gray-800">
+    <div class="flex flex-col items-center">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-red-600 dark:text-red-400 mb-4">Property Record Error</h1>
+            <p class="text-lg text-gray-700 dark:text-gray-300 mb-2">
+                We encountered an issue retrieving authentic property data.
+            </p>
+            <p class="text-md text-gray-600 dark:text-gray-400">
+                TerraMiner complies with IAAO and USPAP standards, using only real property data.
+            </p>
+        </div>
+
+        <div class="w-full max-w-3xl bg-red-50 dark:bg-gray-700 p-6 rounded-lg border border-red-200 dark:border-red-800">
+            <div class="mb-4">
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Error Details</h2>
             </div>
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Property Record Unavailable</h1>
-        </div>
-
-        <div class="mb-6 p-4 border-l-4 border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-200">
-            <h2 class="font-semibold mb-2">{{ error_type }}</h2>
-            <p>{{ error_message }}</p>
-        </div>
-
-        <div class="mb-6">
-            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Property Information</h3>
-            <p><strong>Property ID:</strong> {{ property_id }}</p>
-            <p><strong>County:</strong> {{ county.name }}</p>
-            <p><strong>Date:</strong> {{ current_date }}</p>
-        </div>
-
-        <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-6">
-            <h3 class="text-lg font-semibold text-blue-700 dark:text-blue-300 mb-2">IAAO and USPAP Compliance</h3>
-            <p class="text-blue-600 dark:text-blue-300">
-                In accordance with the International Association of Assessing Officers (IAAO) standards and 
-                Uniform Standards of Professional Appraisal Practice (USPAP), we only provide property assessment 
-                data from authorized sources. No demonstration or synthetic data is used in our property records.
-            </p>
-        </div>
-
-        {% if error_type == 'API_KEY_MISSING' %}
-        <div class="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg">
-            <h3 class="text-lg font-semibold text-amber-700 dark:text-amber-300 mb-2">Missing API Key</h3>
-            <p class="text-amber-600 dark:text-amber-300">
-                The property record data cannot be displayed because the system does not have the required API key
-                to access the county assessor's database. Please contact the system administrator to configure the 
-                proper API credentials.
-            </p>
-        </div>
-        {% endif %}
-
-        <div class="mt-6 flex justify-between">
-            <a href="{{ url_for('monitoring_dashboard') }}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition duration-150">
-                Back to Dashboard
-            </a>
             
-            <a href="{{ url_for('property_comparison') }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-150">
-                Try Another Property
+            <div class="mb-6 p-4 bg-white dark:bg-gray-800 rounded border border-red-300 dark:border-red-700">
+                <p class="font-medium text-gray-700 dark:text-gray-300">Error Type: <span class="text-red-600 dark:text-red-400">{{ error.error }}</span></p>
+                <p class="font-medium text-gray-700 dark:text-gray-300">Property ID: <span class="text-gray-900 dark:text-gray-100">{{ error.property_id }}</span></p>
+                <p class="font-medium text-gray-700 dark:text-gray-300">County: <span class="text-gray-900 dark:text-gray-100">{{ error.county }}</span></p>
+                <p class="mt-2 text-gray-700 dark:text-gray-300">{{ error.message }}</p>
+            </div>
+            
+            <div class="bg-yellow-50 dark:bg-gray-900 p-4 rounded-lg border border-yellow-200 dark:border-yellow-900">
+                <h3 class="text-lg font-medium text-yellow-800 dark:text-yellow-400 mb-2">About Data Integrity</h3>
+                <p class="text-gray-700 dark:text-gray-300">
+                    TerraMiner is committed to providing only authentic assessment data in compliance with:
+                </p>
+                <ul class="list-disc list-inside mt-2 text-gray-700 dark:text-gray-300">
+                    <li>International Association of Assessing Officers (IAAO) standards</li>
+                    <li>Uniform Standards of Professional Appraisal Practice (USPAP)</li>
+                </ul>
+                <p class="mt-2 text-gray-700 dark:text-gray-300">
+                    We do not generate or display synthetic or demonstration data under any circumstances.
+                </p>
+            </div>
+        </div>
+        
+        <div class="mt-8">
+            <a href="/property/search" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition-colors">
+                Return to Property Search
             </a>
         </div>
     </div>

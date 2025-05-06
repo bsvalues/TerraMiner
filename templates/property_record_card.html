@@ -1,655 +1,272 @@
 {% extends "unified_base.html" %}
 
-{% block title %}Property Record Card - {{ property.address }}{% endblock %}
+{% block title %}Property Record - {{ assessment_data.PropertyRecord.ParcelID }}{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Header Section -->
-    <div class="mb-6 flex flex-col md:flex-row md:justify-between md:items-center">
-        <div>
-            <h1 class="text-2xl font-bold text-secondary-900 dark:text-white">Property Record Card</h1>
-            <p class="mt-1 text-secondary-600 dark:text-secondary-400">
-                {{ property.address }}, {{ property.city }}, {{ property.state }} {{ property.zip_code }}
-            </p>
-        </div>
-        <div class="mt-4 md:mt-0 flex space-x-3">
-            <a href="{{ url_for('property_details', property_id=property.id) }}" class="btn btn-secondary-outline">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                Property Details
-            </a>
-            <button onclick="window.print()" class="btn btn-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                </svg>
-                Print Record
-            </button>
-        </div>
-    </div>
-
-    <!-- Official Header -->
-    <div class="bg-secondary-100 dark:bg-secondary-800 border border-secondary-200 dark:border-secondary-700 rounded-lg p-6 mb-6">
-        <div class="flex flex-col md:flex-row md:justify-between">
+<div class="container mx-auto mt-8 p-6 bg-white rounded-xl shadow-md dark:bg-gray-800">
+    <div class="border-b border-gray-200 dark:border-gray-700 pb-4 mb-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
             <div>
-                <div class="text-xl font-bold text-secondary-900 dark:text-white">{{ county.name }} Assessor's Office</div>
-                <div class="text-secondary-600 dark:text-secondary-400">Property Record Card</div>
-                {% if using_real_data %}
-                <div class="mt-2 inline-flex items-center px-3 py-1 rounded-md bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 border border-green-300 dark:border-green-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span class="font-medium">REAL DATA: {{ data_source }}</span>
-                </div>
-                {% else %}
-                <div class="mt-2 inline-flex items-center px-3 py-1 rounded-md bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 border border-blue-300 dark:border-blue-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span class="font-medium">DATA SOURCE: {{ data_source }}</span>
-                </div>
-                {% endif %}
+                <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Property Record Card</h1>
+                <p class="text-lg text-gray-600 dark:text-gray-400">
+                    Parcel ID: {{ assessment_data.PropertyRecord.ParcelID }}
+                </p>
             </div>
-            <div class="mt-4 md:mt-0">
-                <div class="text-sm text-secondary-500 dark:text-secondary-400">Record Date: {{ current_date }}</div>
-                <div class="text-sm text-secondary-500 dark:text-secondary-400">Parcel ID: {{ property.parcel_id or property.id }}</div>
+            <div class="mt-4 md:mt-0 flex flex-col items-end">
+                <span class="bg-green-100 text-green-800 font-medium px-3 py-1 rounded-full text-sm dark:bg-green-900 dark:text-green-200">
+                    IAAO & USPAP Compliant
+                </span>
+                <span class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                    Data Source: {{ assessment_data.data_source }}
+                </span>
             </div>
         </div>
     </div>
 
     <!-- Property Information -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <!-- Property Identification -->
-        <div class="card">
-            <div class="card-header">
-                <h2 class="text-lg font-medium text-secondary-900 dark:text-white">Property Identification</h2>
-            </div>
-            <div class="card-body">
-                <dl class="divide-y divide-secondary-200 dark:divide-secondary-700">
-                    <div class="py-2 grid grid-cols-2">
-                        <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Parcel ID</dt>
-                        <dd class="text-sm text-secondary-900 dark:text-white">{{ property.parcel_id or property.id }}</dd>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Column 1: Basic Property Info -->
+        <div class="bg-gray-50 p-5 rounded-lg shadow-sm dark:bg-gray-700">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Property Information</h2>
+            <dl class="space-y-2">
+                <div class="flex flex-col">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Situs Address</dt>
+                    <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.PropertyRecord.SitusAddress }}</dd>
+                </div>
+                <div class="flex flex-col">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Owner</dt>
+                    <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.PropertyRecord.OwnerName }}</dd>
+                </div>
+                <div class="flex flex-col">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Property Class</dt>
+                    <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.PropertyRecord.PropertyClass }}</dd>
+                </div>
+                <div class="flex flex-col">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Tax Status</dt>
+                    <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.PropertyRecord.TaxStatus }}</dd>
+                </div>
+                <div class="flex flex-col">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Acres</dt>
+                    <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.PropertyRecord.Acres }}</dd>
+                </div>
+            </dl>
+        </div>
+
+        <!-- Column 2: Valuation -->
+        <div class="bg-gray-50 p-5 rounded-lg shadow-sm dark:bg-gray-700">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Valuation ({{ assessment_data.PropertyRecord.AssessmentYear }})</h2>
+            <dl class="space-y-2">
+                <div class="flex flex-col">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Land Value</dt>
+                    <dd class="text-base text-gray-900 dark:text-gray-100">${{ assessment_data.PropertyRecord.LandValue|default(0)|int }}</dd>
+                </div>
+                <div class="flex flex-col">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Improvement Value</dt>
+                    <dd class="text-base text-gray-900 dark:text-gray-100">${{ assessment_data.PropertyRecord.ImprovementValue|default(0)|int }}</dd>
+                </div>
+                <div class="flex flex-col">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Market Value</dt>
+                    <dd class="text-base font-semibold text-gray-900 dark:text-gray-100">${{ assessment_data.PropertyRecord.MarketValue|default(0)|int }}</dd>
+                </div>
+                <div class="flex flex-col">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Assessed Value</dt>
+                    <dd class="text-base text-gray-900 dark:text-gray-100">${{ assessment_data.PropertyRecord.AssessedValue|default(0)|int }}</dd>
+                </div>
+                <div class="flex flex-col">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Exemption Value</dt>
+                    <dd class="text-base text-gray-900 dark:text-gray-100">${{ assessment_data.PropertyRecord.ExemptionValue|default(0)|int }}</dd>
+                </div>
+            </dl>
+        </div>
+
+        <!-- Column 3: Sale Information -->
+        <div class="bg-gray-50 p-5 rounded-lg shadow-sm dark:bg-gray-700">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Last Sale Information</h2>
+            <dl class="space-y-2">
+                <div class="flex flex-col">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Sale Date</dt>
+                    <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.PropertyRecord.LastSaleDate|default("No sale data") }}</dd>
+                </div>
+                <div class="flex flex-col">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Sale Price</dt>
+                    <dd class="text-base text-gray-900 dark:text-gray-100">
+                        {% if assessment_data.PropertyRecord.LastSalePrice %}
+                            ${{ assessment_data.PropertyRecord.LastSalePrice|int }}
+                        {% else %}
+                            No sale data
+                        {% endif %}
+                    </dd>
+                </div>
+                <div class="flex flex-col">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Legal Description</dt>
+                    <dd class="text-sm text-gray-900 dark:text-gray-100">{{ assessment_data.PropertyRecord.LegalDescription|default("Not available")|truncate(100) }}</dd>
+                </div>
+            </dl>
+        </div>
+    </div>
+
+    <!-- Building Information -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- Building Details -->
+        <div class="bg-gray-50 p-5 rounded-lg shadow-sm dark:bg-gray-700">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Building Details</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <dl class="space-y-2">
+                    <div class="flex flex-col">
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Year Built</dt>
+                        <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.BuildingData.YearBuilt|default("N/A") }}</dd>
                     </div>
-                    <div class="py-2 grid grid-cols-2">
-                        <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Assessment Year</dt>
-                        <dd class="text-sm text-secondary-900 dark:text-white">{{ property.assessment_year or 2025 }}</dd>
+                    <div class="flex flex-col">
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Effective Year</dt>
+                        <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.BuildingData.EffectiveYear|default("N/A") }}</dd>
                     </div>
-                    <div class="py-2 grid grid-cols-2">
-                        <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Legal Description</dt>
-                        <dd class="text-sm text-secondary-900 dark:text-white">{{ property.legal_description or 'LOT 5 BLK 2 MOUNTAIN VIEW ADD' }}</dd>
+                    <div class="flex flex-col">
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Square Feet</dt>
+                        <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.BuildingData.SquareFeet|default(0)|int }}</dd>
                     </div>
-                    <div class="py-2 grid grid-cols-2">
-                        <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Property Class</dt>
-                        <dd class="text-sm text-secondary-900 dark:text-white">{{ property.property_class or property.property_type }}</dd>
+                    <div class="flex flex-col">
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Stories</dt>
+                        <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.BuildingData.Stories|default("N/A") }}</dd>
                     </div>
-                    <div class="py-2 grid grid-cols-2">
-                        <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Tax Area</dt>
-                        <dd class="text-sm text-secondary-900 dark:text-white">{{ property.tax_area or '01-52' }}</dd>
+                </dl>
+                <dl class="space-y-2">
+                    <div class="flex flex-col">
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Bedrooms</dt>
+                        <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.BuildingData.Bedrooms|default("N/A") }}</dd>
+                    </div>
+                    <div class="flex flex-col">
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Bathrooms</dt>
+                        <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.BuildingData.Bathrooms|default("N/A") }}</dd>
+                    </div>
+                    <div class="flex flex-col">
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Garage Type</dt>
+                        <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.BuildingData.GarageType|default("N/A") }}</dd>
+                    </div>
+                    <div class="flex flex-col">
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Garage Size</dt>
+                        <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.BuildingData.GarageSF|default(0)|int }} SF</dd>
                     </div>
                 </dl>
             </div>
         </div>
 
-        <!-- Owner Information -->
-        <div class="card">
-            <div class="card-header">
-                <h2 class="text-lg font-medium text-secondary-900 dark:text-white">Owner Information</h2>
-            </div>
-            <div class="card-body">
-                <dl class="divide-y divide-secondary-200 dark:divide-secondary-700">
-                    <div class="py-2 grid grid-cols-2">
-                        <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Owner</dt>
-                        <dd class="text-sm text-secondary-900 dark:text-white">{{ property.owner_name or 'Current Owner' }}</dd>
+        <!-- Construction Details -->
+        <div class="bg-gray-50 p-5 rounded-lg shadow-sm dark:bg-gray-700">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Construction Details</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <dl class="space-y-2">
+                    <div class="flex flex-col">
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Quality</dt>
+                        <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.BuildingData.Quality|default("N/A") }}</dd>
                     </div>
-                    <div class="py-2 grid grid-cols-2">
-                        <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Mailing Address</dt>
-                        <dd class="text-sm text-secondary-900 dark:text-white">{{ property.mailing_address or property.address }}</dd>
+                    <div class="flex flex-col">
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Condition</dt>
+                        <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.BuildingData.Condition|default("N/A") }}</dd>
                     </div>
-                    <div class="py-2 grid grid-cols-2">
-                        <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Last Sale Date</dt>
-                        <dd class="text-sm text-secondary-900 dark:text-white">{{ property.last_sale_date }}</dd>
-                    </div>
-                    <div class="py-2 grid grid-cols-2">
-                        <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Last Sale Price</dt>
-                        <dd class="text-sm text-secondary-900 dark:text-white">${{ '{:,.0f}'.format(property.last_sale_price or 0) }}</dd>
+                    <div class="flex flex-col">
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Foundation</dt>
+                        <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.BuildingData.Foundation|default("N/A") }}</dd>
                     </div>
                 </dl>
-            </div>
-        </div>
-
-        <!-- Valuation Summary -->
-        <div class="card">
-            <div class="card-header">
-                <h2 class="text-lg font-medium text-secondary-900 dark:text-white">Valuation Summary</h2>
-            </div>
-            <div class="card-body">
-                <dl class="divide-y divide-secondary-200 dark:divide-secondary-700">
-                    <div class="py-2 grid grid-cols-2">
-                        <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Land Value</dt>
-                        <dd class="text-sm text-secondary-900 dark:text-white">${{ '{:,.0f}'.format(property.land_value or (property.price * 0.3 if property.price else 0)) }}</dd>
+                <dl class="space-y-2">
+                    <div class="flex flex-col">
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Exterior Walls</dt>
+                        <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.BuildingData.ExteriorWalls|default("N/A") }}</dd>
                     </div>
-                    <div class="py-2 grid grid-cols-2">
-                        <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Improvement Value</dt>
-                        <dd class="text-sm text-secondary-900 dark:text-white">${{ '{:,.0f}'.format(property.improvement_value or (property.price * 0.7 if property.price else 0)) }}</dd>
+                    <div class="flex flex-col">
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Roof Type</dt>
+                        <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.BuildingData.RoofType|default("N/A") }}</dd>
                     </div>
-                    <div class="py-2 grid grid-cols-2">
-                        <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Total Assessed Value</dt>
-                        <dd class="text-sm font-bold text-secondary-900 dark:text-white">${{ '{:,.0f}'.format(property.assessed_value or property.market_value or property.total_value or property.price or 0) }}</dd>
+                    <div class="flex flex-col">
+                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Heating/Cooling</dt>
+                        <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.BuildingData.HeatingCooling|default("N/A") }}</dd>
                     </div>
-                    {% if assessment_history and assessment_history|length > 0 %}
-                    <div class="py-2 grid grid-cols-2">
-                        <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Change from Prior Year</dt>
-                        <dd class="text-sm text-secondary-900 dark:text-white">
-                            <span class="text-primary-600 dark:text-primary-400">+{{ assessment_history[0].get('Change', 0) }}%</span>
-                        </dd>
-                    </div>
-                    {% endif %}
                 </dl>
             </div>
         </div>
     </div>
 
-    <!-- Property Characteristics -->
-    <div class="card mb-6">
-        <div class="card-header">
-            <h2 class="text-lg font-medium text-secondary-900 dark:text-white">Property Characteristics</h2>
-        </div>
-        <div class="card-body">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Site Characteristics -->
-                <div>
-                    <h3 class="font-medium text-secondary-900 dark:text-white mb-3">Site</h3>
-                    <dl class="divide-y divide-secondary-200 dark:divide-secondary-700">
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Property Type</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.property_type }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Lot Size</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.lot_size }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Zoning</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.zoning or 'R-1' }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Utilities</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.utilities or 'All Public' }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Topography</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.topography or 'Level' }}</dd>
-                        </div>
-                    </dl>
+    <!-- Land Information -->
+    <div class="bg-gray-50 p-5 rounded-lg shadow-sm mb-8 dark:bg-gray-700">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Land Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <dl class="space-y-2">
+                <div class="flex flex-col">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Land Type</dt>
+                    <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.LandData.LandType|default("N/A") }}</dd>
                 </div>
-
-                <!-- Building Characteristics -->
-                <div>
-                    <h3 class="font-medium text-secondary-900 dark:text-white mb-3">Building</h3>
-                    <dl class="divide-y divide-secondary-200 dark:divide-secondary-700">
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Year Built</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.year_built }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Bedrooms</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.bedrooms }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Bathrooms</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.bathrooms }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Square Footage</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.sqft }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Stories</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.stories or '1' }}</dd>
-                        </div>
-                    </dl>
+            </dl>
+            <dl class="space-y-2">
+                <div class="flex flex-col">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Topography</dt>
+                    <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.LandData.Topography|default("N/A") }}</dd>
                 </div>
-
-                <!-- Construction & Features -->
-                <div>
-                    <h3 class="font-medium text-secondary-900 dark:text-white mb-3">Construction & Features</h3>
-                    <dl class="divide-y divide-secondary-200 dark:divide-secondary-700">
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Foundation</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.foundation or 'Concrete' }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Exterior Walls</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.exterior_walls or 'Wood Siding' }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Roof Type</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.roof_type or 'Composition Shingle' }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Heating/Cooling</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.heating_cooling or 'Central HVAC' }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Garage</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.garage or '2-Car Attached' }}</dd>
-                        </div>
-                    </dl>
+            </dl>
+            <dl class="space-y-2">
+                <div class="flex flex-col">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Utilities</dt>
+                    <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.LandData.Utilities|default("N/A") }}</dd>
                 </div>
-            </div>
+            </dl>
+            <dl class="space-y-2">
+                <div class="flex flex-col">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">View Quality</dt>
+                    <dd class="text-base text-gray-900 dark:text-gray-100">{{ assessment_data.LandData.ViewQuality|default("N/A") }}</dd>
+                </div>
+            </dl>
         </div>
     </div>
 
-    <!-- Data Source Information -->
-    <div class="card mb-6">
-        <div class="card-header">
-            <h2 class="text-lg font-medium text-secondary-900 dark:text-white">Data Source Information</h2>
-        </div>
-        <div class="card-body">
-            {% if using_real_data %}
-            <div class="bg-green-50 dark:bg-green-900 p-4 rounded-lg">
-                <div class="flex">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-green-400 dark:text-green-300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <h3 class="text-sm font-medium text-green-800 dark:text-green-300">Real Assessment Data</h3>
-                        <div class="mt-2 text-sm text-green-700 dark:text-green-200">
-                            <p>This property record card displays real data from {{ data_source }}. This provides you with accurate, current information about the property's assessment details.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% else %}
-            <div class="bg-amber-50 dark:bg-amber-900 p-4 rounded-lg">
-                <div class="flex">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-amber-400 dark:text-amber-300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <h3 class="text-sm font-medium text-amber-800 dark:text-amber-300">Demonstration Data Notice</h3>
-                        <div class="mt-2 text-sm text-amber-700 dark:text-amber-200">
-                            <p>This property record card contains demonstration data intended for UI display purposes only. The values shown do not represent the actual assessment data for this property.</p>
-                            <p class="mt-2">TerraMiner is designed to connect to real county assessment databases and Zillow API data when properly configured with API keys and credentials.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Official Assessment Information -->
-    <div class="card mb-6">
-        <div class="card-header">
-            <h2 class="text-lg font-medium text-secondary-900 dark:text-white">Official Assessment Information</h2>
-        </div>
-        <div class="card-body">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Basic Assessment Info -->
-                <div>
-                    <h3 class="font-medium text-secondary-900 dark:text-white mb-3">General</h3>
-                    <dl class="divide-y divide-secondary-200 dark:divide-secondary-700">
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Assessment Year</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.assessment_year }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Tax Year</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.tax_year }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Tax Status</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.tax_status }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Levy Code</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.levy_code }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">School District</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.school_district }}</dd>
-                        </div>
-                    </dl>
-                </div>
-                
-                <!-- Additional Assessment Info -->
-                <div>
-                    <h3 class="font-medium text-secondary-900 dark:text-white mb-3">Details</h3>
-                    <dl class="divide-y divide-secondary-200 dark:divide-secondary-700">
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Neighborhood</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.neighborhood_code }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Fire District</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.fire_district }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Quality</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.quality }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Condition</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.condition }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">View Quality</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.view_quality }}</dd>
-                        </div>
-                    </dl>
-                </div>
-                
-                <!-- Tax Information -->
-                <div>
-                    <h3 class="font-medium text-secondary-900 dark:text-white mb-3">Exemptions</h3>
-                    <dl class="divide-y divide-secondary-200 dark:divide-secondary-700">
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Taxable Value</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">${{ '{:,.0f}'.format(property.assessed_value or property.total_value or property.price or 0) }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Exemption Value</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">${{ '{:,.0f}'.format(property.exemption_value or 0) }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Senior Exemption</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.senior_exemption or 'None' }}</dd>
-                        </div>
-                        <div class="py-2 grid grid-cols-2">
-                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Other Exemptions</dt>
-                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.other_exemptions or 'None' }}</dd>
-                        </div>
-                    </dl>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <!-- Assessment History -->
-    <div class="card mb-6">
-        <div class="card-header">
-            <h2 class="text-lg font-medium text-secondary-900 dark:text-white">Assessment History</h2>
-        </div>
-        <div class="card-body">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-secondary-200 dark:divide-secondary-700">
-                    <thead>
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider dark:text-secondary-400">
-                                Year
-                            </th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider dark:text-secondary-400">
-                                Land Value
-                            </th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider dark:text-secondary-400">
-                                Improvement Value
-                            </th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider dark:text-secondary-400">
-                                Total Value
-                            </th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider dark:text-secondary-400">
-                                Change
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-secondary-200 dark:divide-secondary-700">
-                        {% if assessment_history and assessment_history|length > 0 %}
-                            {% for history in assessment_history %}
-                            <tr>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-secondary-900 dark:text-white">
-                                    {{ history.Year }}
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    ${{ '{:,.0f}'.format(history.LandValue) }}
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    ${{ '{:,.0f}'.format(history.ImprovementValue) }}
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    ${{ '{:,.0f}'.format(history.TotalValue) }}
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    <span class="text-primary-600 dark:text-primary-400">+{{ history.Change }}%</span>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        {% else %}
-                            {% set land_value = property.land_value or (property.price * 0.3 if property.price else 0) %}
-                            {% set improvement_value = property.improvement_value or (property.price * 0.7 if property.price else 0) %}
-                            {% set total_value = property.assessed_value or property.market_value or property.total_value or property.price or 0 %}
-                            
-                            <tr>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-secondary-900 dark:text-white">
-                                    {{ property.assessment_year or 2025 }}
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    ${{ '{:,.0f}'.format(land_value) }}
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    ${{ '{:,.0f}'.format(improvement_value) }}
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    ${{ '{:,.0f}'.format(total_value) }}
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    <span class="text-muted-500 dark:text-muted-400">N/A</span>
-                                </td>
-                            </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
+    {% if assessment_data.AssessmentHistory %}
+    <div class="bg-gray-50 p-5 rounded-lg shadow-sm mb-8 dark:bg-gray-700">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Assessment History</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-100 dark:bg-gray-800">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Year</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Land Value</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Improvement Value</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Total Value</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Change</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                    {% for history in assessment_data.AssessmentHistory %}
+                    <tr class="{% if loop.index is even %}bg-gray-50 dark:bg-gray-700{% endif %}">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{{ history.Year }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">${{ history.LandValue|default(0)|int }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">${{ history.ImprovementValue|default(0)|int }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">${{ history.TotalValue|default(0)|int }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm 
+                            {% if history.Change > 0 %}text-green-600 dark:text-green-400{% elif history.Change < 0 %}text-red-600 dark:text-red-400{% else %}text-gray-600 dark:text-gray-400{% endif %}">
+                            {% if history.Change > 0 %}+{% endif %}
+                            {{ history.Change|default(0)|int }}%
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
+    {% endif %}
 
-    <!-- Tax Information -->
-    <div class="card mb-6">
-        <div class="card-header">
-            <h2 class="text-lg font-medium text-secondary-900 dark:text-white">Tax Information</h2>
-        </div>
-        <div class="card-body">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-secondary-200 dark:divide-secondary-700">
-                    <thead>
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider dark:text-secondary-400">
-                                Year
-                            </th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider dark:text-secondary-400">
-                                Amount
-                            </th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider dark:text-secondary-400">
-                                Change
-                            </th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider dark:text-secondary-400">
-                                Status
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-secondary-200 dark:divide-secondary-700">
-                        {% if property.tax_history %}
-                            {% for tax in property.tax_history %}
-                            <tr>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-secondary-900 dark:text-white">
-                                    {{ tax.year }}
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    ${{ '{:,.0f}'.format(tax.amount) }}
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    {% if tax.change %}
-                                    <span class="text-primary-600 dark:text-primary-400">+{{ tax.change }}%</span>
-                                    {% else %}
-                                    --
-                                    {% endif %}
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-800 dark:bg-success-900 dark:text-success-300">
-                                        Paid
-                                    </span>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-secondary-900 dark:text-white">
-                                    2025
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    ${{ '{:,.0f}'.format((property.assessed_value or property.market_value or property.total_value or property.price or 0) * 0.011) }}
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    <span class="text-primary-600 dark:text-primary-400">+4.5%</span>
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-100 text-warning-800 dark:bg-warning-900 dark:text-warning-300">
-                                        Due
-                                    </span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-secondary-900 dark:text-white">
-                                    2024
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    ${{ '{:,.0f}'.format(((property.assessed_value or property.market_value or property.total_value or property.price or 0) / 1.068) * 0.0107) }}
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    <span class="text-primary-600 dark:text-primary-400">+3.2%</span>
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-800 dark:bg-success-900 dark:text-success-300">
-                                        Paid
-                                    </span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-secondary-900 dark:text-white">
-                                    2023
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    ${{ '{:,.0f}'.format(((property.assessed_value or property.market_value or property.total_value or property.price or 0) / 1.068 / 1.042) * 0.0104) }}
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    <span class="text-primary-600 dark:text-primary-400">+2.8%</span>
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-secondary-700 dark:text-secondary-300">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-800 dark:bg-success-900 dark:text-success-300">
-                                        Paid
-                                    </span>
-                                </td>
-                            </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- County Information and Links -->
-    <div class="card mb-6">
-        <div class="card-header">
-            <h2 class="text-lg font-medium text-secondary-900 dark:text-white">County Resources</h2>
-        </div>
-        <div class="card-body">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <h3 class="font-medium text-secondary-900 dark:text-white mb-3">{{ county.name }} Assessor's Office</h3>
-                    <p class="text-secondary-600 dark:text-secondary-400 mb-4">
-                        For more detailed information about this property, please visit the county assessor's website
-                        or contact the assessor's office directly.
-                    </p>
-                    <div class="space-y-3">
-                        <a href="{{ county.assessor_url }}" target="_blank" class="btn btn-primary w-full md:w-auto">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
-                            Visit County Assessor
-                        </a>
-                        {% if county.gis_url %}
-                        <a href="{{ county.gis_url }}" target="_blank" class="btn btn-secondary-outline w-full md:w-auto">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                            </svg>
-                            County GIS Maps
-                        </a>
-                        {% endif %}
-                    </div>
-                </div>
-                <div>
-                    <h3 class="font-medium text-secondary-900 dark:text-white mb-3">Assessment Information</h3>
-                    <ul class="list-disc list-inside space-y-1 text-secondary-600 dark:text-secondary-400">
-                        <li>Assessments are conducted by the county assessor's office.</li>
-                        <li>Properties are typically reassessed every 1-3 years.</li>
-                        <li>{{ county.name }} is on a {{ '3-year' if county.name == 'Benton County' else '2-year' }} assessment cycle.</li>
-                        <li>For questions about your property assessment, contact the assessor's office directly.</li>
-                        <li>To appeal an assessment, you must file within 30 days of the assessment notice.</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Disclaimer -->
-    <div class="text-center text-sm text-secondary-500 dark:text-secondary-400 mt-8">
-        <!-- IAAO and USPAP Standards Compliance -->
-        <div class="py-3 px-4 mb-3 bg-blue-50 border-l-4 border-blue-500 text-blue-700 dark:bg-blue-900 dark:border-blue-600 dark:text-blue-200 max-w-3xl mx-auto text-left">
-            <p class="font-medium">IAAO and USPAP Compliant Data</p>
-            <p>This property record card follows the International Association of Assessing Officers (IAAO) standards and the Uniform Standards of Professional Appraisal Practice (USPAP).</p>
-            <p>All data is obtained from official county assessment sources, ensuring accurate and reliable property assessment information.</p>
-        </div>
-        <p class="mb-2">This property record card is for informational purposes only.</p>
-        <p>Official property records should be verified with the {{ county.name }} Assessor's Office.</p>
+    <!-- Disclaimer and Standards Notice -->
+    <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-sm text-gray-700 dark:bg-gray-900 dark:border-yellow-900 dark:text-gray-300">
+        <h3 class="font-medium text-yellow-800 dark:text-yellow-400 mb-2">Compliance Statement</h3>
+        <p class="mb-2">
+            The property data displayed on this page is obtained directly from the Benton County Property Assessment and Collection System (PACS)
+            and is presented in compliance with:
+        </p>
+        <ul class="list-disc list-inside mb-2 ml-2">
+            <li>International Association of Assessing Officers (IAAO) standards</li>
+            <li>Uniform Standards of Professional Appraisal Practice (USPAP)</li>
+        </ul>
+        <p>
+            TerraMiner does not generate, estimate, or display demonstration data under any circumstances.
+            All property assessments represent official records from the county assessor's office.
+        </p>
     </div>
 </div>
-
-<style>
-@media print {
-    body {
-        font-size: 12pt;
-    }
-    
-    .btn, .navbar, footer, nav {
-        display: none !important;
-    }
-    
-    .card {
-        break-inside: avoid;
-        border: 1px solid #ddd;
-        margin-bottom: 1.5rem;
-        page-break-inside: avoid;
-    }
-    
-    .card-header {
-        background-color: #f8f9fa !important;
-        padding: 0.75rem 1rem;
-        border-bottom: 1px solid #ddd;
-    }
-    
-    .card-body {
-        padding: 1rem;
-    }
-    
-    table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    
-    th, td {
-        border: 1px solid #ddd;
-        padding: 0.5rem;
-        text-align: left;
-    }
-    
-    thead {
-        background-color: #f8f9fa !important;
-    }
-}
-</style>
 {% endblock %}

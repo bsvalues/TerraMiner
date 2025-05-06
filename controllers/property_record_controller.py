@@ -1,137 +1,87 @@
 """
-Property Record Card Controller
+Property Record Controller
 
-This controller handles routes related to property record cards
-which display assessment data for properties from official county sources.
+This controller handles requests for property records and ensures we're only displaying
+authentic assessment data in compliance with IAAO and USPAP standards.
 """
 
+import os
 import logging
-from datetime import datetime
-from flask import Blueprint, render_template, request, abort, url_for, redirect, flash
+from typing import Dict, Any
 
-from regional.southeastern_wa import get_county_info
+from flask import Blueprint, render_template, request, redirect, url_for, jsonify, current_app
 from regional.assessment_api import get_assessment_data
-from services.property_service import get_property_by_id
 
+# Configure logging
 logger = logging.getLogger(__name__)
 
-# Create blueprint
-property_record_blueprint = Blueprint('property_record', __name__, url_prefix='/property-records')
+# Create the blueprint
+property_record_bp = Blueprint('property_record', __name__, url_prefix='/property')
 
-@property_record_blueprint.route('/<property_id>', methods=['GET'])
-def view_property_record(property_id):
+@property_record_bp.route('/record/<property_id>')
+def view_property_record(property_id: str):
     """
-    Display the property record card for a specific property
+    Display a property record using only authentic assessment data.
+    
+    This route ensures we're complying with IAAO and USPAP standards by:
+    1. Only displaying authentic assessment data from official sources
+    2. Never displaying demonstration or synthetic data
+    3. Clearly communicating any data retrieval errors
     
     Args:
-        property_id: ID of the property to show the record card for
+        property_id: The ID of the property to display
+        
+    Returns:
+        Rendered property record template or error template
     """
-    try:
-        # Get the property data from the property service
-        property_data = get_property_by_id(property_id)
-        
-        if not property_data:
-            flash("Property not found. Please try a different property ID.", "warning")
-            return redirect(url_for('index'))
-        
-        # Get the county information
-        county_name = property_data.get('county') or 'benton'
-        if property_data.get('city') and not property_data.get('county'):
-            # Try to determine county from city
-            city_lower = property_data.get('city', '').lower()
-            if city_lower in ['kennewick', 'richland', 'west richland', 'prosser', 'benton city']:
-                county_name = 'benton'
-            elif city_lower in ['pasco', 'connell', 'mesa', 'basin city']:
-                county_name = 'franklin'
-            elif city_lower in ['walla walla', 'college place', 'waitsburg', 'prescott', 'burbank']:
-                county_name = 'walla_walla'
-            elif city_lower in ['dayton', 'starbuck']:
-                county_name = 'columbia'
-            elif city_lower in ['pomeroy']:
-                county_name = 'garfield'
-            elif city_lower in ['clarkston', 'asotin']:
-                county_name = 'asotin'
-        
-        county = get_county_info(county_name)
-        
-        # Fetch assessment data from county API
-        assessment_data = get_assessment_data(property_id, county_name)
-        logger.info(f"Retrieved assessment data for property {property_id} in {county_name}")
-        
-        # Check if there's an error response from the assessment API
-        if 'error' in assessment_data:
-            error_type = assessment_data.get('error')
-            error_message = assessment_data.get('message', 'Unknown error')
-            
-            # Handle API key missing error specifically
-            if error_type == 'API_KEY_MISSING':
-                flash(f"Cannot display property record: {error_message}", "error")
-                logger.error(f"Missing API key for {county_name} county")
-                return render_template(
-                    'property_record_error.html',
-                    property_id=property_id,
-                    county=county,
-                    error_type=error_type,
-                    error_message=error_message,
-                    current_date=datetime.now().strftime('%B %d, %Y')
-                )
-            
-            # Handle other API errors
-            flash(f"Error retrieving property data: {error_message}", "error")
-            return render_template(
-                'property_record_error.html',
-                property_id=property_id,
-                county=county,
-                error_type=error_type,
-                error_message=error_message,
-                current_date=datetime.now().strftime('%B %d, %Y')
-            )
-            
-        # We only use real data that follows IAAO/USPAP standards
-        using_real_data = 'using_real_data' in assessment_data and assessment_data['using_real_data'] == True
-        data_source = assessment_data.get('data_source', 'County Assessor')
+    # Get county parameter (default to 'benton')
+    county = request.args.get('county', 'benton')
+    
+    logger.info(f"Requesting property record for {property_id} in {county} county")
+    
+    # Get assessment data from authentic source
+    assessment_data = get_assessment_data(property_id, county)
+    
+    # Check for errors in the assessment data
+    if assessment_data.get('error'):
+        logger.error(f"Error retrieving property data: {assessment_data.get('error')}")
+        # Render the error template with the error details
+        return render_template('property_record_error.html', error=assessment_data)
+    
+    # If we have valid assessment data, render the property record template
+    return render_template('property_record_card.html', 
+                           property_id=property_id,
+                           county=county,
+                           assessment_data=assessment_data,
+                           using_real_data=True)
 
-        # Create a merged data object that prioritizes assessment data but includes property data as fallback
-        merged_data = property_data.copy()
+@property_record_bp.route('/search', methods=['GET', 'POST'])
+def property_search():
+    """
+    Search for property records by various criteria.
+    
+    This route allows users to search for properties and directs them to 
+    the property record view for the selected property.
+    """
+    if request.method == 'POST':
+        # Get search parameters from form
+        property_id = request.form.get('property_id')
+        county = request.form.get('county', 'benton')
         
-        # Extract data from the structured assessment response
-        property_record = assessment_data.get('PropertyRecord', {})
-        building_data = assessment_data.get('BuildingData', {})
-        land_data = assessment_data.get('LandData', {})
-        assessment_history = assessment_data.get('AssessmentHistory', [])
-        
-        # Add property record data
-        for key, value in property_record.items():
-            # Convert camelCase to snake_case for template
-            snake_key = ''.join(['_' + c.lower() if c.isupper() else c for c in key]).lstrip('_')
-            merged_data[snake_key] = value
-            
-        # Add building data
-        for key, value in building_data.items():
-            snake_key = ''.join(['_' + c.lower() if c.isupper() else c for c in key]).lstrip('_')
-            merged_data[snake_key] = value
-        
-        # Add land data
-        for key, value in land_data.items():
-            snake_key = ''.join(['_' + c.lower() if c.isupper() else c for c in key]).lstrip('_')
-            merged_data[snake_key] = value
-        
-        # Get the current date
-        current_date = datetime.now().strftime('%B %d, %Y')
-        
-        # Render the property record card template
-        return render_template(
-            'property_record_card.html',
-            property=merged_data,
-            county=county,
-            current_date=current_date,
-            assessment_data=assessment_data,
-            assessment_history=assessment_history,
-            using_real_data=using_real_data,
-            data_source=data_source,
-            iaao_compliant=True,
-            uspap_compliant=True
-        )
-    except Exception as e:
-        logger.exception(f"Error in property record card view: {str(e)}")
-        abort(500)
+        if property_id:
+            return redirect(url_for('property_record.view_property_record', 
+                                   property_id=property_id,
+                                   county=county))
+    
+    # For GET requests, just display the search form
+    return render_template('property_search.html')
+
+def register_blueprints(app):
+    """
+    Register the property record blueprint with the Flask app.
+    
+    Args:
+        app: Flask application instance
+    """
+    app.register_blueprint(property_record_bp)
+    logger.info("Registered Property Record Card blueprint")

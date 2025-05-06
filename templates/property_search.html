@@ -1,193 +1,58 @@
-{% extends 'unified_base.html' if ui_template == 'unified' else 'base.html' %}
+{% extends "unified_base.html" %}
 
-{% block title %}Property Search{% endblock %}
+{% block title %}Property Record Search{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-md-12 mb-4">
-            <div class="card {% if ui_template == 'unified' %}bg-dark-blue text-white border-0 shadow{% endif %}">
-                <div class="card-header {% if ui_template == 'unified' %}bg-teal text-white{% else %}bg-primary text-white{% endif %}">
-                    <h5 class="card-title mb-0"><i class="fas fa-search me-2"></i>Property Search</h5>
-                </div>
-                <div class="card-body">
-                    <form action="{{ url_for('property_search') }}" method="GET" class="row g-3">
-                        <div class="col-md-5">
-                            <label for="query" class="form-label">Address, City, or Zip Code</label>
-                            <input type="text" class="form-control" id="query" name="query" value="{{ query }}" placeholder="Enter address, city, or zip code" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="propertyType" class="form-label">Property Type</label>
-                            <select class="form-select" id="propertyType" name="propertyType">
-                                <option value="" {% if property_type == '' %}selected{% endif %}>All Types</option>
-                                <option value="Residential" {% if property_type == 'Residential' %}selected{% endif %}>Residential</option>
-                                <option value="Commercial" {% if property_type == 'Commercial' %}selected{% endif %}>Commercial</option>
-                                <option value="Land" {% if property_type == 'Land' %}selected{% endif %}>Land</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label for="minPrice" class="form-label">Min Price</label>
-                            <input type="text" class="form-control" id="minPrice" name="minPrice" value="{{ min_price }}" placeholder="Min $">
-                        </div>
-                        <div class="col-md-2">
-                            <label for="maxPrice" class="form-label">Max Price</label>
-                            <input type="text" class="form-control" id="maxPrice" name="maxPrice" value="{{ max_price }}" placeholder="Max $">
-                        </div>
-                        <div class="col-12">
-                            <button type="submit" class="btn {% if ui_template == 'unified' %}btn-teal{% else %}btn-primary{% endif %} mt-3">
-                                <i class="fas fa-search me-2"></i>Search Properties
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
+<div class="container mx-auto mt-8 p-8 bg-white rounded-xl shadow-md dark:bg-gray-800">
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-4">Property Record Search</h1>
+        <p class="text-lg text-gray-700 dark:text-gray-300">
+            Search for authentic property assessment data in compliance with IAAO and USPAP standards.
+        </p>
     </div>
 
-    {% if is_loading %}
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card {% if ui_template == 'unified' %}bg-dark-blue text-white border-0 shadow{% endif %} mb-4">
-                <div class="card-body text-center py-5">
-                    <div class="spinner-border {% if ui_template == 'unified' %}text-teal{% else %}text-primary{% endif %}" role="status" style="width: 3rem; height: 3rem;">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="mt-3 mb-0">Searching for properties matching your criteria...</p>
-                </div>
+    <div class="max-w-2xl mx-auto bg-gray-50 dark:bg-gray-700 p-8 rounded-lg border border-gray-200 dark:border-gray-600">
+        <form method="POST" action="{{ url_for('property_record.property_search') }}">
+            <div class="mb-6">
+                <label for="property_id" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Property ID / Parcel Number
+                </label>
+                <input type="text" id="property_id" name="property_id" required
+                    class="w-full px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-500 focus:outline-none"
+                    placeholder="Enter property ID or parcel number">
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Enter the official property ID as assigned by the county assessor's office.
+                </p>
             </div>
-        </div>
-    </div>
-    {% elif error %}
-    <div class="row">
-        <div class="col-md-12">
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+
+            <div class="mb-6">
+                <label for="county" class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    County
+                </label>
+                <select id="county" name="county"
+                    class="w-full px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-500 focus:outline-none">
+                    <option value="benton" selected>Benton County</option>
+                    <option value="franklin">Franklin County</option>
+                    <option value="walla_walla">Walla Walla County</option>
+                </select>
             </div>
-        </div>
-    </div>
-    {% elif query and properties|length == 0 %}
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card {% if ui_template == 'unified' %}bg-dark-blue text-white border-0 shadow{% endif %} mb-4">
-                <div class="card-body text-center py-5">
-                    <i class="fas fa-search fa-3x mb-3 {% if ui_template == 'unified' %}text-teal{% else %}text-secondary{% endif %}"></i>
-                    <h5>No properties found</h5>
-                    <p>Try adjusting your search criteria or try a different location.</p>
-                    <p class="small text-muted">Hint: Try searching for "4234 OLD MILTON HWY" or "WALLA WALLA"</p>
-                </div>
+
+            <div class="bg-yellow-50 dark:bg-gray-900 p-4 rounded-lg border border-yellow-200 dark:border-yellow-900 mb-6">
+                <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-400 mb-2">Data Integrity Notice</h3>
+                <p class="text-sm text-gray-700 dark:text-gray-300">
+                    TerraMiner only displays authentic assessment data from official county sources.
+                    We adhere to IAAO standards and USPAP guidelines. No synthetic or demonstration
+                    data is ever displayed.
+                </p>
             </div>
-        </div>
-    </div>
-    {% elif properties|length > 0 %}
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card {% if ui_template == 'unified' %}bg-dark-blue text-white border-0 shadow{% endif %}">
-                <div class="card-header {% if ui_template == 'unified' %}bg-teal text-white{% else %}bg-primary text-white{% endif %}">
-                    <h5 class="mb-0">Results ({{ properties|length }} properties found)</h5>
-                </div>
-                <div class="card-body p-0">
-                    {% if maps_api_key %}
-                    <div id="map" style="height: 400px; width: 100%;"></div>
-                    {% endif %}
-                </div>
+
+            <div class="flex justify-center">
+                <button type="submit"
+                    class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition-colors">
+                    Search Property Records
+                </button>
             </div>
-        </div>
+        </form>
     </div>
-    
-    <div class="row">
-        {% for property in properties %}
-        <div class="col-md-6 mb-4">
-            <div class="card h-100 {% if ui_template == 'unified' %}bg-dark-blue text-white border-0 shadow{% endif %}">
-                <div class="row g-0">
-                    <div class="col-md-5">
-                        {% if property.image_url %}
-                        <img src="{{ property.image_url }}" alt="{{ property.address }}" class="img-fluid h-100 w-100" style="object-fit: cover;">
-                        {% else %}
-                        <div class="bg-secondary h-100 d-flex align-items-center justify-content-center">
-                            <i class="fas fa-home fa-3x text-white"></i>
-                        </div>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-7">
-                        <div class="card-body">
-                            <h5 class="card-title text-truncate">{{ property.address }}</h5>
-                            <p class="card-text">{{ property.city }}, {{ property.state }} {{ property.zip_code }}</p>
-                            <p class="card-text {% if ui_template == 'unified' %}text-teal{% else %}text-primary{% endif %} fw-bold">${{ property.price|format_number }}</p>
-                            <div class="d-flex justify-content-between small text-muted mb-3">
-                                <span><i class="fas fa-bed me-1"></i> {{ property.bedrooms }}</span>
-                                <span><i class="fas fa-bath me-1"></i> {{ property.bathrooms }}</span>
-                                <span><i class="fas fa-ruler-combined me-1"></i> {{ property.sqft|format_number }} sqft</span>
-                            </div>
-                            <a href="{{ url_for('property_details', property_id=property.id) }}" class="btn btn-sm {% if ui_template == 'unified' %}btn-teal{% else %}btn-primary{% endif %} w-100">View Details</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
 </div>
-{% endblock %}
-
-{% block scripts %}
-{{ super() }}
-{% if maps_api_key and properties|length > 0 %}
-<script src="https://maps.googleapis.com/maps/api/js?key={{ maps_api_key }}&callback=initMap" defer></script>
-<script>
-    // Properties data from backend
-    const properties = {{ properties_json|safe }};
-    
-    function initMap() {
-        // Create map centered on the first property
-        const firstProperty = properties[0];
-        const mapCenter = { lat: firstProperty.latitude, lng: firstProperty.longitude };
-        
-        const map = new google.maps.Map(document.getElementById("map"), {
-            zoom: 14,
-            center: mapCenter,
-            mapTypeControl: true,
-            streetViewControl: true,
-            mapTypeId: google.maps.MapTypeId.ROADMAP
-        });
-        
-        // Add markers for each property
-        properties.forEach(property => {
-            const position = { lat: property.latitude, lng: property.longitude };
-            
-            // Create marker
-            const marker = new google.maps.Marker({
-                position: position,
-                map: map,
-                title: property.address,
-                animation: google.maps.Animation.DROP
-            });
-            
-            // Create info window
-            const contentString = `
-                <div style="max-width: 200px;">
-                    <h5 style="margin-bottom: 8px;">${property.address}</h5>
-                    <p style="margin-bottom: 8px;">${property.city}, ${property.state} ${property.zip_code}</p>
-                    <p style="color: #007bff; font-weight: bold; margin-bottom: 8px;">$${property.price.toLocaleString()}</p>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.8rem;">
-                        <span>${property.bedrooms} bd</span>
-                        <span>${property.bathrooms} ba</span>
-                        <span>${property.sqft.toLocaleString()} sqft</span>
-                    </div>
-                    <a href="/property/${property.id}" style="display: block; text-align: center; background-color: #007bff; color: white; padding: 5px; border-radius: 4px; text-decoration: none;">View Details</a>
-                </div>
-            `;
-            
-            const infowindow = new google.maps.InfoWindow({
-                content: contentString
-            });
-            
-            // Add click event to marker
-            marker.addListener("click", () => {
-                infowindow.open(map, marker);
-            });
-        });
-    }
-</script>
-{% endif %}
 {% endblock %}
