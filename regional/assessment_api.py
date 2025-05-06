@@ -1,16 +1,19 @@
 """
 Assessment Data API
 
-This module provides functions to fetch real assessment data from county APIs.
-This is where the system integrates with official county assessment databases.
+This module provides functions to fetch real assessment data from property data sources.
+It combines county assessment data with information from Zillow and other sources.
 """
 
 import logging
 import os
 import requests
 import json
+import traceback
 from datetime import datetime
 from typing import Dict, Any, Optional
+
+from etl.zillow_scraper import ZillowScraper
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +36,17 @@ COUNTY_API_CONFIG = {
     }
 }
 
+# Map of sample property IDs to Zillow Property IDs (zpids)
+# This allows us to connect our internal IDs to real data sources
+PROPERTY_ZPID_MAP = {
+    'ww42': '32311594',  # Example Walla Walla property
+    'bt75': '26752151',  # Example Benton county property
+    'bt42': '48277209',  # Example Richland property
+}
+
 def get_assessment_data(property_id: str, county: str) -> Dict[str, Any]:
     """
-    Fetch real assessment data from county API.
+    Fetch real assessment data from county API and Zillow API.
     
     Args:
         property_id: ID of the property to retrieve
@@ -45,6 +56,12 @@ def get_assessment_data(property_id: str, county: str) -> Dict[str, Any]:
         Assessment data (structured with PropertyRecord, BuildingData, LandData, and AssessmentHistory)
     """
     logger.info(f"Fetching assessment data for property {property_id} in {county} county")
+    
+    # First try to get data from Zillow API if we have a mapping for this property
+    zillow_data = _get_zillow_property_data(property_id)
+    if zillow_data:
+        logger.info(f"Successfully retrieved property data from Zillow API for {property_id}")
+        return zillow_data
     
     # Standardize county name
     county_key = county.lower().replace(' ', '_').replace('-', '_')
@@ -116,6 +133,47 @@ def get_assessment_data(property_id: str, county: str) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Unexpected error processing assessment data: {str(e)}")
         return _get_fallback_assessment_data(property_id, county_key)
+
+def _get_zillow_property_data(property_id: str) -> Dict[str, Any]:
+    """
+    Attempt to get property data from Zillow API using our property ID mapping.
+    
+    Args:
+        property_id: Internal property ID
+        
+    Returns:
+        Property data in our standard format or empty dict if not available
+    """
+    if property_id not in PROPERTY_ZPID_MAP:
+        logger.info(f"No Zillow property ID mapping for {property_id}")
+        return {}
+    
+    zpid = PROPERTY_ZPID_MAP[property_id]
+    logger.info(f"Fetching Zillow data for property {property_id} (Zillow ID: {zpid})")
+    
+    try:
+        # Initialize the Zillow scraper with RapidAPI key
+        rapid_api_key = os.environ.get("RAPIDAPI_KEY")
+        if not rapid_api_key:
+            logger.warning("No RapidAPI key available for Zillow API")
+            return {}
+            
+        zillow_scraper = ZillowScraper(api_key=rapid_api_key)
+        
+        # Fetch property details from Zillow
+        property_details = zillow_scraper.get_property_details(zpid)
+        
+        if not property_details:
+            logger.warning(f"No property details returned from Zillow for ZPID {zpid}")
+            return {}
+            
+        # Convert the Zillow data to our standard format
+        return _format_zillow_data(property_details, property_id)
+        
+    except Exception as e:
+        logger.error(f"Error getting Zillow property data: {str(e)}")
+        logger.error(traceback.format_exc())
+        return {}
 
 def _get_fallback_assessment_data(property_id: str, county_key: str) -> Dict[str, Any]:
     """
