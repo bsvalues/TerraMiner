@@ -135,7 +135,8 @@ def api_property_search():
 
 def register_blueprint(app):
     """Register the blueprint with the Flask app."""
-    app.register_blueprint(property_record_bp)
+    # Use a unique name for the blueprint to avoid conflicts
+    app.register_blueprint(property_record_bp, name='property_record_bp')
     logger.info("Registered Property Record Card blueprint")
 
 def register_blueprints(app):
