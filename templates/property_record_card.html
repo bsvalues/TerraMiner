@@ -224,6 +224,93 @@
         </div>
     </div>
 
+    <!-- Official Assessment Information -->
+    <div class="card mb-6">
+        <div class="card-header">
+            <h2 class="text-lg font-medium text-secondary-900 dark:text-white">Official Assessment Information</h2>
+        </div>
+        <div class="card-body">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Basic Assessment Info -->
+                <div>
+                    <h3 class="font-medium text-secondary-900 dark:text-white mb-3">General</h3>
+                    <dl class="divide-y divide-secondary-200 dark:divide-secondary-700">
+                        <div class="py-2 grid grid-cols-2">
+                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Assessment Year</dt>
+                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.assessment_year }}</dd>
+                        </div>
+                        <div class="py-2 grid grid-cols-2">
+                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Tax Year</dt>
+                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.tax_year }}</dd>
+                        </div>
+                        <div class="py-2 grid grid-cols-2">
+                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Tax Status</dt>
+                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.tax_status }}</dd>
+                        </div>
+                        <div class="py-2 grid grid-cols-2">
+                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Levy Code</dt>
+                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.levy_code }}</dd>
+                        </div>
+                        <div class="py-2 grid grid-cols-2">
+                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">School District</dt>
+                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.school_district }}</dd>
+                        </div>
+                    </dl>
+                </div>
+                
+                <!-- Additional Assessment Info -->
+                <div>
+                    <h3 class="font-medium text-secondary-900 dark:text-white mb-3">Details</h3>
+                    <dl class="divide-y divide-secondary-200 dark:divide-secondary-700">
+                        <div class="py-2 grid grid-cols-2">
+                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Neighborhood</dt>
+                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.neighborhood_code }}</dd>
+                        </div>
+                        <div class="py-2 grid grid-cols-2">
+                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Fire District</dt>
+                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.fire_district }}</dd>
+                        </div>
+                        <div class="py-2 grid grid-cols-2">
+                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Quality</dt>
+                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.quality }}</dd>
+                        </div>
+                        <div class="py-2 grid grid-cols-2">
+                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Condition</dt>
+                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.condition }}</dd>
+                        </div>
+                        <div class="py-2 grid grid-cols-2">
+                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">View Quality</dt>
+                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.view_quality }}</dd>
+                        </div>
+                    </dl>
+                </div>
+                
+                <!-- Tax Information -->
+                <div>
+                    <h3 class="font-medium text-secondary-900 dark:text-white mb-3">Exemptions</h3>
+                    <dl class="divide-y divide-secondary-200 dark:divide-secondary-700">
+                        <div class="py-2 grid grid-cols-2">
+                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Taxable Value</dt>
+                            <dd class="text-sm text-secondary-900 dark:text-white">${{ '{:,.0f}'.format(property.assessed_value or property.total_value or property.price or 0) }}</dd>
+                        </div>
+                        <div class="py-2 grid grid-cols-2">
+                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Exemption Value</dt>
+                            <dd class="text-sm text-secondary-900 dark:text-white">${{ '{:,.0f}'.format(property.exemption_value or 0) }}</dd>
+                        </div>
+                        <div class="py-2 grid grid-cols-2">
+                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Senior Exemption</dt>
+                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.senior_exemption or 'None' }}</dd>
+                        </div>
+                        <div class="py-2 grid grid-cols-2">
+                            <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Other Exemptions</dt>
+                            <dd class="text-sm text-secondary-900 dark:text-white">{{ property.other_exemptions or 'None' }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Assessment History -->
     <div class="card mb-6">
         <div class="card-header">

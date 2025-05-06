@@ -9,10 +9,8 @@ import logging
 from datetime import datetime
 from flask import Blueprint, render_template, request, abort, url_for, redirect, flash
 
-from regional.southeastern_wa import (
-    get_county_info,
-    format_for_assessment_report
-)
+from regional.southeastern_wa import get_county_info
+from regional.assessment_api import get_assessment_data
 from services.property_service import get_property_by_id
 
 logger = logging.getLogger(__name__)
@@ -56,21 +54,37 @@ def view_property_record(property_id):
         
         county = get_county_info(county_name)
         
-        # Format data for assessment report
-        assessment_data = format_for_assessment_report(property_data)
+        # Fetch real assessment data from county API
+        assessment_data = get_assessment_data(property_id, county_name)
+        logger.info(f"Retrieved assessment data for property {property_id} in {county_name}")
         
-        # Merge assessment data with property data
-        property_data.update(assessment_data)
+        # Create a merged data object that prioritizes assessment data but includes property data as fallback
+        merged_data = property_data.copy()
         
+        # Merge assessment data into property data
+        for key, value in assessment_data.items():
+            merged_data[key] = value
+            
+        # Handle nested building data
+        if 'building_data' in assessment_data:
+            for key, value in assessment_data['building_data'].items():
+                merged_data[key] = value
+        
+        # Handle nested land data  
+        if 'land_data' in assessment_data:
+            for key, value in assessment_data['land_data'].items():
+                merged_data[key] = value
+                
         # Get the current date
         current_date = datetime.now().strftime('%B %d, %Y')
         
         # Render the property record card template
         return render_template(
             'property_record_card.html',
-            property=property_data,
+            property=merged_data,
             county=county,
-            current_date=current_date
+            current_date=current_date,
+            assessment_data=assessment_data  # Pass the raw assessment data as well
         )
     except Exception as e:
         logger.exception(f"Error in property record card view: {str(e)}")
