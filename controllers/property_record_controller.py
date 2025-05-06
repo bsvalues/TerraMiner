@@ -2,7 +2,7 @@
 Property Record Card Controller
 
 This controller handles routes related to property record cards
-which display assessment data for properties.
+which display assessment data for properties from official county sources.
 """
 
 import logging
@@ -27,7 +27,7 @@ def view_property_record(property_id):
         property_id: ID of the property to show the record card for
     """
     try:
-        # Get the property data
+        # Get the property data from the property service
         property_data = get_property_by_id(property_id)
         
         if not property_data:
@@ -54,27 +54,35 @@ def view_property_record(property_id):
         
         county = get_county_info(county_name)
         
-        # Fetch real assessment data from county API
+        # Fetch assessment data from county API
         assessment_data = get_assessment_data(property_id, county_name)
         logger.info(f"Retrieved assessment data for property {property_id} in {county_name}")
-        
+
         # Create a merged data object that prioritizes assessment data but includes property data as fallback
         merged_data = property_data.copy()
         
-        # Merge assessment data into property data
-        for key, value in assessment_data.items():
-            merged_data[key] = value
-            
-        # Handle nested building data
-        if 'building_data' in assessment_data:
-            for key, value in assessment_data['building_data'].items():
-                merged_data[key] = value
+        # Extract data from the structured assessment response
+        property_record = assessment_data.get('PropertyRecord', {})
+        building_data = assessment_data.get('BuildingData', {})
+        land_data = assessment_data.get('LandData', {})
+        assessment_history = assessment_data.get('AssessmentHistory', [])
         
-        # Handle nested land data  
-        if 'land_data' in assessment_data:
-            for key, value in assessment_data['land_data'].items():
-                merged_data[key] = value
-                
+        # Add property record data
+        for key, value in property_record.items():
+            # Convert camelCase to snake_case for template
+            snake_key = ''.join(['_' + c.lower() if c.isupper() else c for c in key]).lstrip('_')
+            merged_data[snake_key] = value
+            
+        # Add building data
+        for key, value in building_data.items():
+            snake_key = ''.join(['_' + c.lower() if c.isupper() else c for c in key]).lstrip('_')
+            merged_data[snake_key] = value
+        
+        # Add land data
+        for key, value in land_data.items():
+            snake_key = ''.join(['_' + c.lower() if c.isupper() else c for c in key]).lstrip('_')
+            merged_data[snake_key] = value
+        
         # Get the current date
         current_date = datetime.now().strftime('%B %d, %Y')
         
@@ -84,7 +92,8 @@ def view_property_record(property_id):
             property=merged_data,
             county=county,
             current_date=current_date,
-            assessment_data=assessment_data  # Pass the raw assessment data as well
+            assessment_data=assessment_data,
+            assessment_history=assessment_history
         )
     except Exception as e:
         logger.exception(f"Error in property record card view: {str(e)}")

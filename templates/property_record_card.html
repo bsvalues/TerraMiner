@@ -120,14 +120,16 @@
                     </div>
                     <div class="py-2 grid grid-cols-2">
                         <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Total Assessed Value</dt>
-                        <dd class="text-sm font-bold text-secondary-900 dark:text-white">${{ '{:,.0f}'.format(property.total_value or property.price or 0) }}</dd>
+                        <dd class="text-sm font-bold text-secondary-900 dark:text-white">${{ '{:,.0f}'.format(property.assessed_value or property.market_value or property.total_value or property.price or 0) }}</dd>
                     </div>
+                    {% if assessment_history and assessment_history|length > 0 %}
                     <div class="py-2 grid grid-cols-2">
                         <dt class="text-sm font-medium text-secondary-500 dark:text-secondary-400">Change from Prior Year</dt>
                         <dd class="text-sm text-secondary-900 dark:text-white">
-                            <span class="text-primary-600 dark:text-primary-400">+6.8%</span>
+                            <span class="text-primary-600 dark:text-primary-400">+{{ assessment_history[0].get('Change', 0) }}%</span>
                         </dd>
                     </div>
+                    {% endif %}
                 </dl>
             </div>
         </div>
