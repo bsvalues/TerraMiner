@@ -13,7 +13,7 @@ import traceback
 from datetime import datetime
 from typing import Dict, Any, Optional
 
-from etl.zillow_scraper import ZillowScraper
+from etl.zillow_working_scraper import ZillowWorkingScraper
 
 logger = logging.getLogger(__name__)
 
@@ -152,13 +152,8 @@ def _get_zillow_property_data(property_id: str) -> Dict[str, Any]:
     logger.info(f"Fetching Zillow data for property {property_id} (Zillow ID: {zpid})")
     
     try:
-        # Initialize the Zillow scraper with RapidAPI key
-        rapid_api_key = os.environ.get("RAPIDAPI_KEY")
-        if not rapid_api_key:
-            logger.warning("No RapidAPI key available for Zillow API")
-            return {}
-            
-        zillow_scraper = ZillowScraper(api_key=rapid_api_key)
+        # Initialize the Zillow working scraper with the provided API key
+        zillow_scraper = ZillowWorkingScraper()
         
         # Fetch property details from Zillow
         property_details = zillow_scraper.get_property_details(zpid)
