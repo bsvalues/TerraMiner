@@ -59,8 +59,10 @@ def view_property_record(property_id):
         logger.info(f"Retrieved assessment data for property {property_id} in {county_name}")
         
         # Check if we're using demo data or real API data
-        # We can determine this by checking if the response came from a real API or the fallback function
+        # We can determine this by checking the flags in the assessment data
         using_demo_data = 'using_demo_data' in assessment_data and assessment_data['using_demo_data'] == True
+        using_real_data = 'using_real_data' in assessment_data and assessment_data['using_real_data'] == True
+        data_source = assessment_data.get('data_source', 'Unknown')
 
         # Create a merged data object that prioritizes assessment data but includes property data as fallback
         merged_data = property_data.copy()
@@ -98,7 +100,9 @@ def view_property_record(property_id):
             current_date=current_date,
             assessment_data=assessment_data,
             assessment_history=assessment_history,
-            using_demo_data=using_demo_data
+            using_demo_data=using_demo_data,
+            using_real_data=using_real_data,
+            data_source=data_source
         )
     except Exception as e:
         logger.exception(f"Error in property record card view: {str(e)}")
