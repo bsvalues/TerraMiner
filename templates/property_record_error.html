@@ -3,49 +3,81 @@
 {% block title %}Property Record Error{% endblock %}
 
 {% block content %}
-<div class="container mx-auto mt-8 p-8 bg-white rounded-xl shadow-md dark:bg-gray-800">
-    <div class="flex flex-col items-center">
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-red-600 dark:text-red-400 mb-4">Property Record Error</h1>
-            <p class="text-lg text-gray-700 dark:text-gray-300 mb-2">
-                We encountered an issue retrieving authentic property data.
-            </p>
-            <p class="text-md text-gray-600 dark:text-gray-400">
-                TerraMiner complies with IAAO and USPAP standards, using only real property data.
-            </p>
+<div class="container mx-auto mt-8 p-8">
+    <div class="max-w-3xl mx-auto bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
+        <div class="bg-red-600 px-6 py-4">
+            <div class="flex items-center">
+                <svg class="h-6 w-6 text-white mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <h2 class="text-xl font-bold text-white">
+                    Property Record Error
+                </h2>
+            </div>
         </div>
-
-        <div class="w-full max-w-3xl bg-red-50 dark:bg-gray-700 p-6 rounded-lg border border-red-200 dark:border-red-800">
-            <div class="mb-4">
-                <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Error Details</h2>
-            </div>
-            
-            <div class="mb-6 p-4 bg-white dark:bg-gray-800 rounded border border-red-300 dark:border-red-700">
-                <p class="font-medium text-gray-700 dark:text-gray-300">Error Type: <span class="text-red-600 dark:text-red-400">{{ error.error }}</span></p>
-                <p class="font-medium text-gray-700 dark:text-gray-300">Property ID: <span class="text-gray-900 dark:text-gray-100">{{ error.property_id }}</span></p>
-                <p class="font-medium text-gray-700 dark:text-gray-300">County: <span class="text-gray-900 dark:text-gray-100">{{ error.county }}</span></p>
-                <p class="mt-2 text-gray-700 dark:text-gray-300">{{ error.message }}</p>
-            </div>
-            
-            <div class="bg-yellow-50 dark:bg-gray-900 p-4 rounded-lg border border-yellow-200 dark:border-yellow-900">
-                <h3 class="text-lg font-medium text-yellow-800 dark:text-yellow-400 mb-2">About Data Integrity</h3>
+        <div class="p-6">
+            <div class="mb-6">
+                <h3 class="text-xl font-medium text-gray-900 dark:text-white mb-2">
+                    Unable to Retrieve Property Data
+                </h3>
                 <p class="text-gray-700 dark:text-gray-300">
-                    TerraMiner is committed to providing only authentic assessment data in compliance with:
-                </p>
-                <ul class="list-disc list-inside mt-2 text-gray-700 dark:text-gray-300">
-                    <li>International Association of Assessing Officers (IAAO) standards</li>
-                    <li>Uniform Standards of Professional Appraisal Practice (USPAP)</li>
-                </ul>
-                <p class="mt-2 text-gray-700 dark:text-gray-300">
-                    We do not generate or display synthetic or demonstration data under any circumstances.
+                    We encountered an issue while attempting to retrieve authenticated property data for 
+                    Parcel #{{ property_id }} from {{ county|title }} County.
                 </p>
             </div>
-        </div>
-        
-        <div class="mt-8">
-            <a href="/property/search" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition-colors">
-                Return to Property Search
-            </a>
+            
+            <div class="bg-red-50 dark:bg-gray-700 border-l-4 border-red-400 p-4 mb-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-red-700 dark:text-red-300">
+                            {{ error }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-800 rounded-md p-4 mb-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-blue-600 dark:text-blue-300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-blue-800 dark:text-blue-300">Data Integrity Note</h3>
+                        <div class="mt-2 text-sm text-blue-700 dark:text-blue-200">
+                            <p>TerraMiner only displays authentic assessment data from official county sources.
+                               We were unable to retrieve data from {{ data_source }} at this time.</p>
+                            <p class="mt-1">This error message is being presented instead of using any synthetic or 
+                               demonstration data to maintain IAAO and USPAP compliance.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6">
+                <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Suggestions:</h4>
+                <ul class="list-disc pl-5 text-gray-700 dark:text-gray-300 space-y-2">
+                    <li>Check that the property ID is correct and try again</li>
+                    <li>The county system may be temporarily unavailable; try again later</li>
+                    <li>Try searching for the property by address instead of parcel number</li>
+                    <li>If this error persists, contact the county assessor's office</li>
+                </ul>
+            </div>
+            
+            <div class="mt-8 flex justify-center">
+                <a href="{{ url_for('property_record.property_search') }}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                    </svg>
+                    Return to Property Search
+                </a>
+            </div>
         </div>
     </div>
 </div>

@@ -1,87 +1,138 @@
 """
-Property Record Controller
+Controller for property record access and display.
 
-This controller handles requests for property records and ensures we're only displaying
-authentic assessment data in compliance with IAAO and USPAP standards.
+This controller provides routes for searching and displaying property records
+using the regional assessment API, ensuring all data comes from authentic sources.
 """
 
-import os
 import logging
-from typing import Dict, Any
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
+from regional.assessment_api import (
+    get_assessment_data,
+    search_assessment_properties,
+    get_supported_counties
+)
 
-from flask import Blueprint, render_template, request, redirect, url_for, jsonify, current_app
-from regional.assessment_api import get_assessment_data
-
-# Configure logging
+# Set up logging
 logger = logging.getLogger(__name__)
 
-# Create the blueprint
-property_record_bp = Blueprint('property_record', __name__, url_prefix='/property')
+# Create blueprint
+property_record = Blueprint('property_record', __name__)
 
-@property_record_bp.route('/record/<property_id>')
-def view_property_record(property_id: str):
-    """
-    Display a property record using only authentic assessment data.
-    
-    This route ensures we're complying with IAAO and USPAP standards by:
-    1. Only displaying authentic assessment data from official sources
-    2. Never displaying demonstration or synthetic data
-    3. Clearly communicating any data retrieval errors
-    
-    Args:
-        property_id: The ID of the property to display
-        
-    Returns:
-        Rendered property record template or error template
-    """
-    # Get county parameter (default to 'benton')
-    county = request.args.get('county', 'benton')
-    
-    logger.info(f"Requesting property record for {property_id} in {county} county")
-    
-    # Get assessment data from authentic source
-    assessment_data = get_assessment_data(property_id, county)
-    
-    # Check for errors in the assessment data
-    if assessment_data.get('error'):
-        logger.error(f"Error retrieving property data: {assessment_data.get('error')}")
-        # Render the error template with the error details
-        return render_template('property_record_error.html', error=assessment_data)
-    
-    # If we have valid assessment data, render the property record template
-    return render_template('property_record_card.html', 
-                           property_id=property_id,
-                           county=county,
-                           assessment_data=assessment_data,
-                           using_real_data=True)
-
-@property_record_bp.route('/search', methods=['GET', 'POST'])
+@property_record.route('/property/search', methods=['GET', 'POST'])
 def property_search():
     """
-    Search for property records by various criteria.
+    Handle property search requests.
     
-    This route allows users to search for properties and directs them to 
-    the property record view for the selected property.
+    GET: Display search form
+    POST: Process search and redirect to results or property details
     """
     if request.method == 'POST':
-        # Get search parameters from form
         property_id = request.form.get('property_id')
         county = request.form.get('county', 'benton')
         
+        # If a specific property ID was entered, go directly to the property details
         if property_id:
-            return redirect(url_for('property_record.view_property_record', 
-                                   property_id=property_id,
-                                   county=county))
-    
-    # For GET requests, just display the search form
-    return render_template('property_search.html')
+            return redirect(url_for('property_record.property_details', 
+                                    property_id=property_id, 
+                                    county=county))
+        
+        # If a search query was entered, redirect to the search results
+        search_query = request.form.get('search_query')
+        if search_query:
+            return redirect(url_for('property_record.property_search_results',
+                                    query=search_query,
+                                    county=county))
+        
+        # If neither was provided, flash an error and redisplay the form
+        flash('Please enter a property ID or search query.', 'error')
+        
+    # For GET requests or if we get here after a POST (e.g., validation failed)
+    counties = get_supported_counties()
+    return render_template('property_search.html', counties=counties)
 
-def register_blueprints(app):
-    """
-    Register the property record blueprint with the Flask app.
+@property_record.route('/property/results')
+def property_search_results():
+    """Display property search results."""
+    search_query = request.args.get('query', '')
+    county = request.args.get('county', 'benton')
+    limit = request.args.get('limit', 10, type=int)
     
-    Args:
-        app: Flask application instance
-    """
-    app.register_blueprint(property_record_bp)
+    if not search_query:
+        flash('Please enter a search query.', 'error')
+        return redirect(url_for('property_record.property_search'))
+    
+    # Perform the search
+    results = search_assessment_properties(search_query, county, limit)
+    
+    # Check for errors
+    if 'error' in results:
+        flash(f"Search error: {results['message']}", 'error')
+        return render_template('property_search_results.html', 
+                              query=search_query,
+                              results=None,
+                              county=county,
+                              error=results['message'])
+    
+    return render_template('property_search_results.html',
+                          query=search_query,
+                          results=results,
+                          county=county)
+
+@property_record.route('/property/<property_id>')
+def property_details(property_id):
+    """Display detailed property information."""
+    county = request.args.get('county', 'benton')
+    
+    # Get property data
+    property_data = get_assessment_data(property_id, county)
+    
+    # Check for errors
+    if 'error' in property_data:
+        return render_template('property_record_error.html',
+                              property_id=property_id,
+                              county=county,
+                              error=property_data['message'],
+                              data_source=property_data.get('data_source', 'Unknown'))
+    
+    # Render property record card
+    return render_template('property_record_card.html',
+                          property_id=property_id,
+                          property_data=property_data['property_data'],
+                          county=county,
+                          data_source=property_data['data_source'])
+
+@property_record.route('/api/property/<property_id>')
+def api_property_details(property_id):
+    """API endpoint for property details."""
+    county = request.args.get('county', 'benton')
+    
+    # Get property data
+    property_data = get_assessment_data(property_id, county)
+    
+    # Return as JSON
+    return jsonify(property_data)
+
+@property_record.route('/api/property/search')
+def api_property_search():
+    """API endpoint for property search."""
+    search_query = request.args.get('query', '')
+    county = request.args.get('county', 'benton')
+    limit = request.args.get('limit', 10, type=int)
+    
+    if not search_query:
+        return jsonify({
+            'error': 'missing_query',
+            'message': 'Search query is required.'
+        }), 400
+    
+    # Perform the search
+    results = search_assessment_properties(search_query, county, limit)
+    
+    # Return as JSON
+    return jsonify(results)
+
+def register_blueprint(app):
+    """Register the blueprint with the Flask app."""
+    app.register_blueprint(property_record)
     logger.info("Registered Property Record Card blueprint")
