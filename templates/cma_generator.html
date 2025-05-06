@@ -51,19 +51,36 @@
                         <h5 class="mb-3">Property Location</h5>
                         <div class="form-group">
                             <label for="subject_address">Address*</label>
-                            <input type="text" class="form-control" id="subject_address" name="subject_address" 
-                                   placeholder="Start typing to search for an address..." 
-                                   value="{{ form_data.subject_address if form_data else '' }}" required 
-                                   autocomplete="off">
-                            <div id="property-suggestions" class="shadow-sm border rounded position-absolute bg-white w-100 z-index-dropdown d-none" style="z-index: 1000; max-height: 300px; overflow-y: auto;">
-                                <div class="list-group list-group-flush" id="property-suggestions-list">
-                                    <!-- Property suggestions will be populated here -->
+                            <div class="input-group mb-3">
+                                <input type="text" class="form-control" id="subject_address" name="subject_address" 
+                                       placeholder="Enter an address to search..." 
+                                       value="{{ form_data.subject_address if form_data else '' }}" required 
+                                       autocomplete="off">
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary" type="button" id="search-address-btn">
+                                        <i class="fas fa-search"></i> Search
+                                    </button>
                                 </div>
-                                <div id="search-status" class="small text-center text-muted p-2 d-none">
-                                    <div class="spinner-border spinner-border-sm" role="status">
-                                        <span class="sr-only">Searching...</span>
+                            </div>
+                            
+                            <!-- Property Search Results Card - More visible than dropdown -->
+                            <div id="property-search-results" class="card mb-3 d-none">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                    <span>Search Results</span>
+                                    <button type="button" class="close" id="close-search-results">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="list-group list-group-flush" id="property-suggestions-list">
+                                        <!-- Property suggestions will be populated here -->
                                     </div>
-                                    <span class="ml-2">Searching...</span>
+                                    <div id="search-status" class="text-center text-muted p-3 d-none">
+                                        <div class="spinner-border spinner-border-sm" role="status">
+                                            <span class="sr-only">Searching...</span>
+                                        </div>
+                                        <span class="ml-2">Searching for properties...</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -92,7 +109,7 @@
                                 <h6 class="card-title">Why this matters?</h6>
                                 <p class="card-text small">We use the property location to find comparable properties in the same area. Accurate location information helps ensure the most relevant comparable properties are included in your analysis.</p>
                                 <div class="alert alert-info small mb-0">
-                                    <i class="fas fa-info-circle mr-1"></i> Tip: Start typing an address to automatically find and fill in property details from our database.
+                                    <i class="fas fa-info-circle mr-1"></i> Tip: Enter an address, city or zip code in the search field and click the Search button to find properties. You can also use the sample properties above to quickly create a report.
                                 </div>
                             </div>
                         </div>
@@ -180,15 +197,18 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const addressInput = document.getElementById('subject_address');
-    const suggestionsContainer = document.getElementById('property-suggestions');
+    const searchButton = document.getElementById('search-address-btn');
+    const searchResultsCard = document.getElementById('property-search-results');
     const suggestionsList = document.getElementById('property-suggestions-list');
     const searchStatus = document.getElementById('search-status');
+    const closeSearchResults = document.getElementById('close-search-results');
     
-    let searchTimeout = null;
     let currentSearchTerm = '';
     
     // Function to populate form with property data
     function populatePropertyData(property) {
+        console.log('Populating form with property data:', property);
+        
         // Fill in the form fields with property data
         document.getElementById('subject_address').value = property.address;
         document.getElementById('subject_city').value = property.city;
@@ -216,33 +236,28 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('subject_price').value = property.price;
         }
         
-        // Hide suggestions
-        suggestionsContainer.classList.add('d-none');
+        // Hide search results
+        searchResultsCard.classList.add('d-none');
     }
     
     // Function to fetch and display property suggestions
     function lookupProperty(address) {
         console.log(`Searching for: "${address}"`);
         
-        // Check if address has changed
-        if (address === currentSearchTerm) {
-            console.log('Search term unchanged, skipping search');
+        if (address.length < 3) {
+            console.log('Search term too short');
+            alert('Please enter at least 3 characters to search');
             return;
         }
         
         currentSearchTerm = address;
         
-        if (address.length < 3) {
-            console.log('Search term too short, hiding suggestions');
-            suggestionsContainer.classList.add('d-none');
-            return;
-        }
-        
-        // Show loading indicator
+        // Show loading indicator and search results card
+        searchResultsCard.classList.remove('d-none');
         suggestionsList.innerHTML = '';
         searchStatus.classList.remove('d-none');
-        suggestionsContainer.classList.remove('d-none');
-        console.log('Showing suggestions container and loading indicator');
+        
+        console.log('Showing search results card and loading indicator');
         
         // Make API call to lookup property
         console.log(`Making API call to /cma/api/lookup-property?address=${encodeURIComponent(address)}`);
@@ -271,7 +286,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log('No properties found, showing empty message');
                     suggestionsList.innerHTML = `
                         <div class="list-group-item text-center text-muted py-3">
-                            <i class="fas fa-home mr-2"></i> No properties found
+                            <i class="fas fa-home mr-2"></i> No properties found matching "${address}"
                         </div>
                     `;
                     return;
@@ -330,86 +345,22 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
     
-    // Event listener for typing in address field (debounced)
-    addressInput.addEventListener('input', function() {
-        const address = this.value.trim();
-        
-        // Clear previous timeout
-        if (searchTimeout) {
-            clearTimeout(searchTimeout);
-        }
-        
-        // Set new timeout (300ms delay)
-        searchTimeout = setTimeout(function() {
-            lookupProperty(address);
-        }, 300);
+    // Search button click event
+    searchButton.addEventListener('click', function() {
+        const address = addressInput.value.trim();
+        lookupProperty(address);
     });
     
-    // Handle keyboard navigation in suggestions
+    // Close search results button
+    closeSearchResults.addEventListener('click', function() {
+        searchResultsCard.classList.add('d-none');
+    });
+    
+    // Allow pressing enter in the address field to search
     addressInput.addEventListener('keydown', function(e) {
-        const items = suggestionsList.querySelectorAll('a.list-group-item-action');
-        
-        if (!suggestionsContainer.classList.contains('d-none')) {
-            let activeItem = suggestionsList.querySelector('a.active');
-            let activeIndex = -1;
-            
-            // Find active item index
-            if (activeItem) {
-                activeIndex = Array.from(items).indexOf(activeItem);
-            }
-            
-            // Down arrow
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                if (activeItem) {
-                    activeItem.classList.remove('active');
-                }
-                
-                if (activeIndex < items.length - 1) {
-                    items[activeIndex + 1].classList.add('active');
-                    items[activeIndex + 1].scrollIntoView({ block: 'nearest' });
-                }
-            }
-            
-            // Up arrow
-            else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                if (activeItem) {
-                    activeItem.classList.remove('active');
-                }
-                
-                if (activeIndex > 0) {
-                    items[activeIndex - 1].classList.add('active');
-                    items[activeIndex - 1].scrollIntoView({ block: 'nearest' });
-                }
-            }
-            
-            // Enter key - select highlighted item
-            else if (e.key === 'Enter' && activeItem) {
-                e.preventDefault();
-                activeItem.click();
-            }
-            
-            // Escape key - hide suggestions
-            else if (e.key === 'Escape') {
-                e.preventDefault();
-                suggestionsContainer.classList.add('d-none');
-            }
-        }
-    });
-    
-    // Focus events
-    addressInput.addEventListener('focus', function() {
-        const address = this.value.trim();
-        if (address.length >= 3) {
-            lookupProperty(address);
-        }
-    });
-    
-    // Hide suggestions when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!suggestionsContainer.contains(e.target) && e.target !== addressInput) {
-            suggestionsContainer.classList.add('d-none');
+        if (e.key === 'Enter') {
+            e.preventDefault(); // Prevent form submission
+            searchButton.click();
         }
     });
 });
