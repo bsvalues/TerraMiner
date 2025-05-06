@@ -1,7 +1,7 @@
 {
     "narrpr": {
-        "username": "",
-        "password": "",
+        "username": "billspencerappraisal@gmail.com",
+        "password": "Bspassword@3",
         "base_url": "https://www.narrpr.com",
         "headless": true,
         "timeout": 30
