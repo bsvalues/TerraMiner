@@ -97,7 +97,8 @@ def view_property_record(property_id):
             county=county,
             current_date=current_date,
             assessment_data=assessment_data,
-            assessment_history=assessment_history
+            assessment_history=assessment_history,
+            using_demo_data=using_demo_data
         )
     except Exception as e:
         logger.exception(f"Error in property record card view: {str(e)}")

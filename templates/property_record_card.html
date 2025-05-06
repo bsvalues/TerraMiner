@@ -36,11 +36,11 @@
                 <div class="text-xl font-bold text-secondary-900 dark:text-white">{{ county.name }} Assessor's Office</div>
                 <div class="text-secondary-600 dark:text-secondary-400">Property Record Card</div>
                 {% if using_demo_data %}
-                <div class="mt-2 text-sm inline-flex items-center px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div class="mt-2 inline-flex items-center px-3 py-1 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Demo Data
+                    <span class="font-medium">DEMONSTRATION DATA</span>
                 </div>
                 {% endif %}
             </div>
@@ -548,6 +548,13 @@
 
     <!-- Disclaimer -->
     <div class="text-center text-sm text-secondary-500 dark:text-secondary-400 mt-8">
+        {% if using_demo_data %}
+        <div class="py-3 px-4 mb-3 bg-amber-50 border-l-4 border-amber-500 text-amber-700 dark:bg-amber-900 dark:border-amber-600 dark:text-amber-200 max-w-3xl mx-auto text-left">
+            <p class="font-medium">Demonstration Data</p>
+            <p>This property record card contains sample data for demonstration purposes only. The information shown does not represent real property records.</p>
+            <p>In production, this data would be obtained from official county assessment sources.</p>
+        </div>
+        {% endif %}
         <p class="mb-2">This property record card is for informational purposes only.</p>
         <p>Official property records should be verified with the {{ county.name }} Assessor's Office.</p>
     </div>
