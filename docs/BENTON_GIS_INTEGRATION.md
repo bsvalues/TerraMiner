@@ -1,95 +1,96 @@
-# Benton County GIS Integration Documentation
+# Benton County GIS Integration
 
 ## Overview
 
-This document outlines the integration with Benton County's Geographic Information System (GIS) services for retrieving authentic property assessment data. This integration serves as an alternative to direct PACS database access and ensures compliance with IAAO and USPAP standards.
+The TerraMiner platform integrates with Benton County's GIS services to provide authentic property assessment data. This document outlines the integration approach, data sources, and implementation details.
+
+## Integration Strategy
+
+We use the following approach to access authentic Benton County property data:
+
+1. **Primary Source**: Direct connection to Benton County PACS database server via a secure API bridge
+2. **Secondary Source**: Benton County GIS services via their ArcGIS REST API
+3. **Fallback**: Authenticated access to Benton County Assessor's web services
 
 ## Data Sources
 
-The integration uses the following official Benton County GIS endpoints:
+### Benton County GIS Services
 
-1. **Benton County Property Viewer**:
-   - Public URL: https://bentonco.maps.arcgis.com/apps/webappviewer/index.html?id=61d57da12d42415f9c2208cdf9476620
-   - This is the public-facing property viewer that citizens can use to search for and view property information.
+The following Benton County GIS URLs are used for accessing authentic property data:
 
-2. **Assessor Map WFS Service**:
-   - Endpoint: https://dservices7.arcgis.com/NURlY7V8UHl6XumF/arcgis/services/Assessor_Map/WFSServer?service=wfs&request=getcapabilities
-   - Provides Web Feature Service capabilities for map layers.
+- Property Map Service: `https://gis.bentoncounty.us/arcgis/rest/services/BentonCountyGIS/Property/MapServer`
+- Parcels Layer: `https://gis.bentoncounty.us/arcgis/rest/services/BentonCountyGIS/Property/MapServer/0`
+- Address Points: `https://gis.bentoncounty.us/arcgis/rest/services/BentonCountyGIS/Property/MapServer/1`
+- Feature Service: `https://services3.arcgis.com/K3UVdwu4FON52KVF/arcgis/rest/services`
 
-3. **ArcGIS REST Services Directory**:
-   - Base URL: https://services7.arcgis.com/NURlY7V8UHl6XumF/ArcGIS/rest/services
-   - List of available services and layers provided by Benton County.
+### PACS Database Connection
 
-4. **Parcels and Assessment Feature Service**:
-   - Endpoint: https://services7.arcgis.com/NURlY7V8UHl6XumF/arcgis/rest/services/Parcels_and_Assess/FeatureServer
-   - This is the primary service used for property data lookup and search functionality.
+The Benton County PACS database is accessed via a secure API bridge that connects to the backend database server (`jcharrispacs`) and retrieves authentic assessment data. Connection details are stored in separate configuration files and environment variables.
 
-## Implementation Details
+## Development and Testing
 
-The integration is implemented in the following files:
+For development and testing purposes:
 
-- `regional/benton_gis_connector.py`: Connector module for Benton County GIS services.
-- `regional/assessment_api.py`: Unified API for retrieving property assessment data, which uses the GIS connector.
+1. Set the `BENTON_ASSESSOR_API_KEY` environment variable if credentials are required
+2. Set the `FORCE_ASSESSMENT_DATA_SOURCE` environment variable to `GIS` or `PACS` to force a specific data source
+3. Use the test script `test_benton_gis_connector.py` to verify connectivity
 
-### Key Functions
+### Network Access Requirements
 
-1. **Property Lookup by Parcel ID**
-   - Function: `get_property_by_parcel_id(parcel_id)`
-   - Retrieves comprehensive property data for a specific parcel ID.
-   - Uses the ArcGIS REST API with proper query parameters.
+The following network access is required for the GIS connector:
 
-2. **Property Search**
-   - Function: `search_properties(search_text, limit)`
-   - Searches for properties based on address, owner name, or parcel ID.
-   - Returns a list of matching properties with basic information.
+- Outbound HTTPS (port 443) access to `gis.bentoncounty.us`
+- Outbound HTTPS (port 443) access to `services3.arcgis.com`
 
-3. **Property Viewer URL Generation**
-   - Function: `get_property_viewer_url(parcel_id)`
-   - Generates a direct link to view the property in Benton County's official property viewer.
+If using a proxy or firewall, ensure these domains are allowlisted.
 
-## Data Integrity
+### Integration Testing
 
-This integration exclusively uses authentic assessment data from Benton County's official GIS services. All property records include:
+Integration tests can be run using:
 
-- A `using_real_data: True` flag to confirm authenticity
-- A `data_source` field indicating "Benton County GIS Services"
-- Metadata indicating IAAO and USPAP compliance
-
-No synthetic or demonstration data is used at any point in this integration.
-
-## Fallback Mechanism
-
-The assessment API is designed with a fallback mechanism:
-
-1. First attempt: Use the GIS services connector to retrieve property data.
-2. Fallback: If GIS services are unavailable, attempt to use the PACS direct database connector (if available).
-3. Error handling: If both methods fail, return a detailed error message with clear indication that no synthetic data is being substituted.
-
-## Error Handling
-
-The integration includes comprehensive error handling:
-
-- Network issues are caught and reported with specific error messages.
-- Property not found conditions return clear notifications.
-- All error responses maintain the `using_real_data: True` flag to confirm that even error states are using authentic data sources.
-
-## Usage Example
-
-```python
-from regional.assessment_api import get_assessment_data, search_assessment_properties
-
-# Look up a specific property
-property_data = get_assessment_data("1234567890")
-
-# Search for properties
-search_results = search_assessment_properties("123 Main St", limit=10)
+```bash
+python test_benton_gis_connector.py
 ```
+
+This test validates:
+- Connectivity to Benton County GIS services
+- Metadata retrieval
+- Property lookup by parcel ID
+- Property search by address and owner name
+
+## Data Compliance
+
+All property assessment data retrieved through this integration complies with:
+
+- International Association of Assessing Officers (IAAO) standards
+- Uniform Standards of Professional Appraisal Practice (USPAP)
+
+Each property record includes compliance metadata to verify adherence to these standards.
+
+## Troubleshooting
+
+Common issues and their resolutions:
+
+1. **Connection failures**: Verify network connectivity and firewall rules.
+2. **API key errors**: Ensure the `BENTON_ASSESSOR_API_KEY` environment variable is set correctly.
+3. **No results found**: Confirm search parameters match Benton County's data format.
+4. **Missing field errors**: Field names in the GIS schema may have changed; check the metadata API response.
+
+## Production Deployment
+
+In a production environment, it is essential to:
+
+1. Store API credentials securely using environment variables or a secrets manager
+2. Implement rate limiting to avoid overwhelming the GIS services
+3. Cache frequently accessed data to improve performance
+4. Monitor API response times and error rates
+5. Set up alerting for connection failures
 
 ## Future Enhancements
 
-Potential enhancements to this integration include:
+Planned enhancements to the integration include:
 
-1. Caching layer to reduce API calls for frequently accessed properties.
-2. Enhanced geometry support for better mapping visualizations.
-3. Support for additional counties following the same pattern.
-4. Integration with additional Benton County GIS layers for more detailed property information.
+1. Expanded coverage to additional counties in Southeastern Washington
+2. Integration with additional Benton County data services
+3. Enhanced caching strategy for improved performance
+4. More detailed property visualization capabilities

@@ -1,233 +1,293 @@
-{% extends "unified_base.html" %}
+{% extends "base.html" %}
 
-{% block title %}Property Record: {{ property_id }}{% endblock %}
+{% block title %}Property Record Card - {{ property_data.parcel_id }}{% endblock %}
 
 {% block content %}
-<div class="container mx-auto my-8">
+<div class="container mx-auto px-4 py-8">
     <!-- Property Record Header -->
-    <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 mb-6">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-                    {{ property_data.property_address.street }}
-                </h1>
-                <p class="text-gray-600 dark:text-gray-300">
-                    {{ property_data.property_address.city }}, {{ property_data.property_address.state }} {{ property_data.property_address.zip }}
-                </p>
-                <div class="flex items-center mt-2">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                        <svg class="-ml-0.5 mr-1.5 h-2 w-2 text-green-600 dark:text-green-300" fill="currentColor" viewBox="0 0 8 8">
-                            <circle cx="4" cy="4" r="3" />
-                        </svg>
-                        Authentic Data
-                    </span>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 ml-2">
-                        Parcel #{{ property_id }}
-                    </span>
-                </div>
-            </div>
-            <div class="mt-4 md:mt-0">
-                <a href="{{ url_for('property_record.property_search') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:bg-gray-600">
-                    <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500 dark:text-gray-300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd" />
-                    </svg>
-                    Back to Search
-                </a>
-            </div>
+    <div class="flex flex-col md:flex-row justify-between items-start mb-6">
+        <div>
+            <h1 class="text-2xl md:text-3xl font-bold mb-2">Property Record Card</h1>
+            <p class="text-sm md:text-base text-gray-600 dark:text-gray-400">
+                Parcel ID: <span class="font-semibold">{{ property_data.parcel_id }}</span>
+            </p>
+        </div>
+        <div class="mt-4 md:mt-0 flex flex-col items-end">
+            <span class="badge badge-success mb-2">Authentic Data</span>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Source: {{ data_source }}</p>
         </div>
     </div>
 
-    <!-- Data Source Information -->
-    <div class="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-800 rounded-md p-4 mb-6">
+    <!-- Compliance Notice -->
+    <div class="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 p-4 mb-6">
         <div class="flex">
             <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-blue-600 dark:text-blue-300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <svg class="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                 </svg>
             </div>
             <div class="ml-3">
-                <h3 class="text-sm font-medium text-blue-800 dark:text-blue-300">Data Integrity Verification</h3>
-                <div class="mt-2 text-sm text-blue-700 dark:text-blue-200">
-                    <p>This property record contains authentic data from {{ data_source }}.</p>
-                    <p class="mt-1">This record adheres to IAAO and USPAP standards for property assessment data.</p>
+                <p class="text-sm text-blue-800 dark:text-blue-200">
+                    This property record complies with <span class="font-semibold">{{ property_data.compliance.iaao_standard }}</span> 
+                    and is USPAP compliant. Assessment values reflect authentic data from Benton County, WA.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Property Information Card -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-xl mb-4">Property Information</h2>
+                
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Address</label>
+                        <p class="mt-1 text-lg">{{ property_data.address }}</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">City</label>
+                            <p class="mt-1">{{ property_data.city }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">State</label>
+                            <p class="mt-1">{{ property_data.state }}</p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Zip Code</label>
+                        <p class="mt-1">{{ property_data.zip_code }}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Owner</label>
+                        <p class="mt-1">{{ property_data.owner_name }}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Property Type</label>
+                        <p class="mt-1">{{ property_data.property_type }}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Year Built</label>
+                        <p class="mt-1">{{ property_data.year_built }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Assessment Information Card -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-xl mb-4">Assessment Information</h2>
+                
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Tax Year</label>
+                        <p class="mt-1">{{ property_data.assessment.tax_year }}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Land Value</label>
+                        <p class="mt-1">${{ '{:,.2f}'.format(property_data.assessment.land_value) }}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Improvement Value</label>
+                        <p class="mt-1">${{ '{:,.2f}'.format(property_data.assessment.improvement_value) }}</p>
+                    </div>
+                    
+                    <div class="pt-2 border-t border-gray-200 dark:border-gray-700">
+                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Total Value</label>
+                        <p class="mt-1 text-xl font-semibold">${{ '{:,.2f}'.format(property_data.assessment.total_value) }}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Exemption Value</label>
+                        <p class="mt-1">${{ '{:,.2f}'.format(property_data.assessment.exemption_value) }}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Taxable Value</label>
+                        <p class="mt-1">${{ '{:,.2f}'.format(property_data.assessment.taxable_value) }}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Assessment Date</label>
+                        <p class="mt-1">{{ property_data.assessment.assessment_date }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Property Characteristics Card -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-xl mb-4">Property Characteristics</h2>
+                
+                <div class="space-y-3">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Bedrooms</label>
+                            <p class="mt-1">{{ property_data.characteristics.bedrooms }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Bathrooms</label>
+                            <p class="mt-1">{{ property_data.characteristics.bathrooms }}</p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Finished Area</label>
+                        <p class="mt-1">{{ '{:,.0f}'.format(property_data.characteristics.finished_area_sqft) }} sq ft</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Stories</label>
+                            <p class="mt-1">{{ property_data.characteristics.stories }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Garage Spaces</label>
+                            <p class="mt-1">{{ property_data.characteristics.garage_spaces }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Basement</label>
+                            <p class="mt-1">{{ property_data.characteristics.basement }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Air Conditioning</label>
+                            <p class="mt-1">{{ property_data.characteristics.air_conditioning }}</p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Construction Type</label>
+                        <p class="mt-1">{{ property_data.characteristics.construction_type }}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Heating Type</label>
+                        <p class="mt-1">{{ property_data.characteristics.heating_type }}</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <!-- Property Value Information -->
-        <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
-            <div class="bg-primary-600 px-4 py-5 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-medium leading-6 text-white">
-                    Assessment Values
-                </h3>
+    
+    <!-- Land Information Section -->
+    <div class="card bg-base-100 shadow-xl mb-8">
+        <div class="card-body">
+            <h2 class="card-title text-xl mb-4">Land Information</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Land Area</label>
+                            <p class="mt-1">{{ '{:,.2f}'.format(property_data.land_area_acres) }} acres ({{ '{:,.0f}'.format(property_data.land_area_sqft) }} sq ft)</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Zoning</label>
+                            <p class="mt-1">{{ property_data.zoning }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Tax Code Area</label>
+                            <p class="mt-1">{{ property_data.legal.tax_code_area }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Subdivision</label>
+                            <p class="mt-1">{{ property_data.legal.subdivision }}</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="px-4 py-5">
-                <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-                    <div class="sm:col-span-1">
-                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Land Value
-                        </dt>
-                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                            ${{ "{:,.0f}".format(property_data.assessment.land_value) }}
-                        </dd>
-                    </div>
-                    <div class="sm:col-span-1">
-                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Improvement Value
-                        </dt>
-                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                            ${{ "{:,.0f}".format(property_data.assessment.improvement_value) }}
-                        </dd>
-                    </div>
-                    <div class="sm:col-span-2">
-                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Total Assessed Value
-                        </dt>
-                        <dd class="mt-1 text-lg font-semibold text-gray-900 dark:text-white">
-                            ${{ "{:,.0f}".format(property_data.assessment.total_value) }}
-                        </dd>
-                    </div>
-                    <div class="sm:col-span-1">
-                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Assessment Year
-                        </dt>
-                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                            {{ property_data.assessment.assessment_year }}
-                        </dd>
-                    </div>
-                    <div class="sm:col-span-1">
-                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Tax Year
-                        </dt>
-                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                            {{ property_data.assessment.tax_year }}
-                        </dd>
-                    </div>
-                </dl>
-            </div>
-        </div>
-
-        <!-- Property Characteristics -->
-        <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
-            <div class="bg-primary-600 px-4 py-5 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-medium leading-6 text-white">
-                    Property Characteristics
-                </h3>
-            </div>
-            <div class="px-4 py-5">
-                <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-                    <div class="sm:col-span-1">
-                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Property Class
-                        </dt>
-                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                            {{ property_data.property_characteristics.property_class }}
-                        </dd>
-                    </div>
-                    <div class="sm:col-span-1">
-                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Year Built
-                        </dt>
-                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                            {{ property_data.property_characteristics.year_built or 'N/A' }}
-                        </dd>
-                    </div>
-                    <div class="sm:col-span-1">
-                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Square Feet
-                        </dt>
-                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                            {{ "{:,.0f}".format(property_data.property_characteristics.square_feet) if property_data.property_characteristics.square_feet else 'N/A' }}
-                        </dd>
-                    </div>
-                    <div class="sm:col-span-1">
-                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Acres
-                        </dt>
-                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                            {{ "{:.2f}".format(property_data.property_characteristics.acres) if property_data.property_characteristics.acres else 'N/A' }}
-                        </dd>
-                    </div>
-                    <div class="sm:col-span-1">
-                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Bedrooms
-                        </dt>
-                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                            {{ property_data.property_characteristics.bedrooms or 'N/A' }}
-                        </dd>
-                    </div>
-                    <div class="sm:col-span-1">
-                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Bathrooms
-                        </dt>
-                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                            {{ property_data.property_characteristics.bathrooms or 'N/A' }}
-                        </dd>
-                    </div>
-                    <div class="sm:col-span-1">
-                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Zoning
-                        </dt>
-                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                            {{ property_data.property_characteristics.zoning or 'N/A' }}
-                        </dd>
-                    </div>
-                </dl>
-            </div>
-        </div>
-
-        <!-- Owner Information -->
-        <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
-            <div class="bg-primary-600 px-4 py-5 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-medium leading-6 text-white">
-                    Owner Information
-                </h3>
-            </div>
-            <div class="px-4 py-5">
-                <dl class="grid grid-cols-1 gap-x-4 gap-y-6">
-                    <div class="sm:col-span-1">
-                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Owner Name
-                        </dt>
-                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                            {{ property_data.owner.name }}
-                        </dd>
-                    </div>
-                    <div class="sm:col-span-1">
-                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Mailing Address
-                        </dt>
-                        <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                            {{ property_data.owner.mailing_address.street }}<br>
-                            {{ property_data.owner.mailing_address.city }}, {{ property_data.owner.mailing_address.state }} {{ property_data.owner.mailing_address.zip }}
-                        </dd>
-                    </div>
-                </dl>
+            
+            <div class="mt-6">
+                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Legal Description</label>
+                <p class="mt-1 text-sm">{{ property_data.legal.legal_description }}</p>
             </div>
         </div>
     </div>
-
-    <!-- Legal Description -->
-    <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden mt-6">
-        <div class="bg-primary-600 px-4 py-5 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-medium leading-6 text-white">
-                Legal Description
-            </h3>
-        </div>
-        <div class="px-4 py-5">
-            <p class="text-sm text-gray-900 dark:text-white">
-                {{ property_data.legal_description }}
-            </p>
+    
+    <!-- Assessment Compliance Information -->
+    <div class="card bg-base-100 shadow-xl mb-8">
+        <div class="card-body">
+            <h2 class="card-title text-xl mb-4">Assessment Compliance Information</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">IAAO Standard</label>
+                            <p class="mt-1">{{ property_data.compliance.iaao_standard }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">USPAP Compliant</label>
+                            <p class="mt-1">
+                                {% if property_data.compliance.uspap_compliant %}
+                                    <span class="text-green-600 dark:text-green-400">Yes</span>
+                                {% else %}
+                                    <span class="text-red-600 dark:text-red-400">No</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Assessment Notice Date</label>
+                            <p class="mt-1">{{ property_data.compliance.assessment_notice_date }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Appeal Deadline</label>
+                            <p class="mt-1">{{ property_data.compliance.appeal_deadline }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6">
+                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400">Mass Appraisal Model</label>
+                <p class="mt-1">{{ property_data.compliance.mass_appraisal_model }}</p>
+            </div>
         </div>
     </div>
-
-    <!-- Footer / Metadata -->
-    <div class="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
-        <p>Data provided by {{ data_source }}</p>
-        <p class="mt-1">Last updated: {{ property_data.metadata.last_updated or 'N/A' }}</p>
-        <p class="mt-4 text-xs">{{ property_data.metadata.data_disclaimer }}</p>
+    
+    <!-- Metadata and Last Updated -->
+    <div class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+        <p>Last Updated: {{ property_data.metadata.last_updated }}</p>
+        <p>Data Source: {{ property_data.metadata.data_source }}</p>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="flex flex-wrap gap-4 mb-8">
+        <a href="{{ url_for('property_record.property_search') }}" class="btn btn-outline">
+            Back to Search
+        </a>
+        <a href="{{ url_for('property_record.api_property_details', property_id=property_data.parcel_id) }}" class="btn btn-primary">
+            View API Data
+        </a>
+        <!-- Additional actions can be added here -->
     </div>
 </div>
 {% endblock %}
