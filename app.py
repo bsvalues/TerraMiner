@@ -2519,12 +2519,16 @@ def zillow_properties():
 @app.route('/property/search', methods=['GET'])
 @app.route('/property_search', methods=['GET'])
 def property_search():
-    """Search for properties based on query parameters."""
+    """Search for properties based on query parameters with fuzzy matching."""
+    # Import our fuzzy search function
+    from property_search import fuzzy_property_search
+    
     query = request.args.get('query', '')
     property_type = request.args.get('propertyType', '')
     min_price = request.args.get('minPrice', '')
     max_price = request.args.get('maxPrice', '')
     radius = request.args.get('radius', '0')
+    limit = request.args.get('limit', 10, type=int)
     
     properties = []
     properties_json = '[]'
@@ -2532,37 +2536,87 @@ def property_search():
     is_loading = False
     maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY', '')
     
+    # Define counties for the UI
+    counties = {
+        'benton': {
+            'name': 'Benton County',
+            'state': 'WA',
+            'default_data_source': 'GIS'
+        },
+        'franklin': {
+            'name': 'Franklin County',
+            'state': 'WA',
+            'default_data_source': None
+        },
+        'walla_walla': {
+            'name': 'Walla Walla County',
+            'state': 'WA',
+            'default_data_source': None
+        }
+    }
+    
     # If we have a query, search for properties
     if query:
-        # For demo purposes, we'll simulate a specific property being found
-        if "4234 OLD MILTON HWY" in query.upper() or "WALLA WALLA" in query.upper():
-            # Demonstration property matching requested address
-            property = {
-                'id': 'ww42',
-                'address': '4234 OLD MILTON HWY',
-                'city': 'WALLA WALLA',
-                'state': 'Washington',
-                'zip_code': '99362',
-                'latitude': 46.0578,
-                'longitude': -118.4108,
-                'price': 789000,
-                'price_per_sqft': 325,
-                'bedrooms': 4,
-                'bathrooms': 3.5,
-                'sqft': 2428,
-                'property_type': 'Residential',
-                'year_built': 1992,
-                'lot_size': '1.2 acres',
-                'status': 'active',
-                'image_url': 'https://photos.zillowstatic.com/fp/eb40ee9b33b4f73c4801e21e1cfef69d-cc_ft_1536.webp'
-            }
-            properties = [property]
+        try:
+            is_loading = True
+            
+            # Use our fuzzy property search functionality to get real Benton County data
+            # This uses the actual GIS API with the BENTON_ASSESSOR_API_KEY
+            search_results = fuzzy_property_search(query, limit)
+            
+            # Check for errors
+            if 'error' in search_results:
+                error = search_results['message']
+                properties = []
+            else:
+                # Transform property data format for display
+                properties = []
+                for prop in search_results.get('properties', []):
+                    # Convert GIS property data to format expected by the template
+                    properties.append({
+                        'id': prop.get('property_id', 'Unknown'),
+                        'address': prop.get('address', 'Unknown'),
+                        'city': 'Benton County',
+                        'state': 'Washington',
+                        'owner': prop.get('owner', 'Unknown'),
+                        'acres': prop.get('acres', 0),
+                        'legal_description': prop.get('legal_description', 'Unknown'),
+                        'land_use': prop.get('land_use', 'Unknown'),
+                        'price': 0,  # No price in assessment data
+                        'property_type': 'Parcel',
+                        'description': prop.get('legal_description', 'Property record from Benton County GIS'),
+                        'data_source': 'Benton County GIS'
+                    })
+                
+                # If no results from fuzzy search but specific query is for Walla Walla
+                if len(properties) == 0 and "WALLA WALLA" in query.upper():
+                    # Special demonstration case for Walla Walla
+                    property = {
+                        'id': 'ww42',
+                        'address': '4234 OLD MILTON HWY',
+                        'city': 'WALLA WALLA',
+                        'state': 'Washington',
+                        'zip_code': '99362',
+                        'latitude': 46.0578,
+                        'longitude': -118.4108,
+                        'price': 789000,
+                        'price_per_sqft': 325,
+                        'bedrooms': 4,
+                        'bathrooms': 3.5,
+                        'sqft': 2428,
+                        'property_type': 'Residential',
+                        'year_built': 1992,
+                        'lot_size': '1.2 acres',
+                        'status': 'active',
+                        'image_url': 'https://photos.zillowstatic.com/fp/eb40ee9b33b4f73c4801e21e1cfef69d-cc_ft_1536.webp'
+                    }
+                    properties = [property]
             
             # Create JSON representation for map
             import json
             properties_json = json.dumps(properties)
-        else:
-            # Show "no results" for other queries
+        except Exception as e:
+            error = f"Search error: {str(e)}"
             properties = []
     
     return render_template(
@@ -2574,6 +2628,7 @@ def property_search():
         radius=radius,
         properties=properties,
         properties_json=properties_json,
+        counties=counties,
         error=error,
         is_loading=is_loading,
         maps_api_key=maps_api_key

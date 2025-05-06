@@ -162,7 +162,7 @@ def get_property_data(property_id: str) -> Dict[str, Any]:
 
 def search_properties(query: str, limit: int = 10) -> Dict[str, Any]:
     """
-    Search for properties in Benton County GIS based on query string.
+    Search for properties in Benton County GIS based on query string with fuzzy matching.
     
     Args:
         query (str): Search query (address, owner name, etc.)
@@ -181,10 +181,46 @@ def search_properties(query: str, limit: int = 10) -> Dict[str, Any]:
         # Clean up the query
         query = query.strip().replace("'", "''")  # Escape single quotes for SQL
         
+        # Split the query into individual terms for better fuzzy matching
+        query_terms = query.split()
+        
+        # Build a more flexible search condition that matches partial terms
+        search_conditions = []
+        
+        # Handle parcel ID matching (exact or starts with)
+        numeric_only_query = ''.join(c for c in query if c.isdigit())
+        if numeric_only_query:
+            search_conditions.append(f"PARCELID LIKE '{numeric_only_query}%'")
+        
+        # Handle address searching with fuzzy matching
+        address_conditions = []
+        for term in query_terms:
+            # Try to match parts of an address
+            address_conditions.append(f"SITEADDRESS LIKE '%{term}%'")
+        
+        if address_conditions:
+            # For addresses, we want matches that contain more of the terms
+            search_conditions.append(" AND ".join(address_conditions))
+        
+        # Handle owner name searching with fuzzy matching
+        owner_conditions = []
+        for term in query_terms:
+            if len(term) >= 3:  # Only use terms with at least 3 characters for owner search
+                owner_conditions.append(f"OWNER LIKE '%{term}%'")
+        
+        if owner_conditions:
+            search_conditions.append(" OR ".join(owner_conditions))
+        
+        # Combine all search conditions
+        where_clause = " OR ".join(f"({condition})" for condition in search_conditions)
+        
+        # If we have no valid search conditions, use a simpler approach
+        if not where_clause:
+            where_clause = f"PARCELID LIKE '%{query}%' OR SITEADDRESS LIKE '%{query}%' OR OWNER LIKE '%{query}%'"
+        
         # Construct the query parameters
-        # Search in multiple fields: parcel ID, address, and owner name
         params = {
-            'where': f"PARCELID LIKE '%{query}%' OR SITEADDRESS LIKE '%{query}%' OR OWNER LIKE '%{query}%'",
+            'where': where_clause,
             'outFields': "PARCELID,SITEADDRESS,OWNER,ACRES,LEGALDESC",
             'returnGeometry': 'false',
             'f': 'json',
