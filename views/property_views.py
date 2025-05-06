@@ -6,21 +6,65 @@ avoiding circular imports by keeping these views separate from controllers.
 """
 
 import logging
+import datetime
 from flask import (
     render_template, request, redirect, url_for, flash, 
-    Blueprint, current_app as app
+    Blueprint, current_app as app, jsonify
 )
-from regional.assessment_api import (
-    get_supported_counties,
-    get_assessment_data,
-    search_assessment_properties
-)
+
+# Try to import from regional API, but provide fallback if it fails
+try:
+    from regional.assessment_api import (
+        get_supported_counties,
+        get_assessment_data,
+        search_assessment_properties
+    )
+    ASSESSMENT_API_AVAILABLE = True
+except ImportError:
+    logger = logging.getLogger(__name__)
+    logger.warning("Assessment API not available, using fallback behavior")
+    ASSESSMENT_API_AVAILABLE = False
+    
+    # Provide fallback functions
+    def get_supported_counties():
+        return {
+            'benton': {
+                'name': 'Benton County',
+                'state': 'WA',
+                'default_data_source': 'GIS'
+            },
+            'franklin': {
+                'name': 'Franklin County',
+                'state': 'WA',
+                'default_data_source': None
+            },
+            'walla_walla': {
+                'name': 'Walla Walla County',
+                'state': 'WA',
+                'default_data_source': None
+            }
+        }
+    
+    def get_assessment_data(property_id, county='benton'):
+        return {
+            'error': 'api_unavailable',
+            'message': 'The property assessment API is currently unavailable.',
+            'data_source': 'None (API Unavailable)'
+        }
+    
+    def search_assessment_properties(query, county='benton', limit=10):
+        return {
+            'error': 'api_unavailable',
+            'message': 'The property assessment API is currently unavailable.',
+            'count': 0,
+            'properties': []
+        }
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
-# Create blueprint
-property_views_bp = Blueprint('property_views', __name__)
+# Create blueprint with URL prefix to avoid conflicts with app.py routes
+property_views_bp = Blueprint('property_views', __name__, url_prefix='/assess')
 
 @property_views_bp.route('/property/search', methods=['GET', 'POST'])
 def property_search():
@@ -30,6 +74,32 @@ def property_search():
     GET: Display search form
     POST: Process search and redirect to results or property details
     """
+    # Set default counties in case the API import fails
+    counties = {
+        'benton': {
+            'name': 'Benton County',
+            'state': 'WA',
+            'default_data_source': 'GIS'
+        },
+        'franklin': {
+            'name': 'Franklin County',
+            'state': 'WA',
+            'default_data_source': None
+        },
+        'walla_walla': {
+            'name': 'Walla Walla County',
+            'state': 'WA',
+            'default_data_source': None
+        }
+    }
+    
+    # Try to get counties from API
+    try:
+        counties = get_supported_counties()
+    except Exception as e:
+        logger.error(f"Error getting supported counties: {str(e)}")
+        # Continue with default counties
+    
     if request.method == 'POST':
         property_id = request.form.get('property_id')
         county = request.form.get('county', 'benton')
@@ -51,7 +121,6 @@ def property_search():
         flash('Please enter a property ID or search query.', 'error')
         
     # For GET requests or if we get here after a POST (e.g., validation failed)
-    counties = get_supported_counties()
     return render_template('property_search.html', counties=counties)
 
 @property_views_bp.route('/property/results')
@@ -92,11 +161,14 @@ def property_details(property_id):
     
     # Check for errors
     if 'error' in property_data:
+        # Generate timestamp for error template
+        current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         return render_template('property_record_error.html',
                               property_id=property_id,
                               county=county,
                               error=property_data['message'],
-                              data_source=property_data.get('data_source', 'Unknown'))
+                              data_source=property_data.get('data_source', 'Unknown'),
+                              timestamp=current_time)
     
     # Render property record card
     return render_template('property_record_card.html',

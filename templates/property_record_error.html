@@ -83,7 +83,7 @@
                         
                         <div class="grid grid-cols-3 gap-2">
                             <div class="text-sm font-medium text-gray-500 dark:text-gray-400">Timestamp</div>
-                            <div class="col-span-2">{{ now().strftime('%Y-%m-%d %H:%M:%S') }}</div>
+                            <div class="col-span-2">{{ timestamp|default(now().strftime('%Y-%m-%d %H:%M:%S') if now is defined else '') }}</div>
                         </div>
                     </div>
                 </div>
