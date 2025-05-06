@@ -119,19 +119,22 @@ def get_assessment_data(property_id: str, county: str) -> Dict[str, Any]:
 
 def _get_fallback_assessment_data(property_id: str, county_key: str) -> Dict[str, Any]:
     """
-    Get fallback assessment data when real API connection is not available.
-    This is only used until the real API connections are established.
+    Get demo assessment data when real API connection is not available.
     
-    NOTE: In production, this fallback data would be replaced with real data
-    from county assessment offices via their APIs.
+    This function returns demonstration data for development and testing purposes.
+    In production, this would be replaced with real data from county APIs.
+    
+    IMPORTANT: The data returned by this function is for UI demonstration only
+    and does not represent actual property assessment data.
     """
-    logger.info(f"Using fallback assessment data for {property_id} in {county_key}")
+    logger.info(f"Using demonstration assessment data for {property_id} in {county_key}")
 
     current_year = datetime.now().year
     
     # For Walla Walla County
     if county_key == 'walla_walla' and property_id == 'ww42':
         return {
+            "using_demo_data": True,
             "PropertyRecord": {
                 "ParcelID": property_id,
                 "ParcelNumber": "12-34-5678-9012",
@@ -208,6 +211,7 @@ def _get_fallback_assessment_data(property_id: str, county_key: str) -> Dict[str
     # For Benton County
     elif county_key == 'benton' and property_id == 'bt75':
         return {
+            "using_demo_data": True,
             "PropertyRecord": {
                 "ParcelID": property_id,
                 "ParcelNumber": "1-0875-400-0012-000",

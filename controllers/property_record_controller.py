@@ -57,6 +57,10 @@ def view_property_record(property_id):
         # Fetch assessment data from county API
         assessment_data = get_assessment_data(property_id, county_name)
         logger.info(f"Retrieved assessment data for property {property_id} in {county_name}")
+        
+        # Check if we're using demo data or real API data
+        # We can determine this by checking if the response came from a real API or the fallback function
+        using_demo_data = 'using_demo_data' in assessment_data and assessment_data['using_demo_data'] == True
 
         # Create a merged data object that prioritizes assessment data but includes property data as fallback
         merged_data = property_data.copy()
