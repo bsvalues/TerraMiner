@@ -44,7 +44,7 @@ class ZillowWorkingScraper:
             Dict[str, Any]: Property details from Zillow API
         """
         logger.info(f"Fetching property details for ZPID: {zpid}")
-        url = f"{self.base_url}/property_lookup"
+        url = f"{self.base_url}/property_details"
         
         params = {
             "zpid": zpid

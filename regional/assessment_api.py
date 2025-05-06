@@ -356,141 +356,190 @@ def _format_zillow_data(property_data: Dict[str, Any], property_id: str) -> Dict
     """
     logger.info(f"Formatting Zillow data for property {property_id}")
     
-    # Extract basic property info
-    address = property_data.get('address', {})
-    price = property_data.get('price', 0)
-    
-    # Extract zestimate (estimated value) info
-    zestimate_data = property_data.get('zestimate', {})
-    zestimate = zestimate_data.get('value', 0) if zestimate_data else price
-    
-    # Calculate land and improvement values (30% land, 70% improvements is typical)
-    land_value = int(zestimate * 0.3) if zestimate else 0
-    improvement_value = int(zestimate * 0.7) if zestimate else 0
-    
-    # Extract home facts
-    home_facts = property_data.get('resoFacts', {})
-    bedrooms = home_facts.get('bedrooms', 0)
-    bathrooms = home_facts.get('bathrooms', 0)
-    sqft = home_facts.get('livingArea', 0)
-    lot_size = home_facts.get('lotSize', 0)
-    year_built = home_facts.get('yearBuilt', 0)
-    stories = home_facts.get('stories', 0)
-    property_type = property_data.get('homeType', '')
-    
-    # Extract tax history if available
-    tax_history = property_data.get('taxHistory', [])
-    assessment_history = []
-    
-    # Current year for tax/assessment year
-    current_year = datetime.now().year
-    
-    # Process tax history into assessment history format
-    for tax_entry in tax_history:
-        year = tax_entry.get('year', 0)
-        tax_amount = tax_entry.get('taxPaid', 0)
-        value = tax_entry.get('value', 0)
+    try:
+        # The new API has a different structure - let's handle both potential formats
         
-        # Skip entries without a year
-        if not year:
-            continue
+        # Check if we're using the new API format or old format
+        if 'property' in property_data:
+            logger.info("Using the new Zillow Working API data format")
+            # New API format from ZillowWorkingScraper
+            property_info = property_data.get('property', {})
+            address = property_info.get('address', {})
+            price = property_info.get('price', 0)
+            zestimate = property_info.get('zestimate', price)
             
-        # Calculate a change percentage (placeholder)
-        change = 0
-        if len(assessment_history) > 0:
-            prev_value = assessment_history[-1].get('TotalValue', 0)
-            if prev_value > 0:
-                change = round((value - prev_value) / prev_value * 100, 1)
+            # Basic property data
+            home_facts = property_info.get('resoFacts', {})
+            bedrooms = property_info.get('bedrooms', 0)
+            bathrooms = property_info.get('bathrooms', 0)
+            sqft = property_info.get('livingArea', 0)
+            lot_size = property_info.get('lotSize', 0)
+            year_built = property_info.get('yearBuilt', 0)
+            stories = property_info.get('stories', 1)
+            property_type = property_info.get('homeType', 'Residential')
+            
+            # Tax history
+            tax_history = property_info.get('taxHistory', [])
+            
+            # Sale history
+            price_history = property_info.get('priceHistory', [])
+            last_sale_date = property_info.get('lastSoldDate', '')
+            last_sale_price = property_info.get('lastSoldPrice', 0)
+            
+            # Address components
+            full_address = address.get('streetAddress', '')
+            city = address.get('city', '')
+            state = address.get('state', '')
+            zipcode = address.get('zipcode', '')
+            zpid = property_info.get('zpid', '')
+            
+            # View quality
+            has_view = property_info.get('hasView', False)
+            
+        else:
+            logger.info("Using the standard Zillow API data format")
+            # Old API format from ZillowScraper
+            address = property_data.get('address', {})
+            price = property_data.get('price', 0)
+            
+            # Extract zestimate (estimated value) info
+            zestimate_data = property_data.get('zestimate', {})
+            zestimate = zestimate_data.get('value', 0) if zestimate_data else price
+            
+            # Extract home facts
+            home_facts = property_data.get('resoFacts', {})
+            bedrooms = home_facts.get('bedrooms', 0)
+            bathrooms = home_facts.get('bathrooms', 0)
+            sqft = home_facts.get('livingArea', 0)
+            lot_size = home_facts.get('lotSize', 0)
+            year_built = home_facts.get('yearBuilt', 0)
+            stories = home_facts.get('stories', 0)
+            property_type = property_data.get('homeType', '')
+            
+            # Tax history
+            tax_history = property_data.get('taxHistory', [])
+            
+            # Sale history
+            price_history = property_data.get('priceHistory', [])
+            last_sale_date = ''
+            last_sale_price = 0
+            
+            if price_history:
+                # Sort by date (newest first)
+                sorted_history = sorted(price_history, 
+                                       key=lambda x: datetime.strptime(x.get('date', '2000-01-01'), '%Y-%m-%d'),
+                                       reverse=True)
+                                       
+                # Find the most recent sale (not just listing)
+                for entry in sorted_history:
+                    if entry.get('event', '').lower() == 'sold':
+                        last_sale_date = entry.get('date', '')
+                        last_sale_price = entry.get('price', 0)
+                        break
+            
+            # Address components
+            full_address = address.get('streetAddress', '')
+            city = address.get('city', '')
+            state = address.get('state', '')
+            zipcode = address.get('zipcode', '')
+            zpid = property_data.get('zpid', '')
+            
+            # View quality
+            has_view = property_data.get('hasView', False)
         
-        assessment_history.append({
-            "Year": year,
-            "LandValue": int(value * 0.3) if value else 0,
-            "ImprovementValue": int(value * 0.7) if value else 0,
-            "TotalValue": value,
-            "Change": change
-        })
-    
-    # Sort assessment history by year (newest first)
-    assessment_history.sort(key=lambda x: x['Year'], reverse=True)
-    
-    # If we have price history, extract the last sale information
-    price_history = property_data.get('priceHistory', [])
-    last_sale_date = ''
-    last_sale_price = 0
-    
-    if price_history:
-        # Sort by date (newest first)
-        sorted_history = sorted(price_history, 
-                               key=lambda x: datetime.strptime(x.get('date', '2000-01-01'), '%Y-%m-%d'),
-                               reverse=True)
-                               
-        # Find the most recent sale (not just listing)
-        for entry in sorted_history:
-            if entry.get('event', '').lower() == 'sold':
-                last_sale_date = entry.get('date', '')
-                last_sale_price = entry.get('price', 0)
-                break
-    
-    # Get full address
-    full_address = f"{address.get('streetAddress', '')}"
-    city = address.get('city', '')
-    state = address.get('state', '')
-    zipcode = address.get('zipcode', '')
-    
-    # Create standardized assessment data
-    return {
-        "using_real_data": True,
-        "data_source": "Zillow API",
-        "PropertyRecord": {
-            "ParcelID": property_id,
-            "ParcelNumber": property_data.get('zpid', ''),
-            "SitusAddress": full_address,
-            "City": city,
-            "State": state,
-            "ZipCode": zipcode,
-            "OwnerName": "Current Owner",  # Zillow doesn't provide owner name
-            "LegalDescription": home_facts.get('legalDescription', ''),
-            "PropertyClass": property_type,
-            "TaxArea": f"{city} {zipcode}",
-            "LandValue": land_value,
-            "ImprovementValue": improvement_value,
-            "MarketValue": zestimate,
-            "AssessedValue": zestimate,
-            "ExemptionValue": 0,
-            "LevyCode": "",
-            "TaxStatus": "Taxable",
-            "Acres": lot_size,
-            "LastSaleDate": last_sale_date,
-            "LastSalePrice": last_sale_price,
-            "AssessmentYear": current_year,
-            "TaxYear": current_year
-        },
-        "BuildingData": {
-            "YearBuilt": year_built,
-            "EffectiveYear": year_built,
-            "SquareFeet": sqft,
-            "Quality": "Average",
-            "Condition": "Average",
-            "Bedrooms": bedrooms,
-            "Bathrooms": bathrooms,
-            "Foundation": home_facts.get('foundation', 'Concrete'),
-            "ExteriorWalls": home_facts.get('exterior', 'Wood Frame'),
-            "RoofType": home_facts.get('roof', 'Composite'),
-            "HeatingCooling": home_facts.get('heating', 'Central'),
-            "Fireplaces": home_facts.get('fireplaces', 0),
-            "BasementSF": home_facts.get('basement', 0),
-            "GarageType": "Attached" if home_facts.get('hasAttachedGarage', False) else "Detached",
-            "GarageSF": home_facts.get('garageArea', 0),
-            "Stories": stories
-        },
-        "LandData": {
-            "LandType": "Residential",
-            "Topography": "Level",
-            "Utilities": "All Public",
-            "ViewQuality": property_data.get('hasView', False) and "Good" or "Average"
-        },
-        "AssessmentHistory": assessment_history
-    }
+        # Calculate land and improvement values (30% land, 70% improvements is typical)
+        land_value = int(zestimate * 0.3) if zestimate else 0
+        improvement_value = int(zestimate * 0.7) if zestimate else 0
+        
+        # Process tax history into assessment history format
+        assessment_history = []
+        current_year = datetime.now().year
+        
+        for tax_entry in tax_history:
+            year = tax_entry.get('year', 0)
+            tax_amount = tax_entry.get('taxPaid', 0)
+            value = tax_entry.get('value', 0)
+            
+            # Skip entries without a year
+            if not year:
+                continue
+                
+            # Calculate a change percentage (placeholder)
+            change = 0
+            if len(assessment_history) > 0:
+                prev_value = assessment_history[-1].get('TotalValue', 0)
+                if prev_value > 0:
+                    change = round((value - prev_value) / prev_value * 100, 1)
+            
+            assessment_history.append({
+                "Year": year,
+                "LandValue": int(value * 0.3) if value else 0,
+                "ImprovementValue": int(value * 0.7) if value else 0,
+                "TotalValue": value,
+                "Change": change
+            })
+        
+        # Sort assessment history by year (newest first)
+        assessment_history.sort(key=lambda x: x['Year'], reverse=True)
+        
+        # Create standardized assessment data
+        return {
+            "using_real_data": True,
+            "data_source": "Zillow API",
+            "PropertyRecord": {
+                "ParcelID": property_id,
+                "ParcelNumber": zpid,
+                "SitusAddress": full_address,
+                "City": city,
+                "State": state,
+                "ZipCode": zipcode,
+                "OwnerName": "Current Owner",  # Zillow doesn't provide owner name
+                "LegalDescription": home_facts.get('legalDescription', ''),
+                "PropertyClass": property_type,
+                "TaxArea": f"{city} {zipcode}",
+                "LandValue": land_value,
+                "ImprovementValue": improvement_value,
+                "MarketValue": zestimate,
+                "AssessedValue": zestimate,
+                "ExemptionValue": 0,
+                "LevyCode": "",
+                "TaxStatus": "Taxable",
+                "Acres": lot_size if lot_size else 0,
+                "LastSaleDate": last_sale_date,
+                "LastSalePrice": last_sale_price,
+                "AssessmentYear": current_year,
+                "TaxYear": current_year
+            },
+            "BuildingData": {
+                "YearBuilt": year_built,
+                "EffectiveYear": year_built,
+                "SquareFeet": sqft,
+                "Quality": "Average",
+                "Condition": "Average",
+                "Bedrooms": bedrooms,
+                "Bathrooms": bathrooms,
+                "Foundation": home_facts.get('foundation', 'Concrete'),
+                "ExteriorWalls": home_facts.get('exterior', 'Wood Frame'),
+                "RoofType": home_facts.get('roof', 'Composite'),
+                "HeatingCooling": home_facts.get('heating', 'Central'),
+                "Fireplaces": home_facts.get('fireplaces', 0),
+                "BasementSF": home_facts.get('basement', 0),
+                "GarageType": "Attached" if home_facts.get('hasAttachedGarage', False) else "Detached",
+                "GarageSF": home_facts.get('garageArea', 0),
+                "Stories": stories if stories else 1
+            },
+            "LandData": {
+                "LandType": "Residential",
+                "Topography": "Level",
+                "Utilities": "All Public",
+                "ViewQuality": has_view and "Good" or "Average"
+            },
+            "AssessmentHistory": assessment_history
+        }
+    except Exception as e:
+        logger.error(f"Error formatting Zillow data: {str(e)}")
+        logger.error(traceback.format_exc())
+        return {}
 
 def _process_county_api_response(raw_data: Dict[str, Any], county_key: str) -> Dict[str, Any]:
     """
