@@ -1,0 +1,60 @@
+{% extends "unified_base.html" %}
+
+{% block title %}Property Record Error{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 max-w-4xl mx-auto">
+        <div class="flex items-center mb-6">
+            <div class="rounded-full bg-red-100 p-3 mr-4">
+                <svg class="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Property Record Unavailable</h1>
+        </div>
+
+        <div class="mb-6 p-4 border-l-4 border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-200">
+            <h2 class="font-semibold mb-2">{{ error_type }}</h2>
+            <p>{{ error_message }}</p>
+        </div>
+
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Property Information</h3>
+            <p><strong>Property ID:</strong> {{ property_id }}</p>
+            <p><strong>County:</strong> {{ county.name }}</p>
+            <p><strong>Date:</strong> {{ current_date }}</p>
+        </div>
+
+        <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-6">
+            <h3 class="text-lg font-semibold text-blue-700 dark:text-blue-300 mb-2">IAAO and USPAP Compliance</h3>
+            <p class="text-blue-600 dark:text-blue-300">
+                In accordance with the International Association of Assessing Officers (IAAO) standards and 
+                Uniform Standards of Professional Appraisal Practice (USPAP), we only provide property assessment 
+                data from authorized sources. No demonstration or synthetic data is used in our property records.
+            </p>
+        </div>
+
+        {% if error_type == 'API_KEY_MISSING' %}
+        <div class="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg">
+            <h3 class="text-lg font-semibold text-amber-700 dark:text-amber-300 mb-2">Missing API Key</h3>
+            <p class="text-amber-600 dark:text-amber-300">
+                The property record data cannot be displayed because the system does not have the required API key
+                to access the county assessor's database. Please contact the system administrator to configure the 
+                proper API credentials.
+            </p>
+        </div>
+        {% endif %}
+
+        <div class="mt-6 flex justify-between">
+            <a href="{{ url_for('monitoring_dashboard') }}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition duration-150">
+                Back to Dashboard
+            </a>
+            
+            <a href="{{ url_for('property_comparison') }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-150">
+                Try Another Property
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
