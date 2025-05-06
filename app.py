@@ -2738,6 +2738,14 @@ try:
 except Exception as e:
     logger.error(f"Failed to register Southeastern Washington blueprint: {str(e)}")
 
+# Register Property Record Card controller
+try:
+    from controllers.property_record_controller import property_record_blueprint
+    app.register_blueprint(property_record_blueprint)
+    logger.info("Registered Property Record Card blueprint")
+except Exception as e:
+    logger.error(f"Failed to register Property Record Card blueprint: {str(e)}")
+
 # Initialize database tables
 with app.app_context():
     # Create tables
