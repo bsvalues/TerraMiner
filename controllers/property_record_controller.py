@@ -17,9 +17,9 @@ from regional.assessment_api import (
 logger = logging.getLogger(__name__)
 
 # Create blueprint
-property_record = Blueprint('property_record', __name__)
+property_record_bp = Blueprint('property_record', __name__)
 
-@property_record.route('/property/search', methods=['GET', 'POST'])
+@property_record_bp.route('/property/search', methods=['GET', 'POST'])
 def property_search():
     """
     Handle property search requests.
@@ -51,7 +51,7 @@ def property_search():
     counties = get_supported_counties()
     return render_template('property_search.html', counties=counties)
 
-@property_record.route('/property/results')
+@property_record_bp.route('/property/results')
 def property_search_results():
     """Display property search results."""
     search_query = request.args.get('query', '')
@@ -79,7 +79,7 @@ def property_search_results():
                           results=results,
                           county=county)
 
-@property_record.route('/property/<property_id>')
+@property_record_bp.route('/property/<property_id>')
 def property_details(property_id):
     """Display detailed property information."""
     county = request.args.get('county', 'benton')
@@ -102,7 +102,7 @@ def property_details(property_id):
                           county=county,
                           data_source=property_data['data_source'])
 
-@property_record.route('/api/property/<property_id>')
+@property_record_bp.route('/api/property/<property_id>')
 def api_property_details(property_id):
     """API endpoint for property details."""
     county = request.args.get('county', 'benton')
@@ -113,7 +113,7 @@ def api_property_details(property_id):
     # Return as JSON
     return jsonify(property_data)
 
-@property_record.route('/api/property/search')
+@property_record_bp.route('/api/property/search')
 def api_property_search():
     """API endpoint for property search."""
     search_query = request.args.get('query', '')
@@ -134,5 +134,5 @@ def api_property_search():
 
 def register_blueprint(app):
     """Register the blueprint with the Flask app."""
-    app.register_blueprint(property_record)
+    app.register_blueprint(property_record_bp)
     logger.info("Registered Property Record Card blueprint")
