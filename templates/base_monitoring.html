@@ -105,6 +105,9 @@
                         <a class="nav-link" href="/monitoring/reports"><i class="bi bi-file-text"></i> Reports</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="/property/search"><i class="bi bi-house"></i> Benton County Search</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="/ai/integration-automation"><i class="bi bi-gear"></i> Automation</a>
                     </li>
                 </ul>
@@ -171,6 +174,16 @@
                         </a>
                         <a href="/monitoring/reports/history" class="list-group-item list-group-item-action {% if request.path == '/monitoring/reports/history' %}active{% endif %}">
                             <i class="bi bi-clock-history me-2"></i> Report History
+                        </a>
+                    </div>
+                    
+                    <div class="d-flex align-items-center mt-4 mb-3">
+                        <i class="bi bi-house me-2"></i>
+                        <h5 class="mb-0">Property Search</h5>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <a href="/property/search" class="list-group-item list-group-item-action {% if request.path == '/property/search' %}active{% endif %}">
+                            <i class="bi bi-search me-2"></i> Benton County Search
                         </a>
                     </div>
                 </div>
