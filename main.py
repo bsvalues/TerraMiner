@@ -37,7 +37,7 @@ from ai.api.prompt_endpoints import register_endpoints as register_prompt_endpoi
 from ai.api.learning_endpoints import register_endpoints as register_learning_endpoints
 from ai.api.integration_endpoints import register_endpoints as register_integration_endpoints
 from ai.api.monitoring_endpoints import register_endpoints as register_monitoring_endpoints
-from controllers.property_record_controller import register_blueprint as register_property_record_bp
+from controllers.property_record_controller import register_blueprint
 
 # Register AI endpoints
 register_prompt_endpoints(app)
@@ -47,7 +47,7 @@ register_monitoring_endpoints(app)
 
 # Register property record controller
 try:
-    register_property_record_bp(app)
+    register_blueprint(app)
     logger.info("Registered Property Record Card blueprint")
 except Exception as e:
     logger.error(f"Failed to register Property Record Card blueprint: {str(e)}")

@@ -1,12 +1,11 @@
 """
-Controller for property record access and display.
+Benton County regional routes.
 
-This controller provides routes for searching and displaying property records
-using the regional assessment API, ensuring all data comes from authentic sources.
+This module provides routes specific to Benton County property assessment data,
+ensuring all data is authentic and complies with IAAO and USPAP standards.
 """
 
 import logging
-import flask
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
 from regional.assessment_api import (
     get_assessment_data,
@@ -14,13 +13,12 @@ from regional.assessment_api import (
     get_supported_counties
 )
 
-# Set up logging
 logger = logging.getLogger(__name__)
 
 # Create blueprint
-property_record_bp = Blueprint('property_record', __name__)
+benton_blueprint = Blueprint('benton', __name__)
 
-@property_record_bp.route('/property/search', methods=['GET', 'POST'])
+@benton_blueprint.route('/property/search', methods=['GET', 'POST'])
 def property_search():
     """
     Handle property search requests.
@@ -34,14 +32,14 @@ def property_search():
         
         # If a specific property ID was entered, go directly to the property details
         if property_id:
-            return redirect(url_for('property_record.property_details', 
+            return redirect(url_for('benton.property_details', 
                                     property_id=property_id, 
                                     county=county))
         
         # If a search query was entered, redirect to the search results
         search_query = request.form.get('search_query')
         if search_query:
-            return redirect(url_for('property_record.property_search_results',
+            return redirect(url_for('benton.property_search_results',
                                     query=search_query,
                                     county=county))
         
@@ -52,7 +50,7 @@ def property_search():
     counties = get_supported_counties()
     return render_template('property_search.html', counties=counties)
 
-@property_record_bp.route('/property/results')
+@benton_blueprint.route('/property/results')
 def property_search_results():
     """Display property search results."""
     search_query = request.args.get('query', '')
@@ -61,7 +59,7 @@ def property_search_results():
     
     if not search_query:
         flash('Please enter a search query.', 'error')
-        return redirect(url_for('property_record.property_search'))
+        return redirect(url_for('benton.property_search'))
     
     # Perform the search
     results = search_assessment_properties(search_query, county, limit)
@@ -80,7 +78,7 @@ def property_search_results():
                           results=results,
                           county=county)
 
-@property_record_bp.route('/property/<property_id>')
+@benton_blueprint.route('/property/<property_id>')
 def property_details(property_id):
     """Display detailed property information."""
     county = request.args.get('county', 'benton')
@@ -103,7 +101,7 @@ def property_details(property_id):
                           county=county,
                           data_source=property_data['data_source'])
 
-@property_record_bp.route('/api/property/<property_id>')
+@benton_blueprint.route('/api/property/<property_id>')
 def api_property_details(property_id):
     """API endpoint for property details."""
     county = request.args.get('county', 'benton')
@@ -114,7 +112,7 @@ def api_property_details(property_id):
     # Return as JSON
     return jsonify(property_data)
 
-@property_record_bp.route('/api/property/search')
+@benton_blueprint.route('/api/property/search')
 def api_property_search():
     """API endpoint for property search."""
     search_query = request.args.get('query', '')
@@ -135,5 +133,5 @@ def api_property_search():
 
 def register_blueprint(app):
     """Register the blueprint with the Flask app."""
-    app.register_blueprint(property_record_bp)
-    logger.info("Registered Property Record Card blueprint")
+    app.register_blueprint(benton_blueprint, url_prefix='/benton')
+    logger.info("Registered Benton County Property blueprint")
