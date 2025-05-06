@@ -2,7 +2,7 @@ modules = ["python-3.11", "postgresql-16"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["geckodriver", "glibcLocales", "jq", "openssl", "postgresql", "zip"]
+packages = ["geckodriver", "glibcLocales", "jq", "openssl", "postgresql", "unixODBC", "zip"]
 
 [deployment]
 deploymentTarget = "autoscale"

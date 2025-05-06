@@ -64,56 +64,36 @@ def get_assessment_data(property_id: str, county: str) -> Dict[str, Any]:
     # Standardize county name
     county_key = county.lower().replace(' ', '_').replace('-', '_')
     
-    # Prioritize Benton County data if that's what's requested
+    # Prioritize Benton County data using direct PACS database connection
     if county_key == 'benton':
-        logger.info(f"Prioritizing Benton County data for property {property_id}")
-        
-        # Check if we have the Benton County API key
-        api_config = COUNTY_API_CONFIG[county_key]
-        if not api_config['api_key']:
-            logger.error(f"Missing Benton County API key - Cannot retrieve property {property_id}")
-            return _get_api_key_missing_error(property_id, county_key)
+        logger.info(f"Retrieving Benton County data from PACS database for property {property_id}")
         
         try:
-            # Make the API call to the Benton County assessment database
-            api_response = requests.get(
-                f"{api_config['base_url']}/{property_id}",
-                headers={
-                    'x-api-key': api_config['api_key']
-                },
-                timeout=10
-            )
+            # Import the Benton PACS connector
+            from regional.benton_pacs_connector import get_property_assessment_data as get_pacs_property_data
             
-            # Check if the response was successful
-            if api_response.status_code == 200:
-                # Process the API response into our standard format
-                raw_data = api_response.json()
-                return _process_county_api_response(raw_data, county_key)
-            else:
-                logger.error(f"Benton County API call failed with status {api_response.status_code}: {api_response.text}")
-                # Return a proper error message without falling back to demo data
-                return {
-                    "error": "API_REQUEST_FAILED",
-                    "property_id": property_id,
-                    "county": county_key,
-                    "message": f"County API request failed with status code {api_response.status_code}"
-                }
+            # Retrieve data directly from the PACS database
+            # This follows IAAO and USPAP standards by using authentic county data
+            pacs_data = get_pacs_property_data(property_id)
+            
+            # The PACS connector already returns data in our standard format
+            return pacs_data
                 
-        except requests.RequestException as e:
-            logger.error(f"Error fetching Benton County assessment data: {str(e)}")
+        except ImportError as e:
+            logger.error(f"Benton PACS connector module not found: {str(e)}")
             return {
-                "error": "API_CONNECTION_ERROR",
+                "error": "PACS_MODULE_ERROR",
                 "property_id": property_id,
                 "county": county_key,
-                "message": f"Failed to connect to county API: {str(e)}"
+                "message": "Benton County PACS connector not available"
             }
         except Exception as e:
-            logger.error(f"Unexpected error processing Benton County assessment data: {str(e)}")
+            logger.error(f"Error retrieving Benton County data from PACS database: {str(e)}")
             return {
-                "error": "DATA_PROCESSING_ERROR",
+                "error": "PACS_CONNECTION_ERROR",
                 "property_id": property_id,
                 "county": county_key,
-                "message": f"Failed to process county data: {str(e)}"
+                "message": f"Failed to connect to PACS database: {str(e)}"
             }
     
     # For other counties, try to get data from authorized sources
