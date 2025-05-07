@@ -2785,6 +2785,14 @@ try:
 except Exception as e:
     logger.error(f"Failed to register AI suggestions API: {str(e)}")
 
+# Register Agent Tools API
+try:
+    from api.agent_tools_api import agent_tools_api, register_blueprint
+    register_blueprint(app)
+    logger.info("Registered Agent Tools API blueprint")
+except Exception as e:
+    logger.error(f"Failed to register Agent Tools API: {str(e)}")
+
 # Register Southeastern Washington routes
 try:
     from regional.routes import se_wa_blueprint
@@ -2814,6 +2822,12 @@ with app.app_context():
         logger.info("ETL job scheduler started successfully")
     except Exception as e:
         logger.error(f"Failed to start ETL job scheduler: {str(e)}")
+
+# Agent Tools UI route
+@app.route('/agent-tools')
+def agent_tools_page():
+    """Page for exploring and using AI agent tools."""
+    return render_template('agent_tools.html')
 
 # Main entry point
 if __name__ == "__main__":
