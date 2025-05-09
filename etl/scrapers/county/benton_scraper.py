@@ -40,9 +40,8 @@ class BentonCountyScraper(BaseScraper):
         }
         
         # Required headers for API requests
-        self.session.headers.update({
-            "X-API-Key": self.api_key
-        })
+        if self.api_key:
+            self.session.headers["X-API-Key"] = self.api_key
         
         # Add a standard disclaimer about data compliance
         self.disclaimer = (
@@ -70,12 +69,12 @@ class BentonCountyScraper(BaseScraper):
             logger.warning(f"Error checking PACS availability: {str(e)}")
             return False
     
-    def _validate_requirements(self) -> Dict[str, Any]:
+    def _validate_requirements(self) -> Optional[Dict[str, Any]]:
         """
         Validate that the required API key is available.
         
         Returns:
-            Dict[str, Any]: Error message if API key is missing, None otherwise
+            Optional[Dict[str, Any]]: Error message if API key is missing, None otherwise
         """
         if not self.api_key:
             error = {
@@ -87,7 +86,7 @@ class BentonCountyScraper(BaseScraper):
             return error
         return None
     
-    def search_properties(self, query: str, **kwargs) -> List[Dict[str, Any]]:
+    def search_properties(self, query: str, **kwargs) -> Dict[str, Any]:
         """
         Search for properties in Benton County.
         
@@ -97,12 +96,16 @@ class BentonCountyScraper(BaseScraper):
                 - limit (int): Maximum number of results to return (default: 10)
         
         Returns:
-            List[Dict[str, Any]]: List of matching properties
+            Dict[str, Any]: Dictionary containing search results with properties list
         """
         # Check for API key
         error = self._validate_requirements()
         if error:
-            return [error]
+            return {
+                'error': error.get('error', 'validation_error'),
+                'message': error.get('message', 'API key validation failed'),
+                'data_compliance': self.disclaimer
+            }
         
         limit = kwargs.get('limit', 10)
         
@@ -111,11 +114,11 @@ class BentonCountyScraper(BaseScraper):
         
         # Handle error cases
         if 'error' in search_results:
-            return [{
+            return {
                 'error': search_results['error'],
                 'message': search_results['message'],
                 'data_compliance': self.disclaimer
-            }]
+            }
         
         # Standardize the properties
         properties = []
@@ -147,7 +150,11 @@ class BentonCountyScraper(BaseScraper):
         # Check for API key
         error = self._validate_requirements()
         if error:
-            return error
+            return {
+                'error': error.get('error', 'validation_error'),
+                'message': error.get('message', 'API key validation failed'),
+                'data_compliance': self.disclaimer
+            }
         
         # Try to get data from PACS first if available
         if self.use_pacs:
@@ -208,7 +215,11 @@ class BentonCountyScraper(BaseScraper):
         # Check for API key
         error = self._validate_requirements()
         if error:
-            return error
+            return {
+                'error': error.get('error', 'validation_error'),
+                'message': error.get('message', 'API key validation failed'),
+                'data_compliance': self.disclaimer
+            }
         
         # Normalize property ID (remove dashes if present)
         property_id = property_id.replace('-', '')
@@ -225,8 +236,7 @@ class BentonCountyScraper(BaseScraper):
             
             sales_response = self._make_request(
                 url=self.endpoints['sales'],
-                params=params,
-                headers=self.headers
+                params=params
             )
             
             if not sales_response:
