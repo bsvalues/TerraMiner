@@ -2506,11 +2506,17 @@ def zillow_market_data():
 
 @app.route('/zillow/properties')
 def zillow_properties():
-    """Zillow property search and display page."""
+    """Zillow property search and display page with modern UI."""
     location = request.args.get('location', '')
     
     try:
-        return render_template('zillow_properties.html', location=location)
+        # Use modern template with TailwindCSS and enhanced visuals
+        use_modern = request.args.get('modern', 'true').lower() == 'true'
+        
+        if use_modern:
+            return render_template('zillow_properties_modern.html', location=location, ui_template='unified')
+        else:
+            return render_template('zillow_properties.html', location=location)
     except Exception as e:
         logger.exception(f"Error in zillow_properties route: {str(e)}")
         flash(f"Error loading properties page: {str(e)}", "danger")
