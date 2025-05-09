@@ -69,6 +69,14 @@ try:
 except Exception as e:
     logger.error(f"Failed to register Real Estate API blueprint: {str(e)}")
 
+# Register County Property API blueprint
+try:
+    from api.county_api import county_api
+    app.register_blueprint(county_api)
+    logger.info("Registered County Property API blueprint")
+except Exception as e:
+    logger.error(f"Failed to register County Property API blueprint: {str(e)}")
+
 # Setup API monitoring
 setup_monitoring(app)
 

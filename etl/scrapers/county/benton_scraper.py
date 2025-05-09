@@ -40,7 +40,7 @@ class BentonCountyScraper(BaseScraper):
         }
         
         # Required headers for API requests
-        self.headers.update({
+        self.session.headers.update({
             "X-API-Key": self.api_key
         })
         

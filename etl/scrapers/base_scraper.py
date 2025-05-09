@@ -86,7 +86,7 @@ class BaseScraper(ABC):
                     return None
     
     @abstractmethod
-    def search_properties(self, query: str, **kwargs) -> List[Dict[str, Any]]:
+    def search_properties(self, query: str, **kwargs) -> Dict[str, Any]:
         """
         Search for properties based on query criteria.
         
@@ -95,7 +95,7 @@ class BaseScraper(ABC):
             **kwargs: Additional search parameters
             
         Returns:
-            List[Dict[str, Any]]: List of matching properties
+            Dict[str, Any]: Dictionary containing search results with properties list
         """
         pass
     
