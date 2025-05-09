@@ -299,7 +299,7 @@
                         <a href="{{ url_for('ai_demo') }}" class="{% if 'ai' in request.path %}nav-link-active{% else %}nav-link{% endif %}">AI Tools</a>
                         <a href="{{ url_for('property_search') }}" class="{% if 'property' in request.path and not 'regional' in request.path %}nav-link-active{% else %}nav-link{% endif %}">Properties</a>
                         <a href="{{ url_for('se_wa.se_washington_overview') }}" class="{% if 'regional' in request.path %}nav-link-active{% else %}nav-link{% endif %}">SE Washington</a>
-                        <a href="{{ url_for('property_search') }}" class="{% if request.path == url_for('property_search') %}nav-link-active{% else %}nav-link{% endif %}">Benton County Search</a>
+                        <a href="{{ url_for('design_guide') }}" class="{% if request.path == url_for('design_guide') %}nav-link-active{% else %}nav-link{% endif %}">Design Guide</a>
                     </nav>
                 </div>
                 <div class="flex items-center">

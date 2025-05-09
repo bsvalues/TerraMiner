@@ -2486,6 +2486,12 @@ def get_ai_report_settings():
 def ui_pattern_library():
     """UI Pattern Library for developers and designers."""
     return render_template('ui_pattern_library.html')
+
+@app.route('/design_guide')
+@tailwind_ui_preference_decorator
+def design_guide():
+    """Design guide showcasing UX principles and visual design concepts."""
+    return render_template_with_fallback('design_guide.html', use_tailwind=True)
     
 # AI Sidebar Demo route
 @app.route('/ui/dev/ai-sidebar')
