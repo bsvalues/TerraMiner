@@ -285,24 +285,113 @@
     {% endwith %}
 
     <!-- Top Navigation -->
-    <header class="bg-white shadow-sm dark:bg-secondary-800 dark:border-b dark:border-secondary-700">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header class="bg-white shadow-sm dark:bg-secondary-800 dark:border-b dark:border-secondary-700 sticky top-0 z-40">
+        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
                     <a href="/" class="flex-shrink-0 flex items-center">
                         <img class="h-8 w-auto" src="{{ url_for('static', filename='img/logo.svg') }}" alt="TerraMiner Logo">
                         <span class="ml-2 text-xl font-bold text-primary-600 dark:text-primary-400">TerraMiner</span>
                     </a>
-                    <nav class="ml-6 flex space-x-4">
-                        <a href="{{ url_for('monitoring_dashboard') }}" class="{% if request.path == url_for('monitoring_dashboard') %}nav-link-active{% else %}nav-link{% endif %}">Dashboard</a>
-                        <a href="{{ url_for('monitoring_system') }}" class="{% if 'monitoring' in request.path and request.path != url_for('monitoring_dashboard') %}nav-link-active{% else %}nav-link{% endif %}">Monitoring</a>
-                        <a href="{{ url_for('ai_demo') }}" class="{% if 'ai' in request.path %}nav-link-active{% else %}nav-link{% endif %}">AI Tools</a>
-                        <a href="{{ url_for('property_search') }}" class="{% if 'property' in request.path and not 'regional' in request.path %}nav-link-active{% else %}nav-link{% endif %}">Properties</a>
-                        <a href="{{ url_for('se_wa.se_washington_overview') }}" class="{% if 'regional' in request.path %}nav-link-active{% else %}nav-link{% endif %}">SE Washington</a>
-                        <a href="{{ url_for('design_guide') }}" class="{% if request.path == url_for('design_guide') %}nav-link-active{% else %}nav-link{% endif %}">Design Guide</a>
+                    <nav class="ml-6 flex space-x-1">
+                        <a href="{{ url_for('monitoring_dashboard') }}" class="{% if request.path == url_for('monitoring_dashboard') %}nav-link-active{% else %}nav-link{% endif %}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                            Dashboard
+                        </a>
+                        <div class="relative group">
+                            <button class="{% if 'monitoring' in request.path and request.path != url_for('monitoring_dashboard') %}nav-link-active{% else %}nav-link{% endif %} flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                                Monitoring
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            <div class="hidden group-hover:block absolute left-0 w-48 mt-1 bg-white dark:bg-secondary-800 rounded-md shadow-lg z-50">
+                                <div class="py-1">
+                                    <a href="{{ url_for('monitoring_system') }}" class="dropdown-item">System Performance</a>
+                                    <a href="{{ url_for('monitoring_api') }}" class="dropdown-item">API Performance</a>
+                                    <a href="{{ url_for('monitoring_database') }}" class="dropdown-item">Database</a>
+                                    <a href="{{ url_for('monitoring_alerts_active') }}" class="dropdown-item">Active Alerts</a>
+                                    <a href="{{ url_for('monitoring_alerts_history') }}" class="dropdown-item">Alert History</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="relative group">
+                            <button class="{% if 'property' in request.path and not 'regional' in request.path %}nav-link-active{% else %}nav-link{% endif %} flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                </svg>
+                                Properties
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            <div class="hidden group-hover:block absolute left-0 w-48 mt-1 bg-white dark:bg-secondary-800 rounded-md shadow-lg z-50">
+                                <div class="py-1">
+                                    <a href="{{ url_for('property_search') }}" class="dropdown-item">Property Search</a>
+                                    <a href="{{ url_for('property_comparison') }}" class="dropdown-item">Property Comparison</a>
+                                    <a href="{{ url_for('monitoring_locations') }}" class="dropdown-item">Property Map</a>
+                                    <a href="{{ url_for('monitoring_price_trends') }}" class="dropdown-item">Price Trends</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="relative group">
+                            <button class="{% if 'regional' in request.path %}nav-link-active{% else %}nav-link{% endif %} flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                Regional Data
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            <div class="hidden group-hover:block absolute left-0 w-48 mt-1 bg-white dark:bg-secondary-800 rounded-md shadow-lg z-50">
+                                <div class="py-1">
+                                    <a href="{{ url_for('se_wa.se_washington_overview') }}" class="dropdown-item">SE Washington</a>
+                                    <a href="{{ url_for('zillow_market_data') }}" class="dropdown-item">Market Data</a>
+                                    <a href="{{ url_for('property_search') }}" class="dropdown-item">Benton County</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="relative group">
+                            <button class="{% if 'ai' in request.path %}nav-link-active{% else %}nav-link{% endif %} flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                </svg>
+                                AI Tools
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            <div class="hidden group-hover:block absolute left-0 w-48 mt-1 bg-white dark:bg-secondary-800 rounded-md shadow-lg z-50">
+                                <div class="py-1">
+                                    <a href="{{ url_for('ai_demo') }}" class="dropdown-item">AI Demo</a>
+                                    <a href="{{ url_for('ai_feedback_analytics') }}" class="dropdown-item">Feedback Analytics</a>
+                                    <a href="{{ url_for('ai_prompt_testing') }}" class="dropdown-item">Prompt Testing</a>
+                                    <a href="{{ url_for('ai_sidebar_demo') }}" class="dropdown-item">AI Suggestions</a>
+                                    <a href="{{ url_for('agent_tools_page') }}" class="dropdown-item">Agent Tools</a>
+                                </div>
+                            </div>
+                        </div>
                     </nav>
                 </div>
-                <div class="flex items-center">
+                <div class="flex items-center space-x-4">
+                    <!-- UI Mode Switcher -->
+                    <div class="bg-primary-50 dark:bg-secondary-700 rounded-md px-2 py-1 flex items-center">
+                        <span class="text-xs font-medium text-primary-600 dark:text-primary-400 mr-2">UI Mode:</span>
+                        <div class="relative inline-block">
+                            <select id="ui-mode-select" class="form-select text-xs py-0 pl-2 pr-6 rounded h-6 focus:ring-primary-500 dark:bg-secondary-800">
+                                <option value="legacy" {% if session.get('ui_preference') != 'modern' %}selected{% endif %}>Legacy UI</option>
+                                <option value="modern" {% if session.get('ui_preference') == 'modern' %}selected{% endif %}>Modern UI</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <!-- Dark mode toggle -->
                     <button id="theme-toggle" class="p-2 rounded-md text-secondary-500 hover:text-secondary-700 hover:bg-secondary-100 dark:text-secondary-400 dark:hover:text-white dark:hover:bg-secondary-700">
                         <!-- Sun icon -->
@@ -316,23 +405,19 @@
                     </button>
                     
                     <!-- Profile dropdown -->
-                    <div class="ml-3 relative">
-                        <div>
-                            <button id="user-menu-button" class="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                                <span class="sr-only">Open user menu</span>
-                                <div class="h-8 w-8 rounded-full bg-primary-600 text-white flex items-center justify-center">
-                                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
-                                    </svg>
-                                </div>
-                            </button>
-                        </div>
+                    <div class="relative">
+                        <button id="user-menu-button" class="flex items-center rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                            <span class="sr-only">Open user menu</span>
+                            <div class="h-8 w-8 rounded-full bg-primary-600 text-white flex items-center justify-center">
+                                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                        </button>
                         <div id="user-menu" class="dropdown-menu hidden">
                             <div class="py-1">
-                                <a href="{{ url_for('property_search') }}" class="dropdown-item">Benton County Search</a>
-                                <a href="{{ url_for('se_wa.se_washington_overview') }}" class="dropdown-item">SE Washington</a>
-                                <a href="{{ url_for('monitoring_dashboard') }}" class="dropdown-item">Dashboard</a>
-                                <a href="{{ url_for('ai_demo') }}" class="dropdown-item">AI Tools</a>
+                                <a href="{{ url_for('design_guide') }}" class="dropdown-item">Design Guide</a>
+                                <a href="{{ url_for('ui_pattern_library') }}" class="dropdown-item">UI Patterns</a>
                                 <div class="border-t border-secondary-200 dark:border-secondary-700"></div>
                                 <a href="#" class="dropdown-item">Settings</a>
                                 <a href="#" class="dropdown-item">Help</a>
@@ -406,6 +491,7 @@
             const themeToggle = document.getElementById('theme-toggle');
             const lightIcon = document.getElementById('light-icon');
             const darkIcon = document.getElementById('dark-icon');
+            const uiModeSelect = document.getElementById('ui-mode-select');
             
             // Check user preference and system settings
             const userTheme = localStorage.getItem('theme');
@@ -434,6 +520,71 @@
                     lightIcon.classList.remove('hidden');
                     localStorage.setItem('theme', 'dark');
                 }
+            });
+            
+            // UI Mode selection handler
+            if (uiModeSelect) {
+                uiModeSelect.addEventListener('change', function() {
+                    // Show loading indicator
+                    showToast('toast-info', 'Switching UI mode...');
+                    
+                    // Send AJAX request to update preference
+                    fetch('/set_ui_preference', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            preference: uiModeSelect.value
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Reload the page to apply the new UI
+                            window.location.reload();
+                        } else {
+                            showToast('toast-error', 'Failed to update UI preference');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('toast-error', 'An error occurred while updating UI preference');
+                    });
+                });
+            }
+            
+            // Handle dropdown menus for mobile
+            const dropdownButtons = document.querySelectorAll('nav button');
+            dropdownButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    // Close any open menus first
+                    const openMenus = document.querySelectorAll('.group-hover\\:block:not(.hidden)');
+                    openMenus.forEach(menu => {
+                        if (!menu.parentElement.contains(button)) {
+                            menu.classList.add('hidden');
+                        }
+                    });
+                    
+                    // Toggle current menu
+                    const menu = button.nextElementSibling;
+                    if (menu && menu.classList.contains('hidden')) {
+                        menu.classList.remove('hidden');
+                    } else if (menu) {
+                        menu.classList.add('hidden');
+                    }
+                    
+                    e.stopPropagation();
+                });
+            });
+            
+            // Close menus when clicking outside
+            document.addEventListener('click', function() {
+                const openMenus = document.querySelectorAll('.group-hover\\:block:not(.hidden)');
+                openMenus.forEach(menu => {
+                    menu.classList.add('hidden');
+                });
             });
             
             // User menu dropdown
