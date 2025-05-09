@@ -1,8 +1,10 @@
 // Main JavaScript for NARRPR Data Scraper
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Feather icons
-    feather.replace();
+    // Initialize Feather icons if available
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
     
     // Initialize tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
