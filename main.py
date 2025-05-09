@@ -25,7 +25,8 @@ try:
 except Exception as e:
     logger.error(f"Failed to import app: {str(e)}")
     raise
-from etl.narrpr_scraper import NarrprScraper
+# Import our new real estate data connector (replaces NARRPR scraper)
+from etl.real_estate_data_connector import RealEstateDataConnector
 from etl.zillow_scraper import ZillowScraper
 from etl.manager import etl_manager
 from db.database import save_to_database
@@ -59,6 +60,14 @@ try:
     logger.info("Registered Property Views blueprint")
 except Exception as e:
     logger.error(f"Failed to register Property Views blueprint: {str(e)}")
+
+# Register Real Estate API blueprint
+try:
+    from api.real_estate_api import real_estate_api
+    app.register_blueprint(real_estate_api)
+    logger.info("Registered Real Estate API blueprint")
+except Exception as e:
+    logger.error(f"Failed to register Real Estate API blueprint: {str(e)}")
 
 # Setup API monitoring
 setup_monitoring(app)
