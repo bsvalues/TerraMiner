@@ -160,16 +160,18 @@ class RealEstateDataConnector:
         """
         # Try the primary source first
         primary_source = self.primary_source
+        primary_error = None
         try:
             connector = self.connectors[primary_source]
             method = getattr(connector, method_name)
             result = method(*args, **kwargs)
             return connector.standardize_property(result), primary_source
         except Exception as e:
+            primary_error = str(e)
             logger.warning(f"Primary source {primary_source} failed: {e}")
         
         # Try each of the other sources in turn
-        errors = {primary_source: str(e)}
+        errors = {primary_source: primary_error}
         for source, connector in self.connectors.items():
             if source == primary_source:
                 continue  # Skip primary source which we already tried

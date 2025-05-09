@@ -57,9 +57,9 @@ def search_properties():
         if param in request.args:
             # Convert numeric values from strings
             value = request.args.get(param)
-            if param in ['page', 'min_price', 'max_price', 'beds', 'baths']:
+            if param in ['page', 'min_price', 'max_price', 'beds', 'baths'] and value is not None:
                 try:
-                    value = int(value)
+                    value = int(str(value))
                 except (ValueError, TypeError):
                     # Skip conversion if value is not a valid integer
                     pass
