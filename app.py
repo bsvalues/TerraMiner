@@ -1203,10 +1203,64 @@ def monitoring_dashboard():
         'max_price': '1,250,000'
     }
     
+    # Price stats (for legacy template)
+    price_stats = {
+        'median_price': '$425K',
+        'trend_indicator': '+2.4%'
+    }
+    
+    # Job metrics (for legacy template)
+    job_metrics = {
+        'total_jobs_30d': 145,
+        'success_rate_30d': 92.4,
+        'latest_jobs': [
+            {
+                'job_name': 'Database Backup',
+                'status': 'completed',
+                'runtime': '4m 32s',
+                'start_time': now - timedelta(hours=2)
+            },
+            {
+                'job_name': 'Data Import',
+                'status': 'completed',
+                'runtime': '12m 18s',
+                'start_time': now - timedelta(hours=6)
+            },
+            {
+                'job_name': 'Report Generation',
+                'status': 'failed',
+                'runtime': '8m 45s',
+                'start_time': now - timedelta(hours=12)
+            }
+        ]
+    }
+    
     # Location stats
     location_stats = {
         'total_properties': 120,
         'distinct_cities': 10
+    }
+    
+    # Report metrics (for legacy template)
+    report_metrics = {
+        'total_scheduled': 8,
+        'upcoming': [
+            {
+                'name': 'Weekly Market Summary',
+                'frequency': 'Weekly',
+                'next_run': now + timedelta(days=2, hours=4)
+            },
+            {
+                'name': 'Monthly Performance Review',
+                'frequency': 'Monthly',
+                'next_run': now + timedelta(days=8, hours=10)
+            },
+            {
+                'name': 'Quarterly Trend Analysis',
+                'frequency': 'Quarterly',
+                'next_run': now + timedelta(days=24, hours=8)
+            }
+        ]
     }
     
     # Update API metrics with more fields
@@ -1266,7 +1320,10 @@ def monitoring_dashboard():
             current_time=now.strftime('%Y-%m-%d %H:%M:%S'),
             alerts=alerts,
             scheduled_reports=scheduled_reports,
-            recent_activity=recent_activity
+            recent_activity=recent_activity,
+            price_stats=price_stats,
+            job_metrics=job_metrics,
+            report_metrics=report_metrics
         )
     
 # All code related to the old monitoring_system function was completely removed
