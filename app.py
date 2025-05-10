@@ -822,6 +822,25 @@ def load_test_data():
         
     return redirect(url_for('reports'))
 
+# UI Preference API
+@app.route('/set_ui_preference', methods=['POST'])
+def set_ui_preference():
+    """API endpoint to set UI preference via AJAX."""
+    if not request.is_json:
+        return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+    
+    data = request.get_json()
+    preference = data.get('preference')
+    
+    if preference not in ['legacy', 'modern']:
+        return jsonify({'success': False, 'error': 'Invalid preference value'}), 400
+    
+    # Store preference in session
+    session['ui_preference'] = preference
+    logger.debug(f"UI preference set to: {preference}")
+    
+    return jsonify({'success': True})
+
 # Error handlers
 @app.errorhandler(404)
 def page_not_found(e):
