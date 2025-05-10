@@ -1045,6 +1045,7 @@ def monitoring_dashboard():
     """Monitoring dashboard overview page"""
     # Get UI preference from the decorator 
     use_tailwind = g.use_tailwind_ui
+    logger.debug(f"Dashboard UI preference: use_tailwind={use_tailwind}")
     
     # Import locally to avoid circular import issues
     from models import (
