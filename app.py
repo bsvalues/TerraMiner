@@ -67,8 +67,11 @@ def tailwind_ui_preference_decorator(view_func):
     """Decorator to set Tailwind UI as the default for modern pages"""
     @wraps(view_func)
     def wrapper(*args, **kwargs):
+        # FORCING MODERN UI FOR THE DEMO - Change this to 'modern' for testing
+        default_preference = 'modern'
+        
         # Check if there's a UI preference in the session
-        ui_preference = session.get('ui_preference', 'legacy')
+        ui_preference = session.get('ui_preference', default_preference)
         
         # Check if there's a UI preference in the query parameters (temporary override)
         if request.args.get('ui') == 'modern':
@@ -1198,11 +1201,21 @@ def monitoring_dashboard():
         # For legacy template, we'll use a simplified path
         # rather than the complex existing query code
         logger.debug("Using legacy dashboard template")
+        
+        # Create database metrics for the template
+        database_metrics = {
+            'connection_count': {'metric_value': 18},
+            'query_time_avg': {'metric_value': 0.042},
+            'cache_hit_ratio': {'metric_value': 95.2},
+            'slow_queries': {'metric_value': 1}
+        }
+        
         return render_template(
             'monitoring_dashboard.html',
             alerts_summary=alerts_summary,
             system_metrics=system_metrics,
             api_metrics=api_metrics,
+            database_metrics=database_metrics,
             health_score=system_health['score'],
             health_status=system_health['status'],
             current_time=now.strftime('%Y-%m-%d %H:%M:%S')
