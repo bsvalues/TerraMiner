@@ -257,21 +257,21 @@
               <div class="d-flex justify-content-between mb-1">
                 <span>Error Rate (24h)</span>
                 <span class="
-                  {% if api_metrics.error_rate_24h > 5 %}text-danger
-                  {% elif api_metrics.error_rate_24h > 2 %}text-warning
+                  {% if api_metrics.error_rate > 5 %}text-danger
+                  {% elif api_metrics.error_rate > 2 %}text-warning
                   {% else %}text-success{% endif %}
                 ">
-                  {{ api_metrics.error_rate_24h|round(2) }}%
+                  {{ api_metrics.error_rate|round(2) }}%
                 </span>
               </div>
               <div class="progress" style="height: 8px;">
                 <div class="progress-bar 
-                  {% if api_metrics.error_rate_24h > 5 %}bg-danger
-                  {% elif api_metrics.error_rate_24h > 2 %}bg-warning
+                  {% if api_metrics.error_rate > 5 %}bg-danger
+                  {% elif api_metrics.error_rate > 2 %}bg-warning
                   {% else %}bg-success{% endif %}" 
                   role="progressbar" 
-                  style="width: {{ api_metrics.error_rate_24h }}%;" 
-                  aria-valuenow="{{ api_metrics.error_rate_24h }}" 
+                  style="width: {{ api_metrics.error_rate }}%;" 
+                  aria-valuenow="{{ api_metrics.error_rate }}" 
                   aria-valuemin="0" 
                   aria-valuemax="100">
                 </div>

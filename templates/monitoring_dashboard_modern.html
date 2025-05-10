@@ -273,18 +273,18 @@
           <div class="flex justify-between mb-1">
             <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Error Rate (24h)</span>
             <span class="text-sm font-medium 
-              {% if api_metrics.error_rate_24h > 5 %}text-red-600 dark:text-red-400
-              {% elif api_metrics.error_rate_24h > 2 %}text-yellow-600 dark:text-yellow-400
+              {% if api_metrics.error_rate > 5 %}text-red-600 dark:text-red-400
+              {% elif api_metrics.error_rate > 2 %}text-yellow-600 dark:text-yellow-400
               {% else %}text-green-600 dark:text-green-400{% endif %}">
-              {{ api_metrics.error_rate_24h|round(2) }}%
+              {{ api_metrics.error_rate|round(2) }}%
             </span>
           </div>
           <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
             <div class="h-2.5 rounded-full
-              {% if api_metrics.error_rate_24h > 5 %}bg-red-500
-              {% elif api_metrics.error_rate_24h > 2 %}bg-yellow-500
+              {% if api_metrics.error_rate > 5 %}bg-red-500
+              {% elif api_metrics.error_rate > 2 %}bg-yellow-500
               {% else %}bg-green-500{% endif %}" 
-              style="width: {{ api_metrics.error_rate_24h }}%">
+              style="width: {{ api_metrics.error_rate }}%">
             </div>
           </div>
         </div>

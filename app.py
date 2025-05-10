@@ -1258,9 +1258,15 @@ def monitoring_dashboard():
             system_metrics=system_metrics,
             api_metrics=api_metrics,
             database_metrics=database_metrics,
+            ai_metrics=ai_metrics,
+            price_trends=price_trends,
+            location_stats=location_stats,
             health_score=system_health['score'],
             health_status=system_health['status'],
-            current_time=now.strftime('%Y-%m-%d %H:%M:%S')
+            current_time=now.strftime('%Y-%m-%d %H:%M:%S'),
+            alerts=alerts,
+            scheduled_reports=scheduled_reports,
+            recent_activity=recent_activity
         )
     
 # All code related to the old monitoring_system function was completely removed
