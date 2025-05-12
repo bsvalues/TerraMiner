@@ -1066,8 +1066,17 @@ def ai_demo():
 @tailwind_ui_preference_decorator
 def ai_feedback_analytics():
     """AI feedback analytics dashboard"""
-    # Always use modern template
-    return render_template('ai_feedback_analytics_modern.html')
+    try:
+        # Use our enhanced template rendering with fallback
+        return render_template_with_fallback('ai_feedback_analytics.html')
+    except Exception as e:
+        # Generate error ID for tracking
+        error_id = str(uuid.uuid4())[:8]
+        logger.error(f"Error rendering AI feedback analytics page [{error_id}]: {str(e)}")
+        
+        # Graceful fallback to the AI demo page with error message
+        flash(f"AI feedback analytics is temporarily unavailable. Support has been notified. (Error ID: {error_id})", "error")
+        return redirect(url_for('ai_demo'))
 
 @app.route('/ai/prompt-testing', methods=['GET', 'POST'])
 @tailwind_ui_preference_decorator
@@ -1122,14 +1131,33 @@ def ai_prompt_testing():
             flash(f"Error processing prompts: {str(e)}", "error")
     
     # Always use the modern template
-    return render_template('ai_prompt_testing_modern.html', result_a=result_a, result_b=result_b)
+    try:
+        # Use our enhanced template rendering with fallback
+        return render_template_with_fallback('ai_prompt_testing.html', result_a=result_a, result_b=result_b)
+    except Exception as e:
+        # Generate error ID for tracking
+        error_id = str(uuid.uuid4())[:8]
+        logger.error(f"Error rendering AI prompt testing page [{error_id}]: {str(e)}")
+        
+        # Graceful fallback to the AI feedback analytics page with error message
+        flash(f"AI prompt testing is temporarily unavailable. Support has been notified. (Error ID: {error_id})", "error")
+        return redirect(url_for('ai_feedback_analytics'))
     
 @app.route('/ai/continuous-learning', methods=['GET'])
 @tailwind_ui_preference_decorator
 def ai_continuous_learning():
     """AI continuous learning system page"""
-    # Always use modern template
-    return render_template('ai_continuous_learning_modern.html')
+    try:
+        # Use our enhanced template rendering with fallback
+        return render_template_with_fallback('ai_continuous_learning.html')
+    except Exception as e:
+        # Generate error ID for tracking
+        error_id = str(uuid.uuid4())[:8]
+        logger.error(f"Error rendering AI continuous learning page [{error_id}]: {str(e)}")
+        
+        # Graceful fallback to the AI prompt testing page with error message
+        flash(f"AI continuous learning page is temporarily unavailable. Support has been notified. (Error ID: {error_id})", "error")
+        return redirect(url_for('ai_prompt_testing'))
     
 @app.route('/ai/advanced-analytics', methods=['GET'])
 @tailwind_ui_preference_decorator
