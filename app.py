@@ -40,39 +40,48 @@ config = load_config()
 # Utility function to safely render template with fallback
 def render_template_with_fallback(template_name, use_tailwind=True, **context):
     """
-    Render a template with fallback to legacy version if modern version doesn't exist.
+    Try to render the modern version of templates, but fallback to legacy if needed.
     
     Args:
         template_name (str): The base template name (without _modern suffix)
         use_tailwind (bool): Whether to try modern template first (default: True)
         **context: Template context variables
     """
-    # Always try to use modern templates first
-    # Construct modern template name (append _modern before extension)
-    name_parts = template_name.rsplit('.', 1)
-    modern_template = f"{name_parts[0]}_modern.{name_parts[1]}" if len(name_parts) > 1 else f"{template_name}_modern"
+    # Add new context value to indicate modern UI is preferred
+    context['use_modern_ui'] = True
     
-    try:
-        # Try to render the modern template
-        return render_template(modern_template, **context)
-    except Exception as e:
-        # Log the failure and fall back to legacy template
-        logger.debug(f"Modern template '{modern_template}' not found, using legacy template: {str(e)}")
+    # Always try to use modern templates first if use_tailwind is True
+    if use_tailwind:
+        # Construct modern template name (append _modern before extension)
+        name_parts = template_name.rsplit('.', 1)
+        modern_template = f"{name_parts[0]}_modern.{name_parts[1]}" if len(name_parts) > 1 else f"{template_name}_modern"
+        
+        try:
+            # Try to render the modern template
+            return render_template(modern_template, **context)
+        except Exception as e:
+            # Log the failure and fall back to legacy template
+            logger.debug(f"Modern template '{modern_template}' not found, using legacy template: {str(e)}")
+            # Fallback to legacy but use modern context
+            return render_template(template_name, **context)
+    else:
+        # Use legacy template directly if use_tailwind is False
         return render_template(template_name, **context)
 
 # Define UI preference decorator
 def tailwind_ui_preference_decorator(view_func):
-    """Decorator to set Tailwind UI as the default for modern pages"""
+    """Decorator to enforce modern UI for all pages in the application"""
     @wraps(view_func)
     def wrapper(*args, **kwargs):
-        # Always use modern UI for the redesign
-        ui_preference = 'modern'
+        # Force modern UI for the complete redesign
+        ui_preference = 'unified'
         
         # Set the preference in the session
         session['ui_preference'] = ui_preference
         
         # Store the UI preference in Flask's g object for access in the view function
-        g.use_tailwind_ui = (ui_preference == 'modern')
+        g.use_tailwind_ui = True
+        g.use_tailwind = True
         
         # Store the render helper in Flask's g object for use in the view function
         g.render_template = render_template_with_fallback
@@ -245,7 +254,7 @@ except ImportError:
 @app.route('/')
 def index():
     """Render the main landing page."""
-    return render_template('landing_page.html')
+    return render_template('landing_page_modern.html')
 
 @app.route('/dashboard')
 def old_index():
@@ -290,7 +299,7 @@ def old_index():
     except Exception as e:
         logger.error(f"Error retrieving dashboard data: {str(e)}")
     
-    return render_template('index.html', recent_activity=recent_activity, stats=stats)
+    return render_template('index_modern.html', recent_activity=recent_activity, stats=stats)
 
 @app.route('/run-scraper', methods=['GET', 'POST'])
 def run_scraper():
@@ -347,7 +356,7 @@ def run_scraper():
             logger.exception("Error in run_scraper route")
             return redirect(url_for('run_scraper'))
     
-    return render_template('run_scraper.html')
+    return render_template('run_scraper_modern.html')
 
 @app.route('/advanced-scraper', methods=['GET', 'POST'])
 def advanced_scraper():
@@ -428,7 +437,7 @@ def advanced_scraper():
             logger.exception("Error in advanced_scraper route")
             return redirect(url_for('advanced_scraper'))
     
-    return render_template('advanced_scraper.html')
+    return render_template('advanced_scraper_modern.html')
 
 @app.route('/reports')
 def reports():
@@ -755,14 +764,14 @@ def settings():
             }
         ]
         
-        return render_template('settings_new.html',
+        return render_template('settings_modern.html',
                                config=current_config,
                                settings=settings_data,
                                user=user_data,
                                api_keys=api_keys,
                                notification_types=notification_types)
     else:
-        return render_template('settings.html', config=current_config)
+        return render_template('settings_modern.html', config=current_config)
 
 @app.route('/api/status')
 def api_status():
@@ -835,11 +844,11 @@ def set_ui_preference():
 # Error handlers
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('error.html', error_code=404, error_message="Page not found"), 404
+    return render_template('error_modern.html', error_code=404, error_message="Page not found"), 404
 
 @app.errorhandler(500)
 def server_error(e):
-    return render_template('error.html', error_code=500, error_message="Internal server error"), 500
+    return render_template('error_modern.html', error_code=500, error_message="Internal server error"), 500
 
 # Import necessary models without causing circular imports
 # Define dummy classes that will be replaced if imports fail
