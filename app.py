@@ -1858,8 +1858,8 @@ def property_comparison():
             else:
                 prop.price_per_sqft = None
         
-        template_name = 'property_comparison_modern.html' if use_tailwind else 'property_comparison.html'
-        return render_template(template_name,
+        # Always use modern template
+        return render_template('property_comparison_modern.html',
                             property_types=property_types,
                             states=states,
                             cities=cities,
