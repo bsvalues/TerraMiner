@@ -336,6 +336,12 @@
                             <div class="hidden group-hover:block absolute left-0 w-48 mt-1 bg-white dark:bg-secondary-800 rounded-md shadow-lg z-50">
                                 <div class="py-1">
                                     <a href="{{ url_for('property_search') }}" class="dropdown-item">Property Search</a>
+                                    <a href="{{ url_for('voice_search.voice_search_page') }}" class="dropdown-item flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                        </svg>
+                                        Voice Search
+                                    </a>
                                     <a href="{{ url_for('property_comparison') }}" class="dropdown-item">Property Comparison</a>
                                     <a href="{{ url_for('monitoring_locations') }}" class="dropdown-item">Property Map</a>
                                     <a href="{{ url_for('monitoring_price_trends') }}" class="dropdown-item">Price Trends</a>
