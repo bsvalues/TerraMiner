@@ -563,25 +563,36 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Create all charts when the DOM is loaded
-        createMiniCharts();
-        createModelPerformanceChart();
-        createFeatureUsageChart();
-        createUserSegmentsChart();
-        createUsagePatternCharts();
-        
-        // Handle time period changes
-        document.getElementById('time-period').addEventListener('change', function() {
-            // In production, this would reload data for the selected time period
-            console.log('Time period changed to: ' + this.value);
+        try {
+            // Create all charts when the DOM is loaded
+            createMiniCharts();
+            createModelPerformanceChart();
+            createFeatureUsageChart();
+            createUserSegmentsChart();
+            createUsagePatternCharts();
             
-            // Simulate data reload by recreating charts with slight variations
-            createMiniCharts(this.value);
-            createModelPerformanceChart(this.value);
-            createFeatureUsageChart(this.value);
-            createUserSegmentsChart(this.value);
-            createUsagePatternCharts(this.value);
-        });
+            // Handle time period changes
+            const timePeriodElement = document.getElementById('time-period');
+            if (timePeriodElement) {
+                timePeriodElement.addEventListener('change', function() {
+                    // In production, this would reload data for the selected time period
+                    console.log('Time period changed to: ' + this.value);
+                    
+                    try {
+                        // Simulate data reload by recreating charts with slight variations
+                        createMiniCharts(this.value);
+                        createModelPerformanceChart(this.value);
+                        createFeatureUsageChart(this.value);
+                        createUserSegmentsChart(this.value);
+                        createUsagePatternCharts(this.value);
+                    } catch (err) {
+                        console.error('Error updating charts:', err);
+                    }
+                });
+            }
+        } catch (err) {
+            console.error('Error initializing charts:', err);
+        }
     });
     
     function createMiniCharts(period) {

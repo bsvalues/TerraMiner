@@ -847,7 +847,17 @@ def settings():
                                api_keys=api_keys,
                                notification_types=notification_types)
     else:
-        return render_template('settings_modern.html', config=current_config)
+        try:
+            # Use our enhanced template rendering with fallback
+            return render_template_with_fallback('settings.html', config=current_config)
+        except Exception as e:
+            # Generate error ID for tracking
+            error_id = str(uuid.uuid4())[:8]
+            logger.error(f"Error rendering settings page [{error_id}]: {str(e)}")
+            
+            # Graceful fallback to the index page with error message
+            flash(f"Settings page is temporarily unavailable. Support has been notified. (Error ID: {error_id})", "error")
+            return redirect(url_for('index'))
 
 @app.route('/api/status')
 def api_status():
