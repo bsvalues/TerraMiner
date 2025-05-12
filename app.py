@@ -2866,6 +2866,18 @@ def test_property_walla_walla():
     maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY', '')
     return render_template('property_details_modern.html', property=property, error=None, maps_api_key=maps_api_key)
 
+# Register voice search API and controller
+try:
+    from api.voice_search import voice_search_api
+    app.register_blueprint(voice_search_api)
+    logger.info("Registered voice API blueprint")
+    
+    from controllers.voice_search_controller import voice_search_bp
+    app.register_blueprint(voice_search_bp)
+    logger.info("Registered voice controller blueprint")
+except Exception as e:
+    logger.error(f"Failed to register voice search blueprints: {str(e)}")
+
 # Register AI suggestions API
 try:
     from api.ai_suggestions import ai_suggestions_api
