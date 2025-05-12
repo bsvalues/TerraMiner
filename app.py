@@ -1752,15 +1752,28 @@ def monitoring_price_trends():
         trend_count = 0
         city_count = 0
     
-    # Always use modern template
-    return render_template(
-        'monitoring_price_trends_modern.html', 
-        states=states,
-        cities=cities,
-        date_range=date_range,
-        trend_count=trend_count,
-        city_count=city_count
-    )
+    # Use enhanced render_template_with_fallback for resilience
+    try:
+        return render_template_with_fallback(
+            'monitoring_price_trends.html', 
+            states=states,
+            cities=cities,
+            date_range=date_range,
+            trend_count=trend_count,
+            city_count=city_count
+        )
+    except Exception as e:
+        # Log the error with a unique ID for traceability
+        error_id = str(uuid.uuid4())[:8]
+        logger.error(f"Critical rendering error [{error_id}] in price_trends: {str(e)}")
+        
+        # Create a minimal fallback page with the essential data
+        return render_template_with_fallback(
+            'monitoring_dashboard.html',
+            error_message="The price trends visualization is temporarily unavailable. Our team has been notified.",
+            error_id=error_id,
+            show_chart_error=True
+        )
                           
 @app.route('/api/property/search', methods=['GET'])
 def api_property_search():
