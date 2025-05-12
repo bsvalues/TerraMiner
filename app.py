@@ -1980,10 +1980,9 @@ def monitoring_reports_scheduled():
         else:
             report.recipients_count = 0
     
-    # Use our fallback render function
-    return render_template_with_fallback(
-        'monitoring_reports_scheduled.html', 
-        use_tailwind=use_tailwind,
+    # Always use modern template
+    return render_template(
+        'monitoring_reports_scheduled_modern.html', 
         reports=reports
     )
     
@@ -2163,7 +2162,7 @@ def monitoring_reports_edit(report_id):
     components = [c[0] for c in all_components if c[0]]
     
     return render_template(
-        'monitoring_reports_edit.html',
+        'monitoring_reports_edit_modern.html',
         report=report,
         recipients=recipients_text,
         parameters=parameters,
@@ -2233,10 +2232,9 @@ def monitoring_reports_history():
         total_seconds = sum((log.completion_time - log.execution_time).total_seconds() for log in successful_logs if log.completion_time)
         avg_execution_time = total_seconds / len(successful_logs) if successful_logs else None
     
-    # Use our fallback render function
-    return render_template_with_fallback(
-        'monitoring_reports_history.html', 
-        use_tailwind=use_tailwind,
+    # Always use modern template
+    return render_template(
+        'monitoring_reports_history_modern.html', 
         logs=logs,
         report_types=report_types,
         statuses=statuses,
