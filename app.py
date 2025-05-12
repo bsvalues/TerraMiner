@@ -1516,10 +1516,9 @@ def monitoring_database():
             "action": "Check database connectivity and configuration."
         }
     
-    # Use our fallback render function
-    return render_template_with_fallback(
-        'monitoring_database.html', 
-        use_tailwind=use_tailwind,
+    # Always use modern template
+    return render_template(
+        'monitoring_database_modern.html',
         db_metrics=db_metrics,
         error_message=error_message,
         metrics_load_time=locals().get('metrics_load_time', 0)
@@ -2720,7 +2719,7 @@ with app.app_context():
 @app.route('/agent-tools')
 def agent_tools_page():
     """Page for exploring and using AI agent tools."""
-    return render_template('agent_tools.html')
+    return render_template('agent_tools_modern.html')
 
 # Main entry point
 if __name__ == "__main__":
