@@ -2375,23 +2375,22 @@ def ui_pattern_library():
     return render_template('ui_pattern_library_modern.html')
 
 @app.route('/design_guide')
-@tailwind_ui_preference_decorator
 def design_guide():
     """Design guide showcasing UX principles and visual design concepts."""
-    return render_template_with_fallback('design_guide.html', use_tailwind=True)
+    return render_template('design_guide_modern.html')
     
 # AI Sidebar Demo route
 @app.route('/ui/dev/ai-sidebar')
 def ai_sidebar_demo():
     """Demo page for the AI Suggestions Sidebar."""
-    return render_template('ai_sidebar_demo.html')
+    return render_template('ai_sidebar_demo_modern.html')
 
 # Zillow routes
 @app.route('/zillow/market-data')
 def zillow_market_data():
     """Zillow market data visualization page."""
     try:
-        return render_template('zillow_market_data.html')
+        return render_template('zillow_market_data_modern.html')
     except Exception as e:
         logger.exception(f"Error in zillow_market_data route: {str(e)}")
         flash(f"Error loading market data page: {str(e)}", "danger")
@@ -2403,13 +2402,8 @@ def zillow_properties():
     location = request.args.get('location', '')
     
     try:
-        # Use modern template with TailwindCSS and enhanced visuals
-        use_modern = request.args.get('modern', 'true').lower() == 'true'
-        
-        if use_modern:
-            return render_template('zillow_properties_modern.html', location=location, ui_template='unified')
-        else:
-            return render_template('zillow_properties.html', location=location)
+        # Always use modern template with TailwindCSS and enhanced visuals
+        return render_template('zillow_properties_modern.html', location=location, ui_template='unified')
     except Exception as e:
         logger.exception(f"Error in zillow_properties route: {str(e)}")
         flash(f"Error loading properties page: {str(e)}", "danger")
