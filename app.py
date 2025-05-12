@@ -1163,15 +1163,33 @@ def ai_continuous_learning():
 @tailwind_ui_preference_decorator
 def ai_advanced_analytics():
     """AI advanced analytics dashboard"""
-    # Always use modern template
-    return render_template('ai_advanced_analytics_modern.html')
+    try:
+        # Use our enhanced template rendering with fallback
+        return render_template_with_fallback('ai_advanced_analytics.html')
+    except Exception as e:
+        # Generate error ID for tracking
+        error_id = str(uuid.uuid4())[:8]
+        logger.error(f"Error rendering AI advanced analytics page [{error_id}]: {str(e)}")
+        
+        # Graceful fallback to the AI continuous learning page with error message
+        flash(f"AI advanced analytics is temporarily unavailable. Support has been notified. (Error ID: {error_id})", "error")
+        return redirect(url_for('ai_continuous_learning'))
     
 @app.route('/ai/integration-automation', methods=['GET'])
 @tailwind_ui_preference_decorator
 def ai_integration_automation():
     """AI integration and automation configuration page"""
-    # Always use modern template
-    return render_template('ai_integration_automation_modern.html')
+    try:
+        # Use our enhanced template rendering with fallback
+        return render_template_with_fallback('ai_integration_automation.html')
+    except Exception as e:
+        # Generate error ID for tracking
+        error_id = str(uuid.uuid4())[:8]
+        logger.error(f"Error rendering AI integration automation page [{error_id}]: {str(e)}")
+        
+        # Graceful fallback to the AI advanced analytics page with error message
+        flash(f"AI integration automation page is temporarily unavailable. Support has been notified. (Error ID: {error_id})", "error")
+        return redirect(url_for('ai_advanced_analytics'))
     
 # Monitoring routes
 @app.route('/monitoring/dashboard', methods=['GET'])
