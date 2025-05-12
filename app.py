@@ -64,6 +64,7 @@ config = load_config()
 def render_template_with_fallback(template_name, use_tailwind=True, **context):
     """
     Try to render the modern version of templates, but fallback to legacy if needed.
+    Enhanced with robust error handling to prevent 500 errors.
     
     Args:
         template_name (str): The base template name (without _modern suffix)
@@ -73,23 +74,69 @@ def render_template_with_fallback(template_name, use_tailwind=True, **context):
     # Add new context value to indicate modern UI is preferred
     context['use_modern_ui'] = True
     
-    # Always try to use modern templates first if use_tailwind is True
-    if use_tailwind:
-        # Construct modern template name (append _modern before extension)
-        name_parts = template_name.rsplit('.', 1)
-        modern_template = f"{name_parts[0]}_modern.{name_parts[1]}" if len(name_parts) > 1 else f"{template_name}_modern"
+    # Store original error for debugging
+    original_error = None
+    modern_template = None
+    
+    # Handle gracefully in case of unexpected failure
+    try:
+        # Always try to use modern templates first if use_tailwind is True
+        if use_tailwind:
+            # Construct modern template name (append _modern before extension)
+            try:
+                name_parts = template_name.rsplit('.', 1)
+                modern_template = f"{name_parts[0]}_modern.{name_parts[1]}" if len(name_parts) > 1 else f"{template_name}_modern"
+            except Exception as e:
+                logger.error(f"Error constructing modern template name: {str(e)}")
+                modern_template = f"{template_name}_modern"
+            
+            try:
+                # Try to render the modern template
+                return render_template(modern_template, **context)
+            except Exception as e:
+                # Log the failure and fall back to legacy template
+                original_error = e
+                logger.debug(f"Modern template '{modern_template}' not found, using legacy template: {str(e)}")
+                
+                # Try fallback to legacy but use modern context
+                try:
+                    return render_template(template_name, **context)
+                except Exception as e2:
+                    # Both modern and legacy templates failed
+                    logger.error(f"Both templates failed! Modern: {str(original_error)}, Legacy: {str(e2)}")
+                    # Emergency fallback to basic template with error details
+                    try:
+                        return render_template('error_modern.html', 
+                                              error_code="Template Error", 
+                                              error_message=f"Failed to render requested page '{template_name}'",
+                                              details=f"Please contact support. Error ID: {str(uuid.uuid4())[:8]}")
+                    except Exception:
+                        # Absolute last resort - redirect to home page
+                        logger.critical(f"Critical template failure for {template_name}. Redirecting to home.")
+                        return redirect(url_for('index'))
+        else:
+            # Using legacy template explicitly
+            try:
+                return render_template(template_name, **context)
+            except Exception as e:
+                logger.error(f"Legacy template '{template_name}' failed: {str(e)}")
+                # Emergency fallback
+                try:
+                    return render_template('error_modern.html',
+                                          error_code="Template Error",
+                                          error_message=f"Failed to render requested page '{template_name}'",
+                                          details=f"Please contact support. Error ID: {str(uuid.uuid4())[:8]}")
+                except Exception:
+                    # Absolute last resort - redirect to home page
+                    logger.critical(f"Critical template failure for {template_name}. Redirecting to home.")
+                    return redirect(url_for('index'))
+    except Exception as e:
+        # Catastrophic failure in the template rendering system
+        error_id = str(uuid.uuid4())[:8]
+        logger.critical(f"Critical template rendering failure [{error_id}]: {str(e)}")
         
-        try:
-            # Try to render the modern template
-            return render_template(modern_template, **context)
-        except Exception as e:
-            # Log the failure and fall back to legacy template
-            logger.debug(f"Modern template '{modern_template}' not found, using legacy template: {str(e)}")
-            # Fallback to legacy but use modern context
-            return render_template(template_name, **context)
-    else:
-        # Use legacy template directly if use_tailwind is False
-        return render_template(template_name, **context)
+        # Last resort - redirect to home page
+        return redirect(url_for('index'))
 
 # Define UI preference decorator
 def tailwind_ui_preference_decorator(view_func):
@@ -275,11 +322,13 @@ except ImportError:
 
 # Routes
 @app.route('/')
+@tailwind_ui_preference_decorator
 def index():
     """Render the main landing page."""
     return render_template('landing_page_modern.html')
 
 @app.route('/dashboard')
+@tailwind_ui_preference_decorator
 def old_index():
     """Render the home page with recent activity and stats."""
     # Placeholder data - in a real app, this would come from the database
@@ -325,6 +374,7 @@ def old_index():
     return render_template('index_modern.html', recent_activity=recent_activity, stats=stats)
 
 @app.route('/run-scraper', methods=['GET', 'POST'])
+@tailwind_ui_preference_decorator
 def run_scraper():
     """Run the NARRPR scraper manually."""
     if request.method == 'POST':
@@ -382,6 +432,7 @@ def run_scraper():
     return render_template('run_scraper_modern.html')
 
 @app.route('/advanced-scraper', methods=['GET', 'POST'])
+@tailwind_ui_preference_decorator
 def advanced_scraper():
     """Run the NARRPR scraper with advanced options for multiple sections."""
     if request.method == 'POST':
