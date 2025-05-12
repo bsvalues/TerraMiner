@@ -254,29 +254,29 @@
   
   <!-- Property Cards -->
   <div class="row mb-4">
-    {% for property in properties %}
+    {% for property in selected_properties %}
       <div class="col-md-6">
         <div class="property-card card">
           <img src="{{ property.image_url if property.image_url else 'https://via.placeholder.com/800x600?text=No+Image+Available' }}" class="property-image card-img-top" alt="{{ property.address }}">
           <div class="card-body">
             <h5 class="card-title">{{ property.address }}</h5>
-            <p class="card-text">{{ property.city }}, {{ property.state }} {{ property.zip_code }}</p>
-            <div class="price">${{ property.price | format_number }}</div>
+            <p class="card-text">{{ property.city }}, {{ property.state }}</p>
+            <div class="price">${{ property.price_value/100 if property.price_value else 0 | int }}</div>
             <div class="property-features">
               <div class="feature-item">
-                <div class="feature-value">{{ property.bedrooms }}</div>
+                <div class="feature-value">{{ property.bedrooms if property.bedrooms else 'N/A' }}</div>
                 <div class="feature-label">Beds</div>
               </div>
               <div class="feature-item">
-                <div class="feature-value">{{ property.bathrooms }}</div>
+                <div class="feature-value">{{ property.bathrooms if property.bathrooms else 'N/A' }}</div>
                 <div class="feature-label">Baths</div>
               </div>
               <div class="feature-item">
-                <div class="feature-value">{{ property.square_feet | format_number }}</div>
+                <div class="feature-value">{{ property.square_feet if property.square_feet else 'N/A' }}</div>
                 <div class="feature-label">Sq Ft</div>
               </div>
               <div class="feature-item">
-                <div class="feature-value">{{ property.year_built }}</div>
+                <div class="feature-value">{{ property.year_built if property.year_built else 'N/A' }}</div>
                 <div class="feature-label">Built</div>
               </div>
             </div>
@@ -291,13 +291,14 @@
   <div class="comparison-section">
     <h2 class="section-title">Key Metrics Comparison</h2>
     
+    {% if selected_properties|length >= 2 %}
     <!-- Price per Square Foot Slider -->
     <div class="mb-4">
       <label class="form-label">Price per Square Foot</label>
       <div id="pricePerSqFtSlider" class="metric-slider"></div>
       <div class="slider-labels">
-        <span>${{ (properties[0].price / properties[0].square_feet) | round | int }}</span>
-        <span>${{ (properties[1].price / properties[1].square_feet) | round | int }}</span>
+        <span>${{ (selected_properties[0].price_value/100 / selected_properties[0].square_feet) | round | int if selected_properties[0].square_feet and selected_properties[0].square_feet > 0 else 'N/A' }}</span>
+        <span>${{ (selected_properties[1].price_value/100 / selected_properties[1].square_feet) | round | int if selected_properties[1].square_feet and selected_properties[1].square_feet > 0 else 'N/A' }}</span>
       </div>
     </div>
     
@@ -306,8 +307,8 @@
       <label class="form-label">Age of Property (Years)</label>
       <div id="ageSlider" class="metric-slider"></div>
       <div class="slider-labels">
-        <span>{{ current_year - properties[0].year_built }}</span>
-        <span>{{ current_year - properties[1].year_built }}</span>
+        <span>{{ 2025 - selected_properties[0].year_built if selected_properties[0].year_built else 'N/A' }}</span>
+        <span>{{ 2025 - selected_properties[1].year_built if selected_properties[1].year_built else 'N/A' }}</span>
       </div>
     </div>
     
@@ -316,8 +317,8 @@
       <label class="form-label">Location Score</label>
       <div id="locationScoreSlider" class="metric-slider"></div>
       <div class="slider-labels">
-        <span>{{ properties[0].location_score if properties[0].location_score else 'N/A' }}</span>
-        <span>{{ properties[1].location_score if properties[1].location_score else 'N/A' }}</span>
+        <span>{{ selected_properties[0].location_score if selected_properties[0].location_score else 'N/A' }}</span>
+        <span>{{ selected_properties[1].location_score if selected_properties[1].location_score else 'N/A' }}</span>
       </div>
     </div>
     
@@ -326,127 +327,103 @@
       <label class="form-label">Condition Score</label>
       <div id="conditionScoreSlider" class="metric-slider"></div>
       <div class="slider-labels">
-        <span>{{ properties[0].condition_score if properties[0].condition_score else 'N/A' }}</span>
-        <span>{{ properties[1].condition_score if properties[1].condition_score else 'N/A' }}</span>
+        <span>{{ selected_properties[0].condition_score if selected_properties[0].condition_score else 'N/A' }}</span>
+        <span>{{ selected_properties[1].condition_score if selected_properties[1].condition_score else 'N/A' }}</span>
       </div>
     </div>
+    {% else %}
+    <div class="alert alert-info">
+      <p>Please select at least two properties to compare metrics.</p>
+    </div>
+    {% endif %}
   </div>
   
   <!-- Detailed Comparison Table -->
   <div class="comparison-section">
     <h2 class="section-title">Detailed Comparison</h2>
+    
+    {% if selected_properties|length >= 2 %}
     <div class="table-responsive">
       <table class="comparison-table">
         <thead>
           <tr>
             <th>Feature</th>
-            <th>{{ properties[0].address }}</th>
-            <th>{{ properties[1].address }}</th>
+            <th>{{ selected_properties[0].address }}</th>
+            <th>{{ selected_properties[1].address }}</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td>Price</td>
-            <td class="{{ 'highlight' if properties[0].price < properties[1].price }}">${{ properties[0].price | format_number }}</td>
-            <td class="{{ 'highlight' if properties[1].price < properties[0].price }}">${{ properties[1].price | format_number }}</td>
+            <td class="{{ 'highlight' if selected_properties[0].price_value and selected_properties[1].price_value and selected_properties[0].price_value < selected_properties[1].price_value }}">${{ selected_properties[0].price_value/100 if selected_properties[0].price_value else 'N/A' }}</td>
+            <td class="{{ 'highlight' if selected_properties[0].price_value and selected_properties[1].price_value and selected_properties[1].price_value < selected_properties[0].price_value }}">${{ selected_properties[1].price_value/100 if selected_properties[1].price_value else 'N/A' }}</td>
           </tr>
           <tr>
             <td>Price per Sq Ft</td>
-            <td class="{{ 'highlight' if (properties[0].price / properties[0].square_feet) < (properties[1].price / properties[1].square_feet) }}">${{ (properties[0].price / properties[0].square_feet) | round(2) }}</td>
-            <td class="{{ 'highlight' if (properties[1].price / properties[1].square_feet) < (properties[0].price / properties[0].square_feet) }}">${{ (properties[1].price / properties[1].square_feet) | round(2) }}</td>
+            <td class="{{ 'highlight' if selected_properties[0].price_value and selected_properties[0].square_feet and selected_properties[1].price_value and selected_properties[1].square_feet and (selected_properties[0].price_value / selected_properties[0].square_feet) < (selected_properties[1].price_value / selected_properties[1].square_feet) }}">${{ (selected_properties[0].price_value/100 / selected_properties[0].square_feet) | round(2) if selected_properties[0].square_feet and selected_properties[0].square_feet > 0 and selected_properties[0].price_value else 'N/A' }}</td>
+            <td class="{{ 'highlight' if selected_properties[0].price_value and selected_properties[0].square_feet and selected_properties[1].price_value and selected_properties[1].square_feet and (selected_properties[1].price_value / selected_properties[1].square_feet) < (selected_properties[0].price_value / selected_properties[0].square_feet) }}">${{ (selected_properties[1].price_value/100 / selected_properties[1].square_feet) | round(2) if selected_properties[1].square_feet and selected_properties[1].square_feet > 0 and selected_properties[1].price_value else 'N/A' }}</td>
           </tr>
           <tr>
             <td>Bedrooms</td>
-            <td class="{{ 'highlight' if properties[0].bedrooms > properties[1].bedrooms }}">{{ properties[0].bedrooms }}</td>
-            <td class="{{ 'highlight' if properties[1].bedrooms > properties[0].bedrooms }}">{{ properties[1].bedrooms }}</td>
+            <td class="{{ 'highlight' if selected_properties[0].bedrooms and selected_properties[1].bedrooms and selected_properties[0].bedrooms > selected_properties[1].bedrooms }}">{{ selected_properties[0].bedrooms if selected_properties[0].bedrooms else 'N/A' }}</td>
+            <td class="{{ 'highlight' if selected_properties[0].bedrooms and selected_properties[1].bedrooms and selected_properties[1].bedrooms > selected_properties[0].bedrooms }}">{{ selected_properties[1].bedrooms if selected_properties[1].bedrooms else 'N/A' }}</td>
           </tr>
           <tr>
             <td>Bathrooms</td>
-            <td class="{{ 'highlight' if properties[0].bathrooms > properties[1].bathrooms }}">{{ properties[0].bathrooms }}</td>
-            <td class="{{ 'highlight' if properties[1].bathrooms > properties[0].bathrooms }}">{{ properties[1].bathrooms }}</td>
+            <td class="{{ 'highlight' if selected_properties[0].bathrooms and selected_properties[1].bathrooms and selected_properties[0].bathrooms > selected_properties[1].bathrooms }}">{{ selected_properties[0].bathrooms if selected_properties[0].bathrooms else 'N/A' }}</td>
+            <td class="{{ 'highlight' if selected_properties[0].bathrooms and selected_properties[1].bathrooms and selected_properties[1].bathrooms > selected_properties[0].bathrooms }}">{{ selected_properties[1].bathrooms if selected_properties[1].bathrooms else 'N/A' }}</td>
           </tr>
           <tr>
             <td>Square Feet</td>
-            <td class="{{ 'highlight' if properties[0].square_feet > properties[1].square_feet }}">{{ properties[0].square_feet | format_number }}</td>
-            <td class="{{ 'highlight' if properties[1].square_feet > properties[0].square_feet }}">{{ properties[1].square_feet | format_number }}</td>
+            <td class="{{ 'highlight' if selected_properties[0].square_feet and selected_properties[1].square_feet and selected_properties[0].square_feet > selected_properties[1].square_feet }}">{{ selected_properties[0].square_feet if selected_properties[0].square_feet else 'N/A' }}</td>
+            <td class="{{ 'highlight' if selected_properties[0].square_feet and selected_properties[1].square_feet and selected_properties[1].square_feet > selected_properties[0].square_feet }}">{{ selected_properties[1].square_feet if selected_properties[1].square_feet else 'N/A' }}</td>
           </tr>
           <tr>
             <td>Year Built</td>
-            <td class="{{ 'highlight' if properties[0].year_built > properties[1].year_built }}">{{ properties[0].year_built }}</td>
-            <td class="{{ 'highlight' if properties[1].year_built > properties[0].year_built }}">{{ properties[1].year_built }}</td>
+            <td class="{{ 'highlight' if selected_properties[0].year_built and selected_properties[1].year_built and selected_properties[0].year_built > selected_properties[1].year_built }}">{{ selected_properties[0].year_built if selected_properties[0].year_built else 'N/A' }}</td>
+            <td class="{{ 'highlight' if selected_properties[0].year_built and selected_properties[1].year_built and selected_properties[1].year_built > selected_properties[0].year_built }}">{{ selected_properties[1].year_built if selected_properties[1].year_built else 'N/A' }}</td>
           </tr>
           <tr>
             <td>Lot Size</td>
-            <td class="{{ 'highlight' if properties[0].lot_size > properties[1].lot_size }}">{{ properties[0].lot_size | format_number }} sqft</td>
-            <td class="{{ 'highlight' if properties[1].lot_size > properties[0].lot_size }}">{{ properties[1].lot_size | format_number }} sqft</td>
+            <td class="{{ 'highlight' if selected_properties[0].lot_size and selected_properties[1].lot_size and selected_properties[0].lot_size > selected_properties[1].lot_size }}">{{ selected_properties[0].lot_size if selected_properties[0].lot_size else 'N/A' }}</td>
+            <td class="{{ 'highlight' if selected_properties[0].lot_size and selected_properties[1].lot_size and selected_properties[1].lot_size > selected_properties[0].lot_size }}">{{ selected_properties[1].lot_size if selected_properties[1].lot_size else 'N/A' }}</td>
           </tr>
           <tr>
             <td>Property Type</td>
-            <td>{{ properties[0].property_type }}</td>
-            <td>{{ properties[1].property_type }}</td>
+            <td>{{ selected_properties[0].property_type if selected_properties[0].property_type else 'N/A' }}</td>
+            <td>{{ selected_properties[1].property_type if selected_properties[1].property_type else 'N/A' }}</td>
           </tr>
           <tr>
-            <td>Garage</td>
-            <td class="{{ 'highlight' if properties[0].garage_spaces > properties[1].garage_spaces }}">{{ properties[0].garage_spaces }} spaces</td>
-            <td class="{{ 'highlight' if properties[1].garage_spaces > properties[0].garage_spaces }}">{{ properties[1].garage_spaces }} spaces</td>
+            <td>County</td>
+            <td>{{ selected_properties[0].county if selected_properties[0].county else 'N/A' }}</td>
+            <td>{{ selected_properties[1].county if selected_properties[1].county else 'N/A' }}</td>
           </tr>
           <tr>
-            <td>Days on Market</td>
-            <td class="{{ 'highlight' if properties[0].days_on_market < properties[1].days_on_market }}">{{ properties[0].days_on_market }}</td>
-            <td class="{{ 'highlight' if properties[1].days_on_market < properties[0].days_on_market }}">{{ properties[1].days_on_market }}</td>
+            <td>State</td>
+            <td>{{ selected_properties[0].state if selected_properties[0].state else 'N/A' }}</td>
+            <td>{{ selected_properties[1].state if selected_properties[1].state else 'N/A' }}</td>
           </tr>
-          <tr>
-            <td>Estimated Monthly Mortgage</td>
-            <td>${{ mortgage_estimate(properties[0].price) | format_number }}</td>
-            <td>${{ mortgage_estimate(properties[1].price) | format_number }}</td>
-          </tr>
-          <tr>
-            <td>School District</td>
-            <td>{{ properties[0].school_district }}</td>
-            <td>{{ properties[1].school_district }}</td>
-          </tr>
-          <tr>
-            <td>Walk Score</td>
-            <td class="{{ 'highlight' if properties[0].walk_score > properties[1].walk_score }}">{{ properties[0].walk_score if properties[0].walk_score else 'N/A' }}</td>
-            <td class="{{ 'highlight' if properties[1].walk_score > properties[0].walk_score }}">{{ properties[1].walk_score if properties[1].walk_score else 'N/A' }}</td>
           </tr>
         </tbody>
       </table>
     </div>
   </div>
   
+  {% if selected_properties|length >= 2 %}
   <!-- Features Comparison -->
   <div class="comparison-section">
     <h2 class="section-title">Features Comparison</h2>
     <div class="row">
       <div class="col-md-6">
-        <h5 class="mb-3">{{ properties[0].address }}</h5>
+        <h5 class="mb-3">{{ selected_properties[0].address }}</h5>
         <div>
-          {% for feature in property_features[0] %}
-            <span class="feature-badge {{ 'common' if feature in property_features[1] else 'unique' }}">
-              {{ feature }}
-              {% if feature in property_features[1] %}
-                <i class="bi bi-check"></i>
-              {% else %}
-                <i class="bi bi-star"></i>
-              {% endif %}
-            </span>
-          {% endfor %}
+          <p class="alert alert-info">Select properties to see features comparison</p>
         </div>
       </div>
       <div class="col-md-6">
-        <h5 class="mb-3">{{ properties[1].address }}</h5>
+        <h5 class="mb-3">{{ selected_properties[1].address }}</h5>
         <div>
-          {% for feature in property_features[1] %}
-            <span class="feature-badge {{ 'common' if feature in property_features[0] else 'unique' }}">
-              {{ feature }}
-              {% if feature in property_features[0] %}
-                <i class="bi bi-check"></i>
-              {% else %}
-                <i class="bi bi-star"></i>
-              {% endif %}
-            </span>
-          {% endfor %}
+          <p class="alert alert-info">Select properties to see features comparison</p>
         </div>
       </div>
     </div>
@@ -458,29 +435,28 @@
     <div class="row">
       <div class="col-md-6">
         <div class="property-score">
-          <div class="score-value">{{ property_scores[0] }}/100</div>
-          <div class="score-label">Overall Score for {{ properties[0].address }}</div>
+          <div class="score-value">--/100</div>
+          <div class="score-label">Overall Score for {{ selected_properties[0].address }}</div>
         </div>
       </div>
       <div class="col-md-6">
         <div class="property-score">
-          <div class="score-value">{{ property_scores[1] }}/100</div>
-          <div class="score-label">Overall Score for {{ properties[1].address }}</div>
+          <div class="score-value">--/100</div>
+          <div class="score-label">Overall Score for {{ selected_properties[1].address }}</div>
         </div>
       </div>
     </div>
     
     <!-- Recommendation -->
     <div class="recommendation mt-4">
-      {% if property_scores[0] > property_scores[1] %}
-        Based on your criteria, {{ properties[0].address }} appears to be the better choice.
-      {% elif property_scores[1] > property_scores[0] %}
-        Based on your criteria, {{ properties[1].address }} appears to be the better choice.
-      {% else %}
-        Both properties are equally matched based on your criteria.
-      {% endif %}
+      Select properties to see our recommendations based on your criteria.
     </div>
   </div>
+  {% else %}
+  <div class="alert alert-info">
+    <p>Please select at least two properties to compare.</p>
+  </div>
+  {% endif %}
   
   <!-- Action Buttons -->
   <div class="action-buttons">
