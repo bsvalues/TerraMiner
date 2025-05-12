@@ -2599,7 +2599,7 @@ def property_details(property_id):
         error = "The requested property could not be found. Please try a different property ID or search again."
     
     return render_template(
-        'property_details.html', 
+        'property_details_modern.html', 
         property=property,
         error=error,
         maps_api_key=maps_api_key
