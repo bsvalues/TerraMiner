@@ -2733,7 +2733,7 @@ def test_property_walla_walla():
     }
     
     maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY', '')
-    return render_template('property_details.html', property=property, error=None, maps_api_key=maps_api_key)
+    return render_template('property_details_modern.html', property=property, error=None, maps_api_key=maps_api_key)
 
 # Register AI suggestions API
 try:
