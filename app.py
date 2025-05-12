@@ -1360,8 +1360,8 @@ def monitoring_api():
     """API performance monitoring page"""
     # Get UI preference from the decorator
     use_tailwind = g.use_tailwind_ui
-    # Use our fallback render function
-    return render_template_with_fallback('monitoring_api.html', use_tailwind=use_tailwind)
+    # Use our modern template
+    return render_template('monitoring_api_modern.html')
 
 @app.route('/api/location/data', methods=['GET'])
 def api_location_data():
@@ -1609,10 +1609,8 @@ def api_database_metrics():
 @tailwind_ui_preference_decorator
 def monitoring_ai():
     """AI performance monitoring page"""
-    # Get UI preference from the decorator
-    use_tailwind = g.use_tailwind_ui
-    # Use our fallback render function
-    return render_template_with_fallback('monitoring_ai.html', use_tailwind=use_tailwind)
+    # Use our modern template
+    return render_template('monitoring_ai_modern.html')
     
 @app.route('/monitoring/locations', methods=['GET'])
 @tailwind_ui_preference_decorator
