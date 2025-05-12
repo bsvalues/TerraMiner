@@ -256,8 +256,8 @@ except ImportError:
 # Routes
 @app.route('/')
 def index():
-    """Redirect to the monitoring dashboard as the main entry point."""
-    return redirect(url_for('monitoring_dashboard'))
+    """Render the main landing page."""
+    return render_template('landing_page.html')
 
 @app.route('/dashboard')
 def old_index():
