@@ -1634,10 +1634,9 @@ def monitoring_price_trends():
         trend_count = 0
         city_count = 0
     
-    # Use our fallback render function
-    return render_template_with_fallback(
-        'monitoring_price_trends.html', 
-        use_tailwind=use_tailwind,
+    # Always use modern template
+    return render_template(
+        'monitoring_price_trends_modern.html', 
         states=states,
         cities=cities,
         date_range=date_range,
@@ -1861,10 +1860,9 @@ def monitoring_alerts_active():
         else:
             alerts_by_severity['info'].append(alert)
     
-    # Use our fallback render function
-    return render_template_with_fallback(
-        'monitoring_alerts_active.html', 
-        use_tailwind=use_tailwind,
+    # Always use modern template
+    return render_template(
+        'monitoring_alerts_active_modern.html', 
         alerts=alerts,
         alerts_by_severity=alerts_by_severity
     )
@@ -1946,10 +1944,9 @@ def monitoring_alerts_history():
     severities = ['critical', 'error', 'warning', 'info']
     statuses = ['active', 'acknowledged', 'resolved']
     
-    # Use our fallback render function
-    return render_template_with_fallback(
-        'monitoring_alerts_history.html', 
-        use_tailwind=use_tailwind,
+    # Always use modern template
+    return render_template(
+        'monitoring_alerts_history_modern.html', 
         alerts=alerts,
         components=components,
         severities=severities,
