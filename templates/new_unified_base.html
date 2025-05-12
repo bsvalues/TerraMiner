@@ -10,6 +10,9 @@
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    
+    <!-- Feather Icons -->
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -450,6 +453,11 @@
 
     <!-- Common JavaScript -->
     <script>
+        // Initialize Feather Icons
+        if (typeof feather !== 'undefined') {
+            feather.replace();
+        }
+        
         // User dropdown toggle
         document.getElementById('user-menu-button')?.addEventListener('click', function() {
             document.getElementById('user-dropdown').classList.toggle('hidden');
