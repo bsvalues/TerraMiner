@@ -38,50 +38,38 @@ render_template_with_fallback = init_template_middleware(app)
 config = load_config()
 
 # Utility function to safely render template with fallback
-def render_template_with_fallback(template_name, use_tailwind=False, **context):
+def render_template_with_fallback(template_name, use_tailwind=True, **context):
     """
     Render a template with fallback to legacy version if modern version doesn't exist.
     
     Args:
         template_name (str): The base template name (without _modern suffix)
-        use_tailwind (bool): Whether to try modern template first
+        use_tailwind (bool): Whether to try modern template first (default: True)
         **context: Template context variables
     """
-    if use_tailwind:
-        # Construct modern template name (append _modern before extension)
-        name_parts = template_name.rsplit('.', 1)
-        modern_template = f"{name_parts[0]}_modern.{name_parts[1]}" if len(name_parts) > 1 else f"{template_name}_modern"
-        
-        try:
-            # Try to render the modern template
-            return render_template(modern_template, **context)
-        except Exception as e:
-            # Log the failure and fall back to legacy template
-            logger.debug(f"Modern template '{modern_template}' not found, using legacy template: {str(e)}")
+    # Always try to use modern templates first
+    # Construct modern template name (append _modern before extension)
+    name_parts = template_name.rsplit('.', 1)
+    modern_template = f"{name_parts[0]}_modern.{name_parts[1]}" if len(name_parts) > 1 else f"{template_name}_modern"
     
-    # Fall back to legacy template
-    return render_template(template_name, **context)
+    try:
+        # Try to render the modern template
+        return render_template(modern_template, **context)
+    except Exception as e:
+        # Log the failure and fall back to legacy template
+        logger.debug(f"Modern template '{modern_template}' not found, using legacy template: {str(e)}")
+        return render_template(template_name, **context)
 
 # Define UI preference decorator
 def tailwind_ui_preference_decorator(view_func):
     """Decorator to set Tailwind UI as the default for modern pages"""
     @wraps(view_func)
     def wrapper(*args, **kwargs):
-        # FORCING MODERN UI FOR THE DEMO - Change this to 'modern' for testing
-        default_preference = 'modern'
+        # Always use modern UI for the redesign
+        ui_preference = 'modern'
         
-        # Check if there's a UI preference in the session
-        ui_preference = session.get('ui_preference', default_preference)
-        
-        # Check if there's a UI preference in the query parameters (temporary override)
-        if request.args.get('ui') == 'modern':
-            ui_preference = 'modern'
-        elif request.args.get('ui') == 'legacy':
-            ui_preference = 'legacy'
-        
-        # Set the preference in the session if it changed
-        if session.get('ui_preference') != ui_preference:
-            session['ui_preference'] = ui_preference
+        # Set the preference in the session
+        session['ui_preference'] = ui_preference
         
         # Store the UI preference in Flask's g object for access in the view function
         g.use_tailwind_ui = (ui_preference == 'modern')
@@ -1277,54 +1265,32 @@ def monitoring_dashboard():
         'latest': [a for a in alerts[:2]]  # Use the first two alerts as latest
     })
     
-    # Use our modern template if Tailwind UI is preferred
-    if use_tailwind:
-        logger.debug("Using modern dashboard template")
-        return render_template(
-            'monitoring_dashboard_modern.html',
-            # Health info
-            health_score=system_health['score'],
-            health_status=system_health['status'],
-            current_time=now.strftime('%Y-%m-%d %H:%M:%S'),
-            
-            # Metrics
-            system_metrics=system_metrics,
-            api_metrics=api_metrics,
-            database_metrics=database_metrics,
-            ai_metrics=ai_metrics,
-            price_trends=price_trends,
-            location_stats=location_stats,
-            alerts_summary=alerts_summary,
-            
-            # Lists
-            alerts=alerts,
-            scheduled_reports=scheduled_reports,
-            recent_activity=recent_activity
-        )
-    else:
-        # For legacy template, we'll use a simplified path
-        # rather than the complex existing query code
-        logger.debug("Using legacy dashboard template")
+    # Always use modern dashboard template
+    logger.debug("Using modern dashboard template")
+    return render_template(
+        'monitoring_dashboard_modern.html',
+        # Health info
+        health_score=system_health['score'],
+        health_status=system_health['status'],
+        current_time=now.strftime('%Y-%m-%d %H:%M:%S'),
         
-        return render_template(
-            'monitoring_dashboard.html',
-            alerts_summary=alerts_summary,
-            system_metrics=system_metrics,
-            api_metrics=api_metrics,
-            database_metrics=database_metrics,
-            ai_metrics=ai_metrics,
-            price_trends=price_trends,
-            location_stats=location_stats,
-            health_score=system_health['score'],
-            health_status=system_health['status'],
-            current_time=now.strftime('%Y-%m-%d %H:%M:%S'),
-            alerts=alerts,
-            scheduled_reports=scheduled_reports,
-            recent_activity=recent_activity,
-            price_stats=price_stats,
-            job_metrics=job_metrics,
-            report_metrics=report_metrics
-        )
+        # Metrics
+        system_metrics=system_metrics,
+        api_metrics=api_metrics,
+        database_metrics=database_metrics,
+        ai_metrics=ai_metrics,
+        price_trends=price_trends,
+        location_stats=location_stats,
+        alerts_summary=alerts_summary,
+        
+        # Lists
+        alerts=alerts,
+        scheduled_reports=scheduled_reports,
+        recent_activity=recent_activity,
+        price_stats=price_stats,
+        job_metrics=job_metrics,
+        report_metrics=report_metrics
+    )
     
 # All code related to the old monitoring_system function was completely removed
     
@@ -1344,15 +1310,9 @@ def monitoring_system():
         }
     }
     
-    # Use our fallback render function with the modern template
-    if use_tailwind:
-        return render_template('monitoring_system_modern.html', 
-                              system_metrics=metrics, 
-                              use_tailwind=use_tailwind)
-    else:
-        return render_template('monitoring_system.html', 
-                              system_metrics=metrics, 
-                              use_tailwind=use_tailwind)
+    # Always use modern template
+    return render_template('monitoring_system_modern.html', 
+                          system_metrics=metrics)
     
 @app.route('/monitoring/api', methods=['GET'])
 @tailwind_ui_preference_decorator
