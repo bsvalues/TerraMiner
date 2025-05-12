@@ -1872,8 +1872,8 @@ def property_comparison():
                             
     except Exception as e:
         logger.error(f"Error loading property comparison page: {str(e)}")
-        template_name = 'property_comparison_modern.html' if use_tailwind else 'property_comparison.html'
-        return render_template(template_name,
+        # Always use modern template for error case too
+        return render_template('property_comparison_modern.html',
                             property_types=[],
                             states=[],
                             cities=[],
