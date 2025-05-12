@@ -466,7 +466,7 @@ def reports():
         flash(f"Error connecting to database: {str(e)}", "danger")
         logger.exception("Error in reports route")
     
-    return render_template('reports.html', reports=reports_data, export_formats=export_formats)
+    return render_template('reports_modern.html', reports=reports_data, export_formats=export_formats)
 
 @app.route('/export/<format>')
 def export_data(format):
@@ -2580,7 +2580,7 @@ def property_search():
             properties = []
     
     return render_template(
-        'property_search.html', 
+        'property_search_modern.html', 
         query=query,
         property_type=property_type,
         min_price=min_price,
