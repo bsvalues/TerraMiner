@@ -2319,10 +2319,9 @@ def ai_report_settings():
             # If there's an error parsing JSON, leave it empty
             pass
     
-    # Use our fallback render function
-    return render_template_with_fallback(
-        'ai_report_settings.html', 
-        use_tailwind=use_tailwind,
+    # Always use modern template
+    return render_template(
+        'ai_report_settings_modern.html',
         settings=settings, 
         additional_recipients=additional_recipients
     )
@@ -2373,7 +2372,7 @@ def get_ai_report_settings():
 @app.route('/ui/dev/patterns')
 def ui_pattern_library():
     """UI Pattern Library for developers and designers."""
-    return render_template('ui_pattern_library.html')
+    return render_template('ui_pattern_library_modern.html')
 
 @app.route('/design_guide')
 @tailwind_ui_preference_decorator
