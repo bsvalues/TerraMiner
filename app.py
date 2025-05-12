@@ -931,19 +931,15 @@ def ai_status():
 @tailwind_ui_preference_decorator
 def ai_demo():
     """AI capabilities demonstration page"""
-    # Get UI preference from the decorator
-    use_tailwind = g.use_tailwind_ui
-    template_name = 'ai_demo_modern.html' if use_tailwind else 'ai_demo.html'
-    return render_template(template_name)
+    # Always use modern template
+    return render_template('ai_demo_modern.html')
 
 @app.route('/ai-feedback-analytics')
 @tailwind_ui_preference_decorator
 def ai_feedback_analytics():
     """AI feedback analytics dashboard"""
-    # Get UI preference from the decorator
-    use_tailwind = g.use_tailwind_ui
-    template_name = 'ai_feedback_analytics_modern.html' if use_tailwind else 'ai_feedback_analytics.html'
-    return render_template(template_name)
+    # Always use modern template
+    return render_template('ai_feedback_analytics_modern.html')
 
 @app.route('/ai/prompt-testing', methods=['GET', 'POST'])
 @tailwind_ui_preference_decorator
@@ -997,37 +993,29 @@ def ai_prompt_testing():
             logger.error(f"Error during prompt testing: {str(e)}")
             flash(f"Error processing prompts: {str(e)}", "error")
     
-    # Choose the appropriate template based on UI preference
-    template_name = 'ai_prompt_testing_modern.html' if use_tailwind else 'ai_prompt_testing.html'
-    
-    return render_template(template_name, result_a=result_a, result_b=result_b)
+    # Always use the modern template
+    return render_template('ai_prompt_testing_modern.html', result_a=result_a, result_b=result_b)
     
 @app.route('/ai/continuous-learning', methods=['GET'])
 @tailwind_ui_preference_decorator
 def ai_continuous_learning():
     """AI continuous learning system page"""
-    # Get UI preference from the decorator
-    use_tailwind = g.use_tailwind_ui
-    template_name = 'ai_continuous_learning_modern.html' if use_tailwind else 'ai_continuous_learning.html'
-    return render_template(template_name)
+    # Always use modern template
+    return render_template('ai_continuous_learning_modern.html')
     
 @app.route('/ai/advanced-analytics', methods=['GET'])
 @tailwind_ui_preference_decorator
 def ai_advanced_analytics():
     """AI advanced analytics dashboard"""
-    # Get UI preference from the decorator
-    use_tailwind = g.use_tailwind_ui
-    template_name = 'ai_advanced_analytics_modern.html' if use_tailwind else 'ai_advanced_analytics.html'
-    return render_template(template_name)
+    # Always use modern template
+    return render_template('ai_advanced_analytics_modern.html')
     
 @app.route('/ai/integration-automation', methods=['GET'])
 @tailwind_ui_preference_decorator
 def ai_integration_automation():
     """AI integration and automation configuration page"""
-    # Get UI preference from the decorator
-    use_tailwind = g.use_tailwind_ui
-    template_name = 'ai_integration_automation_modern.html' if use_tailwind else 'ai_integration_automation.html'
-    return render_template(template_name)
+    # Always use modern template
+    return render_template('ai_integration_automation_modern.html')
     
 # Monitoring routes
 @app.route('/monitoring/dashboard', methods=['GET'])
