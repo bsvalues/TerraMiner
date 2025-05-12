@@ -514,6 +514,7 @@ def advanced_scraper():
     return render_template('advanced_scraper_modern.html')
 
 @app.route('/reports')
+@tailwind_ui_preference_decorator
 def reports():
     """Display scraped reports."""
     reports_data = []
@@ -651,6 +652,7 @@ def export_data(format):
     return redirect(url_for('reports'))
 
 @app.route('/settings', methods=['GET', 'POST'])
+@tailwind_ui_preference_decorator
 def settings():
     """Settings page for configuring the scraper and application."""
     # Check if new UI should be used
