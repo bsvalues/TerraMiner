@@ -1587,10 +1587,9 @@ def monitoring_locations():
         cities = []
         location_count = 0
     
-    # Use our fallback render function
-    return render_template_with_fallback(
-        'monitoring_locations.html', 
-        use_tailwind=use_tailwind,
+    # Always use modern template
+    return render_template(
+        'monitoring_locations_modern.html', 
         states=states,
         cities=cities,
         location_count=location_count
