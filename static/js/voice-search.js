@@ -1,429 +1,418 @@
 /**
- * Voice-activated property search JavaScript module
+ * Voice-activated property search with natural language processing
  * 
- * This module handles voice recognition, command processing,
- * and UI interactions for the voice search feature.
+ * This script handles voice input capture, processing, and search execution
  */
 
-// State variables
-let isListening = false;
-let recognition = null;
-let commandsList = [];
-let animationTimeout = null;
+class VoicePropertySearch {
+    constructor(options = {}) {
+        // Set default options
+        this.options = {
+            language: 'en-US',
+            searchEndpoint: '/api/voice-property-search',
+            voiceButtonId: 'voice-search-button',
+            searchResultsId: 'search-results',
+            searchStatusId: 'search-status',
+            recordingTimeout: 10000, // 10 seconds max recording time
+            ...options
+        };
 
-// Elements
-let micButton = null;
-let statusElement = null;
-let resultsElement = null;
-let examplesElement = null;
-let processingIndicator = null;
+        // Initialize state
+        this.isRecording = false;
+        this.recognition = null;
+        this.transcript = '';
+        this.searchInProgress = false;
 
-// Constants
-const API_ENDPOINT = '/api/voice/process';
-const LANG = 'en-US';
-const LISTENING_TIMEOUT = 10000; // 10 seconds
+        // Bind methods to this
+        this.toggleRecording = this.toggleRecording.bind(this);
+        this.processVoiceInput = this.processVoiceInput.bind(this);
+        this.handleError = this.handleError.bind(this);
+        this.updateStatus = this.updateStatus.bind(this);
+        this.searchProperties = this.searchProperties.bind(this);
 
-/**
- * Initialize the voice search feature
- */
-function initVoiceSearch() {
-    // Get UI elements
-    micButton = document.getElementById('voice-search-mic');
-    statusElement = document.getElementById('voice-status');
-    resultsElement = document.getElementById('voice-results');
-    examplesElement = document.getElementById('voice-examples');
-    processingIndicator = document.getElementById('processing-indicator');
-    
-    // Check if browser supports speech recognition
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        showBrowserNotSupported();
-        return;
-    }
-    
-    // Set up speech recognition
-    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = LANG;
-    
-    // Set up event listeners
-    recognition.onstart = handleRecognitionStart;
-    recognition.onresult = handleRecognitionResult;
-    recognition.onerror = handleRecognitionError;
-    recognition.onend = handleRecognitionEnd;
-    
-    // Set up UI elements
-    if (micButton) {
-        micButton.addEventListener('click', toggleListening);
-        micButton.disabled = false;
-    }
-    
-    // Load example commands
-    loadExampleCommands();
-    
-    console.log('Voice search initialized');
-}
-
-/**
- * Toggle listening state
- */
-function toggleListening() {
-    if (isListening) {
-        stopListening();
-    } else {
-        startListening();
-    }
-}
-
-/**
- * Start listening for voice commands
- */
-function startListening() {
-    if (isListening) return;
-    
-    try {
-        recognition.start();
-    } catch (e) {
-        console.error('Error starting speech recognition:', e);
-        updateStatus('Error starting speech recognition. Please try again.');
-    }
-}
-
-/**
- * Stop listening for voice commands
- */
-function stopListening() {
-    if (!isListening) return;
-    
-    try {
-        recognition.stop();
-    } catch (e) {
-        console.error('Error stopping speech recognition:', e);
-    }
-}
-
-/**
- * Handle recognition start event
- */
-function handleRecognitionStart() {
-    isListening = true;
-    updateStatus('Listening...');
-    updateMicButton(true);
-    
-    // Set timeout to stop listening after a period
-    if (animationTimeout) {
-        clearTimeout(animationTimeout);
-    }
-    
-    animationTimeout = setTimeout(() => {
-        if (isListening) {
-            stopListening();
+        // Initialize when document is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.init());
+        } else {
+            this.init();
         }
-    }, LISTENING_TIMEOUT);
-}
-
-/**
- * Handle recognition result event
- * @param {SpeechRecognitionEvent} event - The speech recognition event
- */
-function handleRecognitionResult(event) {
-    const command = event.results[0][0].transcript;
-    console.log('Voice command recognized:', command);
-    
-    updateStatus('Processing command...');
-    
-    // Process command
-    processCommand(command);
-}
-
-/**
- * Handle recognition error event
- * @param {SpeechRecognitionError} event - The speech recognition error event
- */
-function handleRecognitionError(event) {
-    console.error('Speech recognition error:', event.error);
-    
-    let errorMessage = 'Speech recognition error';
-    
-    switch (event.error) {
-        case 'no-speech':
-            errorMessage = 'No speech detected. Please try again.';
-            break;
-        case 'aborted':
-            errorMessage = 'Speech recognition aborted.';
-            break;
-        case 'audio-capture':
-            errorMessage = 'Could not capture audio. Please check your microphone.';
-            break;
-        case 'network':
-            errorMessage = 'Network error. Please try again.';
-            break;
-        case 'not-allowed':
-            errorMessage = 'Microphone access denied. Please allow microphone access.';
-            break;
-        case 'service-not-allowed':
-            errorMessage = 'Speech recognition service not allowed.';
-            break;
-        case 'bad-grammar':
-            errorMessage = 'Bad grammar configuration.';
-            break;
-        case 'language-not-supported':
-            errorMessage = 'Language not supported.';
-            break;
     }
-    
-    updateStatus(errorMessage);
-    updateMicButton(false);
-    isListening = false;
-}
 
-/**
- * Handle recognition end event
- */
-function handleRecognitionEnd() {
-    isListening = false;
-    updateMicButton(false);
-    
-    if (animationTimeout) {
-        clearTimeout(animationTimeout);
-        animationTimeout = null;
-    }
-}
-
-/**
- * Process a voice command
- * @param {string} command - The voice command to process
- */
-function processCommand(command) {
-    // Show processing indicator
-    if (processingIndicator) {
-        processingIndicator.style.display = 'block';
-    }
-    
-    // Add command to history
-    commandsList.unshift(command);
-    if (commandsList.length > 5) {
-        commandsList.pop();
-    }
-    
-    // Make API request to process the command
-    fetch(API_ENDPOINT, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ command: command })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+    /**
+     * Initialize the voice search functionality
+     */
+    init() {
+        // Check if browser supports SpeechRecognition
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            this.updateStatus('Voice recognition is not supported in your browser. Try Chrome or Edge.', 'error');
+            document.getElementById(this.options.voiceButtonId).disabled = true;
+            return;
         }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Command processing result:', data);
-        
-        // Hide processing indicator
-        if (processingIndicator) {
-            processingIndicator.style.display = 'none';
-        }
-        
-        // Handle the response
-        handleCommandResponse(data, command);
-    })
-    .catch(error => {
-        console.error('Error processing command:', error);
-        
-        // Hide processing indicator
-        if (processingIndicator) {
-            processingIndicator.style.display = 'none';
-        }
-        
-        updateStatus('Error processing command. Please try again.');
-    });
-}
 
-/**
- * Handle the command response from the API
- * @param {Object} data - The response data
- * @param {string} command - The original command
- */
-function handleCommandResponse(data, command) {
-    if (!data || !data.success) {
-        updateStatus('Could not understand the command. Please try again.');
-        showCommandResult(command, 'Error processing command');
-        return;
+        // Initialize SpeechRecognition
+        this.recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        this.recognition.continuous = true;
+        this.recognition.interimResults = true;
+        this.recognition.lang = this.options.language;
+
+        // Set up event listeners
+        this.recognition.onresult = this.processVoiceInput;
+        this.recognition.onerror = this.handleError;
+        this.recognition.onend = () => {
+            if (this.isRecording) {
+                this.stopRecording();
+                this.searchProperties(this.transcript);
+            }
+        };
+
+        // Add event listener to the voice search button
+        const voiceButton = document.getElementById(this.options.voiceButtonId);
+        if (voiceButton) {
+            voiceButton.addEventListener('click', this.toggleRecording);
+        } else {
+            console.error(`Voice search button with ID "${this.options.voiceButtonId}" not found.`);
+        }
+
+        // Initialize UI
+        this.updateStatus('Voice search ready. Click the microphone to begin.', 'ready');
     }
-    
-    let responseText = '';
-    
-    switch (data.intent) {
-        case 'search':
-            responseText = `Searching for properties in ${data.params.location || 'the selected area'}`;
+
+    /**
+     * Toggle recording state
+     */
+    toggleRecording() {
+        if (this.isRecording) {
+            this.stopRecording();
+        } else {
+            this.startRecording();
+        }
+    }
+
+    /**
+     * Start voice recording
+     */
+    startRecording() {
+        if (this.searchInProgress) {
+            this.updateStatus('Please wait while processing the previous search...', 'warning');
+            return;
+        }
+
+        this.transcript = '';
+        this.isRecording = true;
+        
+        try {
+            this.recognition.start();
+            this.updateStatus('Listening... Speak your property search query.', 'recording');
             
-            if (data.params.beds) {
-                responseText += ` with ${data.params.beds} bedrooms`;
+            // Update button state
+            const voiceButton = document.getElementById(this.options.voiceButtonId);
+            if (voiceButton) {
+                voiceButton.classList.add('recording');
+                
+                // Pulse animation
+                voiceButton.style.animation = 'pulse 1.5s infinite';
             }
             
-            if (data.params.baths) {
-                responseText += `, ${data.params.baths} bathrooms`;
+            // Set a timeout to stop recording after the specified time
+            this.recordingTimeout = setTimeout(() => {
+                if (this.isRecording) {
+                    this.stopRecording();
+                    this.searchProperties(this.transcript);
+                }
+            }, this.options.recordingTimeout);
+        } catch (error) {
+            this.handleError(error);
+        }
+    }
+
+    /**
+     * Stop voice recording
+     */
+    stopRecording() {
+        if (!this.isRecording) return;
+        
+        this.isRecording = false;
+        
+        try {
+            this.recognition.stop();
+        } catch (error) {
+            console.error('Error stopping recognition:', error);
+        }
+        
+        // Clear the recording timeout
+        if (this.recordingTimeout) {
+            clearTimeout(this.recordingTimeout);
+            this.recordingTimeout = null;
+        }
+        
+        // Update button state
+        const voiceButton = document.getElementById(this.options.voiceButtonId);
+        if (voiceButton) {
+            voiceButton.classList.remove('recording');
+            voiceButton.style.animation = '';
+        }
+        
+        this.updateStatus('Processing your search...', 'processing');
+    }
+
+    /**
+     * Process voice input from the speech recognition API
+     */
+    processVoiceInput(event) {
+        let finalTranscript = '';
+        let interimTranscript = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            
+            if (event.results[i].isFinal) {
+                finalTranscript += transcript;
+            } else {
+                interimTranscript += transcript;
+            }
+        }
+        
+        if (finalTranscript) {
+            this.transcript = finalTranscript;
+            this.updateStatus(`Heard: "${finalTranscript}"`, 'recording');
+        } else if (interimTranscript) {
+            this.updateStatus(`Hearing: "${interimTranscript}"`, 'recording');
+        }
+        
+        // If we have significant content, automatically search
+        if (finalTranscript && finalTranscript.split(' ').length > 4) {
+            this.stopRecording();
+            this.searchProperties(finalTranscript);
+        }
+    }
+
+    /**
+     * Handle errors from the speech recognition API
+     */
+    handleError(event) {
+        let message = '';
+        
+        switch (event.error) {
+            case 'no-speech':
+                message = 'No speech was detected. Please try again.';
+                break;
+            case 'aborted':
+                message = 'Speech recognition was aborted.';
+                break;
+            case 'audio-capture':
+                message = 'No microphone was found or microphone is disabled.';
+                break;
+            case 'network':
+                message = 'Network error occurred. Please check your connection.';
+                break;
+            case 'not-allowed':
+            case 'service-not-allowed':
+                message = 'Microphone access was denied. Please enable microphone access.';
+                break;
+            default:
+                message = `Error: ${event.error}`;
+        }
+        
+        this.updateStatus(message, 'error');
+        this.isRecording = false;
+        
+        // Update button state
+        const voiceButton = document.getElementById(this.options.voiceButtonId);
+        if (voiceButton) {
+            voiceButton.classList.remove('recording');
+            voiceButton.style.animation = '';
+        }
+    }
+
+    /**
+     * Update the status display
+     */
+    updateStatus(message, status = 'info') {
+        const statusElement = document.getElementById(this.options.searchStatusId);
+        if (!statusElement) return;
+        
+        statusElement.textContent = message;
+        
+        // Remove existing status classes and add the new one
+        statusElement.className = ''; // Remove all classes
+        statusElement.classList.add('search-status', status);
+    }
+
+    /**
+     * Send the voice transcript to the server for NLP processing and search
+     */
+    searchProperties(transcript) {
+        if (!transcript || this.searchInProgress) return;
+        
+        this.searchInProgress = true;
+        this.updateStatus('Searching properties based on your query...', 'searching');
+        
+        fetch(this.options.searchEndpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ query: transcript })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Server responded with status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            this.searchInProgress = false;
+            
+            if (data.error) {
+                this.updateStatus(`Error: ${data.error}`, 'error');
+                return;
             }
             
-            if (data.params.maxPrice) {
-                responseText += `, under $${formatPrice(data.params.maxPrice)}`;
+            // Display results
+            this.displayResults(data);
+            
+            // Update status
+            const resultCount = data.properties ? data.properties.length : 0;
+            if (resultCount > 0) {
+                this.updateStatus(`Found ${resultCount} properties matching your search.`, 'success');
+            } else {
+                this.updateStatus('No properties found matching your search criteria.', 'info');
             }
-            
-            if (data.params.propertyType) {
-                responseText += `, type: ${data.params.propertyType}`;
-            }
-            
-            updateStatus('Search command recognized');
-            break;
-            
-        case 'marketTrends':
-            responseText = `Showing market trends for ${data.params.location || 'the selected area'}`;
-            updateStatus('Market trends command recognized');
-            break;
-            
-        case 'propertyDetails':
-            responseText = `Showing property details for ${data.params.address || 'the selected property'}`;
-            updateStatus('Property details command recognized');
-            break;
-            
-        default:
-            responseText = 'Command recognized but the intent is unknown';
-            updateStatus('Unknown command type');
-            break;
-    }
-    
-    // Show the result
-    showCommandResult(command, responseText);
-    
-    // Redirect if needed
-    if (data.action === 'redirect' && data.url) {
-        setTimeout(() => {
-            window.location.href = data.url;
-        }, 1500);
-    }
-}
-
-/**
- * Show command result in the UI
- * @param {string} command - The original command
- * @param {string} response - The response text
- */
-function showCommandResult(command, response) {
-    if (!resultsElement) return;
-    
-    const resultItem = document.createElement('div');
-    resultItem.className = 'voice-result-item';
-    
-    const commandEl = document.createElement('div');
-    commandEl.className = 'voice-command';
-    commandEl.innerHTML = `<strong>You said:</strong> "${command}"`;
-    
-    const responseEl = document.createElement('div');
-    responseEl.className = 'voice-response';
-    responseEl.innerHTML = `<strong>Response:</strong> ${response}`;
-    
-    resultItem.appendChild(commandEl);
-    resultItem.appendChild(responseEl);
-    
-    // Add to results container
-    resultsElement.insertBefore(resultItem, resultsElement.firstChild);
-    
-    // Limit the number of results shown
-    if (resultsElement.children.length > 5) {
-        resultsElement.removeChild(resultsElement.lastChild);
-    }
-}
-
-/**
- * Format price for display
- * @param {number} price - The price to format
- * @returns {string} - The formatted price
- */
-function formatPrice(price) {
-    if (!price) return '0';
-    
-    if (price >= 1000000) {
-        return (price / 1000000).toFixed(1) + 'M';
-    } else if (price >= 1000) {
-        return (price / 1000).toFixed(0) + 'K';
-    }
-    
-    return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-
-/**
- * Update microphone button state
- * @param {boolean} isActive - Whether the microphone is active
- */
-function updateMicButton(isActive) {
-    if (!micButton) return;
-    
-    if (isActive) {
-        micButton.classList.add('active');
-        micButton.setAttribute('aria-label', 'Stop listening');
-    } else {
-        micButton.classList.remove('active');
-        micButton.setAttribute('aria-label', 'Start voice search');
-    }
-}
-
-/**
- * Update status message
- * @param {string} message - The status message
- */
-function updateStatus(message) {
-    if (!statusElement) return;
-    
-    statusElement.textContent = message;
-}
-
-/**
- * Show browser not supported message
- */
-function showBrowserNotSupported() {
-    if (!statusElement) return;
-    
-    statusElement.textContent = 'Voice search is not supported in your browser. Please try Chrome or Edge.';
-    
-    if (micButton) {
-        micButton.disabled = true;
-        micButton.title = 'Voice search not supported in this browser';
-    }
-}
-
-/**
- * Load example commands
- */
-function loadExampleCommands() {
-    if (!examplesElement) return;
-    
-    const examples = [
-        'Find homes in Seattle with 3 bedrooms',
-        'Show properties in San Francisco under 750k',
-        'Search for houses in Austin with 2 bathrooms',
-        'Find condos in Chicago with 2 beds under 500k',
-        'Show market trends for Boston',
-        'Get property details at 123 Main Street'
-    ];
-    
-    const examplesList = document.createElement('ul');
-    examplesList.className = 'examples-list';
-    
-    examples.forEach(example => {
-        const item = document.createElement('li');
-        item.textContent = example;
-        item.addEventListener('click', () => {
-            processCommand(example);
+        })
+        .catch(error => {
+            this.searchInProgress = false;
+            this.updateStatus(`Error: ${error.message}`, 'error');
+            console.error('Search error:', error);
         });
-        examplesList.appendChild(item);
-    });
-    
-    examplesElement.appendChild(examplesList);
+    }
+
+    /**
+     * Display search results in the designated container
+     */
+    displayResults(data) {
+        const resultsContainer = document.getElementById(this.options.searchResultsId);
+        if (!resultsContainer) return;
+        
+        // Clear previous results
+        resultsContainer.innerHTML = '';
+        
+        if (!data.properties || data.properties.length === 0) {
+            resultsContainer.innerHTML = '<div class="no-results">No properties found matching your search criteria.</div>';
+            return;
+        }
+        
+        // Display the interpreted search criteria
+        if (data.interpreted_query) {
+            const queryInterpretation = document.createElement('div');
+            queryInterpretation.className = 'query-interpretation';
+            queryInterpretation.innerHTML = `
+                <h3>We understood your search as:</h3>
+                <div class="interpretation-details">
+                    ${this.formatInterpretedQuery(data.interpreted_query)}
+                </div>
+            `;
+            resultsContainer.appendChild(queryInterpretation);
+        }
+        
+        // Create and append property results
+        const propertiesGrid = document.createElement('div');
+        propertiesGrid.className = 'properties-grid';
+        
+        data.properties.forEach(property => {
+            const propertyCard = this.createPropertyCard(property);
+            propertiesGrid.appendChild(propertyCard);
+        });
+        
+        resultsContainer.appendChild(propertiesGrid);
+    }
+
+    /**
+     * Format the interpreted query for display
+     */
+    formatInterpretedQuery(interpretation) {
+        let html = '<ul class="interpretation-list">';
+        
+        for (const [key, value] of Object.entries(interpretation)) {
+            if (value !== null && value !== undefined && value !== '') {
+                // Format the key for display
+                const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                
+                // Format the value based on type
+                let formattedValue = value;
+                if (Array.isArray(value)) {
+                    formattedValue = value.join(', ');
+                } else if (typeof value === 'boolean') {
+                    formattedValue = value ? 'Yes' : 'No';
+                } else if (typeof value === 'number') {
+                    if (key.includes('price')) {
+                        formattedValue = `$${value.toLocaleString()}`;
+                    } else {
+                        formattedValue = value.toLocaleString();
+                    }
+                }
+                
+                html += `<li><span class="key">${formattedKey}:</span> <span class="value">${formattedValue}</span></li>`;
+            }
+        }
+        
+        html += '</ul>';
+        return html;
+    }
+
+    /**
+     * Create a property card element
+     */
+    createPropertyCard(property) {
+        const card = document.createElement('div');
+        card.className = 'property-card';
+        
+        // Format price
+        const price = typeof property.price === 'number'
+            ? `$${property.price.toLocaleString()}`
+            : property.price;
+        
+        // Card HTML structure
+        card.innerHTML = `
+            <div class="property-image">
+                <img src="${property.image_url || '/static/images/property-placeholder.jpg'}" alt="${property.address || 'Property'}">
+                <div class="property-price">${price || 'Price not available'}</div>
+            </div>
+            <div class="property-details">
+                <h3 class="property-address">${property.address || 'Address not available'}</h3>
+                <div class="property-specs">
+                    ${property.bedrooms ? `<span class="spec"><i class="fa fa-bed"></i> ${property.bedrooms} bd</span>` : ''}
+                    ${property.bathrooms ? `<span class="spec"><i class="fa fa-bath"></i> ${property.bathrooms} ba</span>` : ''}
+                    ${property.square_feet ? `<span class="spec"><i class="fa fa-vector-square"></i> ${property.square_feet.toLocaleString()} sqft</span>` : ''}
+                </div>
+                <p class="property-description">${property.description || ''}</p>
+                <div class="property-features">
+                    ${property.features ? this.formatFeatures(property.features) : ''}
+                </div>
+                <a href="/property/${property.id}" class="view-details-btn">View Details</a>
+            </div>
+        `;
+        
+        return card;
+    }
+
+    /**
+     * Format property features for display
+     */
+    formatFeatures(features) {
+        if (!features || !Array.isArray(features) || features.length === 0) {
+            return '';
+        }
+        
+        return features.map(feature => `
+            <span class="feature">${feature}</span>
+        `).join('');
+    }
 }
 
-// Initialize on document load
-document.addEventListener('DOMContentLoaded', initVoiceSearch);
+// Initialize the voice search on page load
+document.addEventListener('DOMContentLoaded', () => {
+    const voiceSearch = new VoicePropertySearch({
+        // You can customize options here
+    });
+});

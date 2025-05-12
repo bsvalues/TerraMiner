@@ -1,69 +1,55 @@
 {% extends "base.html" %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block title %}Voice-Activated Property Search{% endblock %}
 
-{% block additional_css %}
+{% block head %}
+{{ super() }}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/voice-search.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<meta name="description" content="Search for properties using your voice with natural language understanding">
 {% endblock %}
 
 {% block content %}
-<div class="voice-search-container">
-    <div class="voice-search-header">
-        <h1 class="voice-search-title">Voice-Activated Property Search</h1>
-        <div class="voice-search-stats">
-            <span class="badge bg-primary">AI-Powered</span>
+<div class="container">
+    <div class="row">
+        <div class="col-md-12 text-center">
+            <h1>Voice-Activated Property Search</h1>
+            <p class="lead">
+                Search for properties using natural voice commands. Simply click the microphone and speak naturally.
+            </p>
         </div>
     </div>
-    
-    <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <div class="card mb-4">
-                <div class="card-body">
-                    <h2 class="card-title text-center">Speak to Search</h2>
-                    <p class="card-text text-center">Click the microphone button and speak your real estate search query.</p>
-                    
-                    <!-- Browser support warning (shown only if needed) -->
-                    <div id="browser-warning" class="browser-support-warning d-none">
-                        <strong>Warning:</strong> Voice search requires a modern browser like Chrome or Edge.
-                    </div>
-                    
-                    <!-- Microphone button -->
-                    <div class="voice-mic-container">
-                        <button id="voice-search-mic" class="voice-search-mic" aria-label="Start voice search" disabled>
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                                <line x1="12" y1="19" x2="12" y2="23"></line>
-                                <line x1="8" y1="23" x2="16" y2="23"></line>
-                            </svg>
-                        </button>
-                    </div>
-                    
-                    <!-- Status area -->
-                    <div class="voice-status-container">
-                        <p id="voice-status" class="voice-status">Ready. Click the microphone to start.</p>
-                    </div>
-                    
-                    <!-- Processing indicator -->
-                    <div id="processing-indicator" class="processing-indicator"></div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="voice-search-container bg-light p-4 rounded">
+                <div class="voice-search-wrapper">
+                    <button id="voice-search-button" class="voice-search-button" aria-label="Start voice search">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                </div>
+                <div id="search-status" class="search-status ready">
+                    Click the microphone icon and speak your property search request
+                </div>
+                <div class="text-center text-muted small">
+                    <p class="mb-2 fst-italic">Try saying something like:</p>
+                    <ul class="list-unstyled">
+                        <li>"Find three-bedroom houses in Seattle under $800,000"</li>
+                        <li>"Show me condos with a pool and garage near downtown"</li>
+                        <li>"I'm looking for waterfront properties with at least 4 bedrooms"</li>
+                    </ul>
                 </div>
             </div>
-            
-            <!-- Results area -->
-            <div class="voice-results-container">
-                <h3 class="voice-results-title">Results</h3>
-                <div id="voice-results" class="voice-results">
-                    <div class="no-results">
-                        <p>Your voice command results will appear here.</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Examples area -->
-            <div class="voice-examples-container">
-                <h3 class="voice-examples-title">Example Commands (click to try)</h3>
-                <div id="voice-examples" class="voice-examples">
-                    <!-- Examples will be inserted here by JavaScript -->
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div id="search-results">
+                <!-- Search results will be displayed here -->
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-search fa-3x mb-3 opacity-25"></i>
+                    <p>Your search results will appear here</p>
                 </div>
             </div>
         </div>
@@ -71,6 +57,19 @@
 </div>
 {% endblock %}
 
-{% block additional_js %}
+{% block scripts %}
+{{ super() }}
 <script src="{{ url_for('static', filename='js/voice-search.js') }}"></script>
+<script>
+    // Initialize voice search with custom options if needed
+    document.addEventListener('DOMContentLoaded', () => {
+        const voiceSearch = new VoicePropertySearch({
+            // You can customize options here
+            searchEndpoint: '{{ url_for("voice_search_api.voice_property_search") }}',
+            voiceButtonId: 'voice-search-button',
+            searchResultsId: 'search-results',
+            searchStatusId: 'search-status'
+        });
+    });
+</script>
 {% endblock %}

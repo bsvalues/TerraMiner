@@ -32,4 +32,5 @@ dependencies = [
     "fastapi>=0.115.12",
     "uvicorn>=0.34.2",
     "aipolabs>=0.0.1b7",
+    "python-dotenv>=1.1.0",
 ]
