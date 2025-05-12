@@ -1050,8 +1050,17 @@ def ai_status():
 @tailwind_ui_preference_decorator
 def ai_demo():
     """AI capabilities demonstration page"""
-    # Always use modern template
-    return render_template('ai_demo_modern.html')
+    try:
+        # Use enhanced template rendering with fallback
+        return render_template_with_fallback('ai_demo.html')
+    except Exception as e:
+        # Generate error ID for tracking
+        error_id = str(uuid.uuid4())[:8]
+        logger.error(f"Error rendering AI demo page [{error_id}]: {str(e)}")
+        
+        # Graceful fallback to landing page with error message
+        flash(f"AI demo is temporarily unavailable. Support has been notified. (Error ID: {error_id})", "error")
+        return redirect(url_for('index'))
 
 @app.route('/ai-feedback-analytics')
 @tailwind_ui_preference_decorator
