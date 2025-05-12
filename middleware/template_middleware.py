@@ -22,7 +22,7 @@ def init_template_middleware(app):
             session['ui_template'] = ui_param
         
         # Set template preference in g for access in templates
-        g.ui_template = session.get('ui_template', 'legacy')
+        g.ui_template = session.get('ui_template', 'unified')
         
         # Log template preference for debugging
         app.logger.debug(f"Current UI template preference: {g.ui_template}")
@@ -42,10 +42,10 @@ def init_template_middleware(app):
         # Add UI template preference to context
         context['ui_template'] = g.ui_template
         
-        # If using unified UI and template has a _new version, use it
-        if g.ui_template == 'unified' and not template_name.endswith('_new.html'):
-            # Check if a _new version exists
-            new_template_name = template_name.replace('.html', '_new.html')
+        # If using unified UI and template has a _modern version, try to use it first
+        if g.ui_template == 'unified' and not template_name.endswith('_modern.html'):
+            # Check if a _modern version exists
+            new_template_name = template_name.replace('.html', '_modern.html')
             
             try:
                 # Attempt to render new template
