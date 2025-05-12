@@ -1,4 +1,5 @@
 import os
+import uuid
 import logging
 from datetime import datetime, timedelta
 from functools import wraps
@@ -19,9 +20,31 @@ from core import db
 # Import the database initialization function
 from db_utils import init_db
 
-# Initialize logger
+# Initialize logger with enhanced error prevention
 setup_logger()
 logger = logging.getLogger(__name__)
+
+# Additional logging configuration to ensure critical errors are always captured
+if logger.level == logging.NOTSET:
+    logger.setLevel(logging.INFO)
+
+# Create logs directory if it doesn't exist to prevent file handler errors
+try:
+    os.makedirs('logs', exist_ok=True)
+except OSError as e:
+    logging.warning(f"Could not create logs directory: {str(e)}")
+
+# Add file handler for persistent error logging
+try:
+    if not any(isinstance(handler, logging.FileHandler) for handler in logger.handlers):
+        file_handler = logging.FileHandler('logs/app_errors.log')
+        file_handler.setLevel(logging.ERROR)
+        file_handler.setFormatter(logging.Formatter(
+            '%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s'
+        ))
+        logger.addHandler(file_handler)
+except Exception as e:
+    logging.warning(f"Could not setup error log file: {str(e)}")
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -841,14 +864,48 @@ def set_ui_preference():
     
     return jsonify({'success': True})
 
-# Error handlers
+# Enhanced error handlers with logging and redirection
 @app.errorhandler(404)
 def page_not_found(e):
+    # Log the 404 error with the requested path
+    requested_path = request.path
+    referrer = request.referrer if request.referrer else "Unknown"
+    logger.warning(f"404 Error: Path '{requested_path}' not found. Referrer: {referrer}")
+    
+    # Check if it's an API route
+    if requested_path.startswith('/api/'):
+        return jsonify({'error': 'Not found', 'message': 'The requested API endpoint does not exist'}), 404
+    
+    # Try to guess the closest valid page
+    if requested_path.endswith('/'):
+        # Try without trailing slash
+        potential_path = requested_path[:-1]
+        for rule in app.url_map.iter_rules():
+            if str(rule) == potential_path:
+                return redirect(potential_path)
+    
+    # Return friendly error page
     return render_template('error_modern.html', error_code=404, error_message="Page not found"), 404
 
 @app.errorhandler(500)
 def server_error(e):
-    return render_template('error_modern.html', error_code=500, error_message="Internal server error"), 500
+    # Log the 500 error with detailed information
+    error_id = str(uuid.uuid4())[:8]
+    logger.error(f"500 Error [{error_id}]: {str(e)}")
+    logger.error(f"Request path: {request.path}")
+    logger.error(f"Request method: {request.method}")
+    logger.error(f"Request args: {request.args}")
+    
+    # Always fall back to main page for safety if an internal error occurs
+    if not app.debug:
+        flash("Something went wrong. Our team has been notified.", "error")
+        return redirect(url_for('index'))
+    
+    # Only show error page in debug mode
+    return render_template('error_modern.html', 
+                          error_code=500, 
+                          error_message="Internal server error", 
+                          error_id=error_id), 500
 
 # Import necessary models without causing circular imports
 # Define dummy classes that will be replaced if imports fail
