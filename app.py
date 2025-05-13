@@ -2878,6 +2878,18 @@ try:
 except Exception as e:
     logger.error(f"Failed to register voice search blueprints: {str(e)}")
 
+# Register property recommendations API and controller
+try:
+    from api.property_recommendations import property_rec_api
+    app.register_blueprint(property_rec_api)
+    logger.info("Registered property recommendations API blueprint")
+    
+    from controllers.property_recommendations_controller import property_rec_controller
+    app.register_blueprint(property_rec_controller)
+    logger.info("Registered property recommendations controller blueprint")
+except Exception as e:
+    logger.error(f"Failed to register property recommendations blueprints: {str(e)}")
+
 # Register AI suggestions API
 try:
     from api.ai_suggestions import ai_suggestions_api
