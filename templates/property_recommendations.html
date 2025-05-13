@@ -337,18 +337,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Hide loading state
                 loadingSpinner.classList.add('d-none');
                 
+                // Debug log the response
+                console.log('API Response:', data);
+                
                 if (data.error) {
                     // Show error message
                     errorMessage.textContent = data.error;
                     errorMessage.classList.remove('d-none');
+                    console.error('API returned error:', data.error);
                     return;
                 }
                 
                 const recommendations = data.recommendations || [];
+                console.log(`Found ${recommendations.length} recommendations`);
                 
                 if (recommendations.length === 0) {
                     // Show no recommendations message
                     noRecommendations.classList.remove('d-none');
+                    console.warn('No recommendations were found');
                     return;
                 }
                 

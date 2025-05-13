@@ -515,28 +515,110 @@ def _get_sample_properties(location='', property_type='', min_price='', max_pric
         
         properties.append(property_obj)
     
-    # If no matching properties were found, return a small set of default ones
+    # If no matching properties were found, return a set of default properties
     if not properties:
-        default_property = {
-            "id": "PROP-DEFAULT",
-            "address": "123 Main Street, Seattle, WA 98101",
-            "location": "Seattle, WA 98101",
-            "property_type": "House",
-            "price": 750000,
-            "bedrooms": 3,
-            "bathrooms": 2,
-            "square_feet": 2200,
-            "year_built": 2010,
-            "description": "Beautiful 3 bedroom house in Seattle with modern amenities.",
-            "features": ["Garage", "Hardwood Floors", "Renovated Kitchen"],
-            "image_url": "/static/images/property-placeholder.svg",
-            "match_score": 0.85,
-            "match_reasons": [
-                "This property matches some of your preferences",
-                "Price is within the typical range for this area"
-            ]
-        }
-        return [default_property]
+        logger.warning(f"No properties matched the criteria. Returning default properties.")
+        
+        # Create at least 5 default properties to ensure we have results
+        default_properties = [
+            {
+                "id": "PROP-DEFAULT-1",
+                "address": "123 Main Street, Seattle, WA 98101",
+                "location": "Seattle, WA 98101",
+                "property_type": "House",
+                "price": 750000,
+                "bedrooms": 3,
+                "bathrooms": 2,
+                "square_feet": 2200,
+                "year_built": 2010,
+                "description": "Beautiful 3 bedroom house in Seattle with modern amenities.",
+                "features": ["Garage", "Hardwood Floors", "Renovated Kitchen"],
+                "image_url": "/static/images/property-placeholder.svg",
+                "match_score": 0.85,
+                "match_reasons": [
+                    "This property matches some of your preferences",
+                    "Price is within the typical range for this area"
+                ]
+            },
+            {
+                "id": "PROP-DEFAULT-2",
+                "address": "456 Pine Street, Richland, WA 99352",
+                "location": "Richland, WA 99352",
+                "property_type": "House",
+                "price": 450000,
+                "bedrooms": 4,
+                "bathrooms": 2.5,
+                "square_feet": 2800,
+                "year_built": 2005,
+                "description": "Spacious 4 bedroom family home in Richland with large backyard and updated kitchen.",
+                "features": ["Garage", "Pool", "Fenced Yard"],
+                "image_url": "/static/images/property-placeholder.svg",
+                "match_score": 0.92,
+                "match_reasons": [
+                    "Located in your desired area of Richland, WA",
+                    "Features a pool as requested"
+                ]
+            },
+            {
+                "id": "PROP-DEFAULT-3",
+                "address": "789 Columbia Blvd, Kennewick, WA 99336",
+                "location": "Kennewick, WA 99336",
+                "property_type": "Condo",
+                "price": 320000,
+                "bedrooms": 2,
+                "bathrooms": 2,
+                "square_feet": 1500,
+                "year_built": 2018,
+                "description": "Modern 2 bedroom condo with excellent amenities and convenient location.",
+                "features": ["Central AC", "Hardwood Floors", "Smart Home"],
+                "image_url": "/static/images/property-placeholder.svg",
+                "match_score": 0.78,
+                "match_reasons": [
+                    "Modern construction with smart home features",
+                    "Located in the Tri-Cities area"
+                ]
+            },
+            {
+                "id": "PROP-DEFAULT-4",
+                "address": "555 Canyon Road, Pasco, WA 99301",
+                "location": "Pasco, WA 99301",
+                "property_type": "House",
+                "price": 385000,
+                "bedrooms": 3,
+                "bathrooms": 2,
+                "square_feet": 1950,
+                "year_built": 2000,
+                "description": "Well-maintained 3 bedroom home with renovated kitchen and bathrooms.",
+                "features": ["Garage", "Fenced Yard", "Renovated Kitchen"],
+                "image_url": "/static/images/property-placeholder.svg",
+                "match_score": 0.81,
+                "match_reasons": [
+                    "Recently renovated property",
+                    "Good value for the area"
+                ]
+            },
+            {
+                "id": "PROP-DEFAULT-5",
+                "address": "222 Vineyard Ave, Walla Walla, WA 99362",
+                "location": "Walla Walla, WA 99362",
+                "property_type": "House",
+                "price": 520000,
+                "bedrooms": 4,
+                "bathrooms": 3,
+                "square_feet": 2600,
+                "year_built": 1995,
+                "description": "Charming 4 bedroom home in wine country with scenic views and updated features.",
+                "features": ["Deck", "Fireplace", "Mountain View"],
+                "image_url": "/static/images/property-placeholder.svg",
+                "match_score": 0.88,
+                "match_reasons": [
+                    "Located in scenic Walla Walla wine country",
+                    "Features beautiful mountain views"
+                ]
+            }
+        ]
+        
+        return default_properties
     
     # Sort properties by match score and return requested number
     return sorted(properties, key=lambda p: p["match_score"], reverse=True)[:limit]
