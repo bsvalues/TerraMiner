@@ -8,6 +8,7 @@ from typing import Dict, Any, Optional, List, Union, Tuple
 
 from etl.base_api_connector import BaseApiConnector
 from etl.zillow_api_connector import ZillowApiConnector
+from etl.pacmls_connector import PacMlsConnector
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -45,6 +46,16 @@ class RealEstateDataConnector:
                 logger.error(f"Failed to initialize Zillow connector: {e}")
         else:
             logger.warning("No RapidAPI key found for Zillow connector")
+        
+        # Initialize PACMLS connector if credentials are available
+        if os.environ.get('PACMLS_USERNAME') and os.environ.get('PACMLS_PASSWORD'):
+            try:
+                self.connectors['pacmls'] = PacMlsConnector()
+                logger.info("Initialized PACMLS connector")
+            except Exception as e:
+                logger.error(f"Failed to initialize PACMLS connector: {e}")
+        else:
+            logger.warning("PACMLS credentials not found in environment variables")
         
         # Add more connectors here as they become available
         # Example:
