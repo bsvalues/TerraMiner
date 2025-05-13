@@ -93,6 +93,22 @@ try:
 except Exception as e:
     logger.error(f"Failed to register PACMLS Controller blueprint: {str(e)}")
 
+# Register Data Source Manager blueprint
+try:
+    from controllers.data_source_controller import register_blueprint as register_data_source_blueprint
+    register_data_source_blueprint(app)
+    logger.info("Registered Data Source Manager blueprint")
+except Exception as e:
+    logger.error(f"Failed to register Data Source Manager blueprint: {str(e)}")
+
+# Setup data synchronization
+try:
+    from etl.data_sync_job import setup_sync_schedule
+    setup_sync_schedule(app)
+    logger.info("Data synchronization scheduler started")
+except Exception as e:
+    logger.error(f"Failed to setup data synchronization: {str(e)}")
+
 # Setup API monitoring
 setup_monitoring(app)
 
