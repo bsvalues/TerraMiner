@@ -2467,7 +2467,7 @@ def data_sources_manager():
         }
     ]
     
-    return render_template(
+    return render_template_with_fallback(
         'data_sources/manager.html',
         data_sources=data_sources,
         property_count=12543,

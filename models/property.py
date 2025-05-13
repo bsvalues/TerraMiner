@@ -13,10 +13,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.dialects.postgresql import JSONB
 
-from db import Base
-from sqlalchemy.ext.declarative import declarative_base
-
-db = declarative_base()
+from db import db
 
 class Property(db.Model):
     """

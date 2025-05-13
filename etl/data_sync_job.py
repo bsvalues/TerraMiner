@@ -17,7 +17,7 @@ import time
 from flask import current_app
 from etl.real_estate_data_connector import RealEstateDataConnector
 from models.property import Property, PropertyListing, DataSourceStatus, standardize_property_data
-import db
+from db import db
 
 # Configure logging
 logging.basicConfig(

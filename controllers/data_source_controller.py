@@ -12,7 +12,7 @@ from flask import Blueprint, render_template, jsonify, request, redirect, url_fo
 
 from etl.real_estate_data_connector import RealEstateDataConnector
 from models.property import Property, DataSourceStatus
-import db
+from db import db
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
