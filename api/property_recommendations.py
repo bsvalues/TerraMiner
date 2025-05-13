@@ -410,7 +410,7 @@ def _get_available_properties(filters: Optional[Dict[str, Any]] = None) -> List[
         return []
 
 
-def _get_sample_properties(filters: Dict[str, Any] = None) -> List[Dict[str, Any]]:
+def _get_sample_properties(filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     """
     Get sample property data for testing.
     This would be replaced with actual database queries in production.
