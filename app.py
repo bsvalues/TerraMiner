@@ -2884,7 +2884,7 @@ try:
     app.register_blueprint(property_rec_api)
     logger.info("Registered property recommendations API blueprint")
     
-    from controllers.property_recommendations_controller import property_rec_controller
+    from controllers.property_recommendations_simplified import property_rec_controller
     app.register_blueprint(property_rec_controller)
     logger.info("Registered property recommendations controller blueprint")
 except Exception as e:
