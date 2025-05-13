@@ -2387,6 +2387,98 @@ def monitoring_reports_history():
     
     from models import ReportExecutionLog
     from datetime import datetime, timedelta
+
+@app.route('/data-sources')
+@tailwind_ui_preference_decorator
+def data_sources_manager():
+    """Data Sources Manager Dashboard"""
+    # Get UI preference from the decorator
+    use_tailwind = g.use_tailwind_ui
+    
+    # Mock data for initial display
+    data_sources = [
+        {
+            'name': 'zillow',
+            'status': 'healthy',
+            'priority': 'Primary',
+            'priority_num': 1,
+            'enabled': True,
+            'data_types': ['listings', 'details', 'market_trends'],
+            'success_rate': 93,
+            'metrics': {
+                'success_rate': 93,
+                'avg_response_time': 0.8,
+                'requests': 1254,
+                'errors': 87,
+                'timeouts': 12,
+                'rate_limit_hits': 32
+            }
+        },
+        {
+            'name': 'realtor',
+            'status': 'degraded',
+            'priority': 'Secondary',
+            'priority_num': 2,
+            'enabled': True,
+            'data_types': ['listings', 'details'],
+            'success_rate': 85,
+            'metrics': {
+                'success_rate': 85,
+                'avg_response_time': 1.2,
+                'requests': 987,
+                'errors': 148,
+                'timeouts': 35,
+                'rate_limit_hits': 72
+            }
+        },
+        {
+            'name': 'pacmls',
+            'status': 'limited',
+            'priority': 'Tertiary',
+            'priority_num': 3,
+            'enabled': True,
+            'data_types': ['listings', 'details', 'market_trends'],
+            'success_rate': 78,
+            'metrics': {
+                'success_rate': 78,
+                'avg_response_time': 0.5,
+                'requests': 542,
+                'errors': 119,
+                'timeouts': 5,
+                'rate_limit_hits': 0
+            }
+        },
+        {
+            'name': 'county',
+            'status': 'critical',
+            'priority': 'Fallback',
+            'priority_num': 'fallback',
+            'enabled': False,
+            'data_types': ['details'],
+            'success_rate': 65,
+            'metrics': {
+                'success_rate': 65,
+                'avg_response_time': 1.7,
+                'requests': 321,
+                'errors': 112,
+                'timeouts': 38,
+                'rate_limit_hits': 0
+            }
+        }
+    ]
+    
+    return render_template(
+        'data_sources/manager.html',
+        data_sources=data_sources,
+        property_count=12543,
+        location_count=78,
+        last_sync="2025-05-13 22:45:32",
+        active_sources=3,
+        failover_timeout=10,
+        max_retry_attempts=3,
+        enable_circuit_breakers=True,
+        title="Data Source Manager"
+    )
     
     # Get query parameters
     days = request.args.get('days', default=30, type=int)
