@@ -38,6 +38,7 @@ def test_pacmls_connector():
         logger.info("PACMLS connector initialized")
         
         # Test property search
+        search_results = {}
         try:
             logger.info("Testing property search in Seattle, WA")
             search_results = connector.search_properties("Seattle, WA", limit=5)
@@ -53,7 +54,7 @@ def test_pacmls_connector():
         
         # Test property details (if we have a property ID)
         property_id = None
-        if 'listings' in search_results and search_results['listings']:
+        if search_results and 'listings' in search_results and search_results['listings']:
             property_id = search_results['listings'][0].get('id')
             
         if property_id:

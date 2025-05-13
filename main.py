@@ -77,6 +77,22 @@ try:
 except Exception as e:
     logger.error(f"Failed to register County Property API blueprint: {str(e)}")
 
+# Register PACMLS API blueprint
+try:
+    from api.pacmls_api import pacmls_api
+    app.register_blueprint(pacmls_api)
+    logger.info("Registered PACMLS API blueprint")
+except Exception as e:
+    logger.error(f"Failed to register PACMLS API blueprint: {str(e)}")
+
+# Register PACMLS Controller blueprint
+try:
+    from controllers.pacmls_controller import pacmls_controller
+    app.register_blueprint(pacmls_controller)
+    logger.info("Registered PACMLS Controller blueprint")
+except Exception as e:
+    logger.error(f"Failed to register PACMLS Controller blueprint: {str(e)}")
+
 # Setup API monitoring
 setup_monitoring(app)
 
