@@ -107,6 +107,8 @@ def get_property_recommendations():
             feature_list = features.split(',')
         
         # Generate sample properties
+        logger.info(f"Querying properties with: location={location}, property_type={property_type}, price={min_price}-{max_price}, address={address}, features={feature_list}")
+        
         recommendations = _get_sample_properties(
             location=location,
             property_type=property_type,
@@ -116,6 +118,8 @@ def get_property_recommendations():
             features=feature_list,
             limit=limit
         )
+        
+        logger.info(f"Found {len(recommendations)} matching properties")
         
         return jsonify({
             "recommendations": recommendations,
@@ -230,18 +234,22 @@ def _get_sample_properties(location='', property_type='', min_price='', max_pric
     filtered_locations = locations
     if location:
         filtered_locations = []
+        location_lower = location.lower()
+        
+        # Log location search
+        logger.info(f"Searching for location: '{location_lower}'")
+        
         for loc in locations:
-            if (location.lower() in loc["city"].lower() or 
-                location.lower() in loc["state"].lower() or 
-                location.lower() in loc["zip"] or
-                location.lower() in loc["full"].lower()):
+            if (location_lower in loc["city"].lower() or 
+                location_lower in loc["state"].lower() or 
+                location_lower in loc["zip"] or 
+                location_lower in loc["full"].lower()):
                 filtered_locations.append(loc)
+                logger.info(f"Matched location: {loc['full']}")
                 
-        if not filtered_locations:  # No matches, use default locations
-            filtered_locations = [
-                {"city": "Seattle", "state": "WA", "zip": "98101", "full": "Seattle, WA 98101"},
-                {"city": "Bellevue", "state": "WA", "zip": "98004", "full": "Bellevue, WA 98004"}
-            ]
+        if not filtered_locations:  # No matches, use all locations for more results
+            logger.info(f"No specific location matches found for '{location}', using all locations")
+            filtered_locations = locations
     
     # Define property types
     property_types = ["House", "Condo", "Townhouse", "Apartment", "Land"]
@@ -332,12 +340,27 @@ def _get_sample_properties(location='', property_type='', min_price='', max_pric
         
         price = int(base_price * location_multiplier)
         
-        # Skip if doesn't match price filters
-        if price < min_price_value or price > max_price_value:
-            continue
+        # Check price filter
+        price_matches = True
+        if min_price_value > 0 and price < min_price_value:
+            price_matches = False
+            # logger.debug(f"Price {price} < min {min_price_value}")
+        if max_price_value > 0 and price > max_price_value:
+            price_matches = False
+            # logger.debug(f"Price {price} > max {max_price_value}")
         
-        # Skip if address filter is provided and doesn't match
-        if address and address.lower() not in full_address.lower():
+        if not price_matches:
+            continue
+            
+        # Check address filter
+        address_matches = True
+        if address:
+            address_lower = address.lower()
+            if address_lower not in full_address.lower():
+                address_matches = False
+                # logger.debug(f"Address '{address_lower}' not in '{full_address.lower()}'")
+        
+        if not address_matches:
             continue
         
         # Generate bedrooms based on property type
