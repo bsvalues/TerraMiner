@@ -2607,6 +2607,7 @@ def zillow_properties():
 
 @app.route('/property/search', methods=['GET'])
 @app.route('/property_search', methods=['GET'])
+@tailwind_ui_preference_decorator
 def property_search():
     """Search for properties based on query parameters with fuzzy matching."""
     # Import our fuzzy search function
@@ -2725,6 +2726,7 @@ def property_search():
 
 @app.route('/property/<property_id>', methods=['GET'])
 @app.route('/property_details/<property_id>', methods=['GET'])
+@tailwind_ui_preference_decorator
 def property_details(property_id):
     """Display detailed information about a specific property."""
     error = None
