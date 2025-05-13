@@ -2395,88 +2395,184 @@ def data_sources_manager():
     # Get UI preference from the decorator
     use_tailwind = g.use_tailwind_ui
     
-    # Mock data for initial display
-    data_sources = [
-        {
-            'name': 'zillow',
-            'status': 'healthy',
-            'priority': 'Primary',
-            'priority_num': 1,
-            'enabled': True,
-            'data_types': ['listings', 'details', 'market_trends'],
-            'success_rate': 93,
-            'metrics': {
-                'success_rate': 93,
-                'avg_response_time': 0.8,
-                'requests': 1254,
-                'errors': 87,
-                'timeouts': 12,
-                'rate_limit_hits': 32
+    try:
+        # Initialize the real estate data connector
+        from etl.real_estate_data_connector import RealEstateDataConnector
+        
+        data_connector = RealEstateDataConnector()
+        sources_status = data_connector.get_sources_status()
+        
+        # If no sources are available yet, use initial mock data
+        if not sources_status:
+            # Mock data for initial display
+            data_sources = [
+                {
+                    'name': 'zillow',
+                    'status': 'healthy',
+                    'priority': 'Primary',
+                    'priority_num': 1,
+                    'enabled': True,
+                    'data_types': ['listings', 'details', 'market_trends'],
+                    'success_rate': 93,
+                    'metrics': {
+                        'success_rate': 93,
+                        'avg_response_time': 0.8,
+                        'requests': 1254,
+                        'errors': 87,
+                        'timeouts': 12,
+                        'rate_limit_hits': 32
+                    }
+                },
+                {
+                    'name': 'realtor',
+                    'status': 'degraded',
+                    'priority': 'Secondary',
+                    'priority_num': 2,
+                    'enabled': True,
+                    'data_types': ['listings', 'details'],
+                    'success_rate': 85,
+                    'metrics': {
+                        'success_rate': 85,
+                        'avg_response_time': 1.2,
+                        'requests': 987,
+                        'errors': 148,
+                        'timeouts': 35,
+                        'rate_limit_hits': 72
+                    }
+                },
+                {
+                    'name': 'pacmls',
+                    'status': 'limited',
+                    'priority': 'Tertiary',
+                    'priority_num': 3,
+                    'enabled': True,
+                    'data_types': ['listings', 'details', 'market_trends'],
+                    'success_rate': 78,
+                    'metrics': {
+                        'success_rate': 78,
+                        'avg_response_time': 0.5,
+                        'requests': 542,
+                        'errors': 119,
+                        'timeouts': 5,
+                        'rate_limit_hits': 0
+                    }
+                },
+                {
+                    'name': 'county',
+                    'status': 'critical',
+                    'priority': 'Fallback',
+                    'priority_num': 'fallback',
+                    'enabled': False,
+                    'data_types': ['details'],
+                    'success_rate': 65,
+                    'metrics': {
+                        'success_rate': 65,
+                        'avg_response_time': 1.7,
+                        'requests': 321,
+                        'errors': 112,
+                        'timeouts': 38,
+                        'rate_limit_hits': 0
+                    }
+                }
+            ]
+        else:
+            # Format the sources for display
+            data_sources = []
+            for source in sources_status:
+                # Convert DB format to template format
+                formatted_source = {
+                    'name': source.get('source_name', ''),
+                    'status': source.get('status', 'unknown'),
+                    'priority': 'Primary' if source.get('priority', 4) == 1 else
+                               'Secondary' if source.get('priority', 4) == 2 else
+                               'Tertiary' if source.get('priority', 4) == 3 else 'Fallback',
+                    'priority_num': source.get('priority', 4),
+                    'enabled': source.get('is_active', False),
+                    'success_rate': int(source.get('success_rate', 0)),
+                    'data_types': source.get('data_types', ['details']),
+                    'metrics': {
+                        'success_rate': int(source.get('success_rate', 0)),
+                        'avg_response_time': round(source.get('avg_response_time', 0), 2),
+                        'requests': source.get('request_count', 0),
+                        'errors': source.get('error_count', 0),
+                        'timeouts': 0,  # Not tracked separately yet
+                        'rate_limit_hits': 0  # Not tracked separately yet
+                    }
+                }
+                data_sources.append(formatted_source)
+        
+        # Get system-wide property statistics
+        from models.property import Property
+        property_count = Property.query.count() if hasattr(Property, 'query') else 0
+        active_sources = sum(1 for s in data_sources if s.get('enabled', False))
+        
+        # Get system-wide settings
+        failover_timeout = data_connector.failover_timeout
+        max_retry_attempts = data_connector.max_retry_attempts
+        enable_circuit_breakers = data_connector.enable_circuit_breakers
+        
+        # Get last sync time
+        from datetime import datetime
+        last_sync_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Get unique locations count
+        location_count = len(set(p.city for p in Property.query.all() if hasattr(p, 'city'))) if hasattr(Property, 'query') else 0
+        
+    except Exception as e:
+        # If there's an error, log it and use mock data
+        logging.error(f"Error loading data sources: {str(e)}")
+        
+        # Mock data as fallback
+        data_sources = [
+            {
+                'name': 'zillow',
+                'status': 'unknown',
+                'priority': 'Primary',
+                'priority_num': 1,
+                'enabled': True,
+                'data_types': ['listings', 'details', 'market_trends'],
+                'success_rate': 0,
+                'metrics': {
+                    'success_rate': 0,
+                    'avg_response_time': 0,
+                    'requests': 0,
+                    'errors': 0
+                }
+            },
+            {
+                'name': 'realtor',
+                'status': 'unknown',
+                'priority': 'Secondary',
+                'priority_num': 2,
+                'enabled': True,
+                'data_types': ['listings', 'details'],
+                'success_rate': 0,
+                'metrics': {
+                    'success_rate': 0,
+                    'avg_response_time': 0,
+                    'requests': 0,
+                    'errors': 0
+                }
             }
-        },
-        {
-            'name': 'realtor',
-            'status': 'degraded',
-            'priority': 'Secondary',
-            'priority_num': 2,
-            'enabled': True,
-            'data_types': ['listings', 'details'],
-            'success_rate': 85,
-            'metrics': {
-                'success_rate': 85,
-                'avg_response_time': 1.2,
-                'requests': 987,
-                'errors': 148,
-                'timeouts': 35,
-                'rate_limit_hits': 72
-            }
-        },
-        {
-            'name': 'pacmls',
-            'status': 'limited',
-            'priority': 'Tertiary',
-            'priority_num': 3,
-            'enabled': True,
-            'data_types': ['listings', 'details', 'market_trends'],
-            'success_rate': 78,
-            'metrics': {
-                'success_rate': 78,
-                'avg_response_time': 0.5,
-                'requests': 542,
-                'errors': 119,
-                'timeouts': 5,
-                'rate_limit_hits': 0
-            }
-        },
-        {
-            'name': 'county',
-            'status': 'critical',
-            'priority': 'Fallback',
-            'priority_num': 'fallback',
-            'enabled': False,
-            'data_types': ['details'],
-            'success_rate': 65,
-            'metrics': {
-                'success_rate': 65,
-                'avg_response_time': 1.7,
-                'requests': 321,
-                'errors': 112,
-                'timeouts': 38,
-                'rate_limit_hits': 0
-            }
-        }
-    ]
+        ]
+        property_count = 0
+        location_count = 0
+        last_sync_time = "Never"
+        active_sources = 0
+        failover_timeout = 10
+        max_retry_attempts = 3
+        enable_circuit_breakers = True
     
     return render_template_with_fallback(
         'data_sources/manager.html',
         data_sources=data_sources,
-        property_count=12543,
-        location_count=78,
-        last_sync="2025-05-13 22:45:32",
-        active_sources=3,
-        failover_timeout=10,
-        max_retry_attempts=3,
-        enable_circuit_breakers=True,
+        property_count=property_count,
+        location_count=location_count,
+        last_sync=last_sync_time,
+        active_sources=active_sources,
+        failover_timeout=failover_timeout,
+        max_retry_attempts=max_retry_attempts,
+        enable_circuit_breakers=enable_circuit_breakers,
         title="Data Source Manager"
     )
     

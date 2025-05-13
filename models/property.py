@@ -13,7 +13,14 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.dialects.postgresql import JSONB
 
-from db import db
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text
+from sqlalchemy.orm import relationship
+from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.dialects.postgresql import JSONB
+from flask_sqlalchemy import SQLAlchemy
+
+# This will be initialized in app.py
+db = SQLAlchemy()
 
 class Property(db.Model):
     """
