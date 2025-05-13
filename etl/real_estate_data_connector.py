@@ -37,30 +37,53 @@ class RealEstateDataConnector:
     
     def _init_connectors(self):
         """Initialize all available API connectors"""
+        # Track initialization success for each connector
+        init_status = {}
+        
         # Initialize Zillow connector if API key is available
         if os.environ.get('RAPIDAPI_KEY'):
             try:
                 self.connectors['zillow'] = ZillowApiConnector()
                 logger.info("Initialized Zillow API connector")
+                init_status['zillow'] = True
             except Exception as e:
                 logger.error(f"Failed to initialize Zillow connector: {e}")
+                init_status['zillow'] = False
         else:
             logger.warning("No RapidAPI key found for Zillow connector")
+            init_status['zillow'] = False
         
         # Initialize PACMLS connector if credentials are available
         if os.environ.get('PACMLS_USERNAME') and os.environ.get('PACMLS_PASSWORD'):
             try:
                 self.connectors['pacmls'] = PacMlsConnector()
                 logger.info("Initialized PACMLS connector")
+                init_status['pacmls'] = True
             except Exception as e:
                 logger.error(f"Failed to initialize PACMLS connector: {e}")
+                init_status['pacmls'] = False
         else:
             logger.warning("PACMLS credentials not found in environment variables")
+            init_status['pacmls'] = False
+        
+        # Initialize Realtor API connector if RapidAPI key is available
+        if os.environ.get('RAPIDAPI_KEY'):
+            try:
+                from etl.realtor_api_connector import RealtorApiConnector
+                self.connectors['realtor'] = RealtorApiConnector()
+                logger.info("Initialized Realtor API connector")
+                init_status['realtor'] = True
+            except Exception as e:
+                logger.error(f"Failed to initialize Realtor API connector: {e}")
+                init_status['realtor'] = False
+        else:
+            logger.warning("No RapidAPI key found for Realtor API connector")
+            init_status['realtor'] = False
         
         # Add more connectors here as they become available
-        # Example:
-        # if os.environ.get('REALTOR_API_KEY'):
-        #     self.connectors['realtor'] = RealtorApiConnector()
+        
+        # Log overall initialization status
+        logger.info(f"Connector initialization status: {init_status}")
         
         # If no connectors could be initialized, raise an error
         if not self.connectors:
