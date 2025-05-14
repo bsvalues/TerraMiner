@@ -105,6 +105,19 @@ except Exception as e:
 # Setup API monitoring
 setup_monitoring(app)
 
+# Import property models to ensure they're created in the database
+try:
+    from models.property import Property, PropertyListing, PropertyHistory, DataSourceStatus
+    logger.info("Imported property models successfully")
+    
+    # Create database tables if they don't exist
+    with app.app_context():
+        from core import db
+        db.create_all()
+        logger.info("Database tables created successfully")
+except Exception as e:
+    logger.error(f"Failed to import property models: {str(e)}")
+
 # Start system monitoring (collect metrics every 5 minutes)
 with app.app_context():
     start_monitoring(interval=300)

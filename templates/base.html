@@ -284,6 +284,11 @@
                 <h6 class="nav-divider">Configuration</h6>
                 <ul class="nav flex-column mb-5">
                     <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/data-sources' %}active{% endif %}" href="/data-sources">
+                            <i class="bi bi-database-gear me-2"></i> Data Sources Manager
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'monitoring_alerts_active' %}active{% endif %}" href="{{ url_for('monitoring_alerts_active') }}">
                             <i class="bi bi-bell me-2"></i> Alert Rules
                         </a>
