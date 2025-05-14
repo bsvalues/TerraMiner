@@ -75,6 +75,7 @@ class RealEstateDataConnector:
         self.connectors: Dict[str, BaseApiConnector] = {}
         self.priorities: Dict[str, int] = {}
         self.circuit_breakers: Dict[str, bool] = {}
+        self.source_status: Dict[str, DataSourceStatus] = {}  # Track source status locally
         self.failover_timeout = 10  # seconds
         self.max_retry_attempts = 3
         
