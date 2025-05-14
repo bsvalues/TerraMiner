@@ -345,11 +345,10 @@ class RealEstateDataConnector:
             elapsed_time: Time taken for the call
         """
         try:
-            from db import db
-            status = DataSourceStatus.query.filter_by(source_name=source).first()
-            
-            if not status:
-                status = DataSourceStatus(
+            # Check if we have this source in our local tracking
+            if source not in self.source_status:
+                # Initialize a new status object
+                self.source_status[source] = DataSourceStatus(
                     source_name=source,
                     status="unknown",
                     is_active=True,
@@ -358,15 +357,18 @@ class RealEstateDataConnector:
                     success_rate=100.0,
                     avg_response_time=0.0
                 )
-                db.session.add(status)
+            
+            # Get the status object for this source
+            status = self.source_status[source]
             
             # Update basic stats
             status.request_count += 1
             if not success:
                 status.error_count += 1
             
-            # Calculate success rate
-            status.success_rate = ((status.request_count - status.error_count) / status.request_count) * 100
+            # Calculate success rate (avoid division by zero)
+            if status.request_count > 0:
+                status.success_rate = ((status.request_count - status.error_count) / status.request_count) * 100
             
             # Update avg response time with smoothing
             if status.avg_response_time == 0:
@@ -391,8 +393,10 @@ class RealEstateDataConnector:
                     status.is_active = False
                     logger.warning(f"Circuit breaker opened for {source}")
             
-            status.last_check = datetime.utcnow()
-            db.session.commit()
+            status.last_check = datetime.now()
+            
+            # Note: We no longer update the DB here to avoid circular imports
+            # DB updates will happen in a separate method that can be called periodically
             
         except Exception as e:
             logger.error(f"Failed to update metrics for {source}: {str(e)}")
