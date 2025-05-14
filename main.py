@@ -15,20 +15,13 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
-# Import core components first
-from core import run_etl_workflow
-
-# Import the app directly now that we've fixed the circular imports
+# Import app directly - we've fixed the circular imports in db_utils
 try:
     from app import app
     logger.info("Successfully imported app")
 except Exception as e:
     logger.error(f"Failed to import app: {str(e)}")
     raise
-# Import our new real estate data connector (replaces NARRPR scraper)
-from etl.real_estate_data_connector import RealEstateDataConnector
-from etl.zillow_scraper import ZillowScraper
-from etl.manager import etl_manager
 from db.database import save_to_database
 from utils.logger import setup_logger
 from utils.config import load_config

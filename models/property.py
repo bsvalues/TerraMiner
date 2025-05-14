@@ -13,14 +13,19 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.dialects.postgresql import JSONB
 
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text
-from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.dialects.postgresql import JSONB
-from flask_sqlalchemy import SQLAlchemy
+# Import the db module to use the SQLAlchemy instance
+import sys
+import os
 
-# This will be initialized in app.py
-db = SQLAlchemy()
+# Add the root directory to the path to ensure imports work correctly
+current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+
+# Import the central SQLAlchemy instance
+from db_utils import get_db
+
+db = get_db()
 
 class Property(db.Model):
     """

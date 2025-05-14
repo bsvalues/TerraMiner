@@ -13,6 +13,11 @@ from core import db
 # Initialize logger
 logger = logging.getLogger(__name__)
 
+# Function to get the database instance
+def get_db():
+    """Return the SQLAlchemy instance."""
+    return db
+
 def init_db(app):
     """Initialize the database with the Flask app."""
     # Configure database

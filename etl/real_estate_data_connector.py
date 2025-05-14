@@ -11,7 +11,49 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional, Tuple
 
 from etl.base_api_connector import BaseApiConnector
-from models.property import DataSourceStatus, standardize_property_data
+# Import functions instead of models to avoid circular imports
+def standardize_property_data(data, source):
+    """Standardize property data from different sources into a common format."""
+    # Simple implementation to avoid circular imports
+    if not data:
+        return {}
+    
+    # Add source metadata
+    result = data.copy() if isinstance(data, dict) else {}
+    if 'metadata' not in result:
+        result['metadata'] = {}
+    result['metadata']['source'] = source
+    
+    return result
+
+# Create a mock DataSourceStatus class to avoid circular imports
+class DataSourceStatus:
+    """Mock DataSourceStatus class."""
+    
+    def __init__(self, **kwargs):
+        self.source_name = kwargs.get('source_name', '')
+        self.status = kwargs.get('status', 'unknown')
+        self.is_active = kwargs.get('is_active', True)
+        self.priority = kwargs.get('priority', 'secondary')
+        self.success_rate = kwargs.get('success_rate', 100.0)
+        self.avg_response_time = kwargs.get('avg_response_time', 0.0)
+        self.error_count = kwargs.get('error_count', 0)
+        self.request_count = kwargs.get('request_count', 0)
+        self.last_check = kwargs.get('last_check', datetime.now())
+    
+    def to_dict(self):
+        """Convert to dictionary."""
+        return {
+            'source_name': self.source_name,
+            'status': self.status,
+            'is_active': self.is_active,
+            'priority': self.priority,
+            'success_rate': self.success_rate,
+            'avg_response_time': self.avg_response_time,
+            'error_count': self.error_count,
+            'request_count': self.request_count,
+            'last_check': self.last_check
+        }
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
