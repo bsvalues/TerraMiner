@@ -470,21 +470,16 @@ class RealEstateDataConnector:
         """
         status_list = []
         
-        try:
-            from db import db
-            db_statuses = DataSourceStatus.query.all()
-            
-            for status in db_statuses:
-                src_status = status.to_dict()
-                src_status["circuit_open"] = self.circuit_breakers.get(status.source_name, False)
-                src_status["priority"] = self.priorities.get(status.source_name, 999)
-                status_list.append(src_status)
-                
-        except Exception as e:
-            logger.error(f"Failed to get source statuses: {str(e)}")
-            
-            # Fall back to basic status
-            for source, connector in self.connectors.items():
+        # Use our local tracking data first
+        for source_name, status in self.source_status.items():
+            src_status = status.to_dict()
+            src_status["circuit_open"] = self.circuit_breakers.get(source_name, False)
+            src_status["priority"] = self.priorities.get(source_name, 999)
+            status_list.append(src_status)
+        
+        # Add any connectors that might not have status yet
+        for source, connector in self.connectors.items():
+            if source not in self.source_status:
                 available = connector is not None
                 circuit_open = self.circuit_breakers.get(source, False)
                 
@@ -499,7 +494,8 @@ class RealEstateDataConnector:
                     "request_count": 0,
                     "error_count": 0
                 })
-                
+        
+        # Sort by priority
         return sorted(status_list, key=lambda x: x["priority"])
     
     def update_source_priority(self, priorities: Dict[str, int]) -> bool:
