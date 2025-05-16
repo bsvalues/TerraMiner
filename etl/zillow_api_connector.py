@@ -21,14 +21,15 @@ class ZillowApiConnector(BaseApiConnector):
     tested and confirmed to work with our API key.
     """
     
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, **kwargs):
         """
         Initialize the Zillow API connector.
         
         Args:
             api_key (str, optional): RapidAPI key (default: from environment)
+            **kwargs: Additional connector-specific configuration options
         """
-        super().__init__(api_key)
+        super().__init__(**kwargs)
         self.api_key = api_key or os.environ.get('RAPIDAPI_KEY')
         if not self.api_key:
             raise ValueError("RapidAPI key is required for the Zillow API connector")

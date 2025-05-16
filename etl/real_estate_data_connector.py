@@ -112,14 +112,52 @@ class RealEstateDataConnector:
         # Initialize circuit breakers - all open by default
         self.circuit_breakers = {name: False for name in self.expected_connectors}
         
-        # Load connectors (will be done dynamically)
-        self._register_connector('zillow', None)
-        self._register_connector('realtor', None)
-        self._register_connector('pacmls', None)
-        self._register_connector('county', None)
+        # Load API connectors
+        try:
+            # Get RapidAPI key from environment
+            rapidapi_key = os.environ.get('RAPIDAPI_KEY')
+            
+            # Initialize Zillow connector
+            zillow_connector = None
+            try:
+                zillow_connector = ZillowApiConnector(api_key=rapidapi_key)
+                logger.info("Zillow API connector initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize Zillow connector: {str(e)}")
+            
+            # Initialize Realtor connector
+            realtor_connector = None
+            try:
+                realtor_connector = RealtorApiConnector(api_key=rapidapi_key)
+                logger.info("Realtor API connector initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize Realtor connector: {str(e)}")
+            
+            # Initialize PACMLS connector
+            pacmls_connector = None
+            try:
+                pacmls_username = os.environ.get('PACMLS_USERNAME')
+                pacmls_password = os.environ.get('PACMLS_PASSWORD')
+                if pacmls_username and pacmls_password:
+                    pacmls_connector = PacMlsConnector(username=pacmls_username, password=pacmls_password)
+                    logger.info("PACMLS connector initialized successfully")
+                else:
+                    logger.warning("PACMLS credentials not available")
+            except Exception as e:
+                logger.error(f"Failed to initialize PACMLS connector: {str(e)}")
+            
+            # Register connectors with the system
+            self._register_connector('zillow', zillow_connector)
+            self._register_connector('realtor', realtor_connector)
+            self._register_connector('pacmls', pacmls_connector)
+            self._register_connector('county', None)  # County connector not implemented yet
+            
+        except Exception as e:
+            logger.error(f"Error loading connectors: {str(e)}")
     
     def _register_connector(self, name: str, connector: Optional[BaseApiConnector]):
         """Register a connector with the system."""
+        # Store the connector reference (even if None)
         self.connectors[name] = connector
         if name not in self.priorities:
             # New connector, give it lowest priority
