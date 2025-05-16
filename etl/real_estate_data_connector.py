@@ -7,10 +7,14 @@ from multiple sources with intelligent failover capabilities.
 
 import logging
 import time
+import os
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Tuple
 
 from etl.base_api_connector import BaseApiConnector
+from etl.zillow_api_connector import ZillowApiConnector
+from etl.realtor_api_connector import RealtorApiConnector
+from etl.pacmls_connector import PacMlsConnector
 # Import functions instead of models to avoid circular imports
 def standardize_property_data(data, source):
     """Standardize property data from different sources into a common format."""
