@@ -146,11 +146,86 @@ class RealEstateDataConnector:
             except Exception as e:
                 logger.error(f"Failed to initialize PACMLS connector: {str(e)}")
             
-            # Register connectors with the system
+            # Register core connectors with the system
             self._register_connector('zillow', zillow_connector)
             self._register_connector('realtor', realtor_connector)
             self._register_connector('pacmls', pacmls_connector)
             self._register_connector('county', None)  # County connector not implemented yet
+            
+            # Register additional data sources
+            # ATTOM Property Data (comprehensive property data API)
+            attom_connector = None
+            try:
+                attom_api_key = os.environ.get('ATTOM_API_KEY')
+                if attom_api_key:
+                    from etl.attom_api_connector import AttomApiConnector
+                    attom_connector = AttomApiConnector(api_key=attom_api_key)
+                    logger.info("ATTOM API connector initialized successfully")
+                else:
+                    logger.warning("ATTOM API key not available")
+            except Exception as e:
+                logger.warning(f"Failed to initialize ATTOM connector: {str(e)}")
+            self._register_connector('attom', attom_connector)
+            
+            # Redfin connector
+            redfin_connector = None
+            try:
+                from etl.redfin_api_connector import RedfinApiConnector
+                redfin_connector = RedfinApiConnector()
+                logger.info("Redfin API connector initialized successfully")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Redfin connector: {str(e)}")
+            self._register_connector('redfin', redfin_connector)
+            
+            # HUD (Housing and Urban Development) Data
+            hud_connector = None
+            try:
+                hud_api_key = os.environ.get('HUD_API_KEY')
+                if hud_api_key:
+                    from etl.hud_api_connector import HudApiConnector
+                    hud_connector = HudApiConnector(api_key=hud_api_key)
+                    logger.info("HUD API connector initialized successfully")
+                else:
+                    logger.warning("HUD API key not available")
+            except Exception as e:
+                logger.warning(f"Failed to initialize HUD connector: {str(e)}")
+            self._register_connector('hud', hud_connector)
+            
+            # CoreLogic Property Data
+            corelogic_connector = None
+            try:
+                corelogic_api_key = os.environ.get('CORELOGIC_API_KEY')
+                corelogic_client_id = os.environ.get('CORELOGIC_CLIENT_ID')
+                if corelogic_api_key and corelogic_client_id:
+                    from etl.corelogic_api_connector import CoreLogicApiConnector
+                    corelogic_connector = CoreLogicApiConnector(
+                        api_key=corelogic_api_key,
+                        client_id=corelogic_client_id
+                    )
+                    logger.info("CoreLogic API connector initialized successfully")
+                else:
+                    logger.warning("CoreLogic API credentials not available")
+            except Exception as e:
+                logger.warning(f"Failed to initialize CoreLogic connector: {str(e)}")
+            self._register_connector('corelogic', corelogic_connector)
+            
+            # Auction.com for foreclosure data
+            auction_connector = None
+            try:
+                auction_username = os.environ.get('AUCTION_USERNAME')
+                auction_password = os.environ.get('AUCTION_PASSWORD')
+                if auction_username and auction_password:
+                    from etl.auction_api_connector import AuctionApiConnector
+                    auction_connector = AuctionApiConnector(
+                        username=auction_username,
+                        password=auction_password
+                    )
+                    logger.info("Auction.com API connector initialized successfully")
+                else:
+                    logger.warning("Auction.com credentials not available")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Auction.com connector: {str(e)}")
+            self._register_connector('auction', auction_connector)
             
         except Exception as e:
             logger.error(f"Error loading connectors: {str(e)}")
