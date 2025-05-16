@@ -477,6 +477,44 @@ class RedfinApiConnector(BaseApiConnector):
             'authenticated': self.is_authenticated
         }
     
+    def standardize_property(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Standardize property data from Redfin format to common format.
+        
+        Args:
+            data (dict): Property data from Redfin
+        
+        Returns:
+            dict: Standardized property data
+        """
+        standardized = {
+            'source': 'redfin',
+            'external_id': data.get('property_id') or data.get('id', '')
+        }
+        
+        # Extract common fields with Redfin-specific mappings
+        standardized.update({
+            'price': data.get('price', 0),
+            'address_line1': data.get('address', ''),
+            'city': data.get('city', ''),
+            'state': data.get('state', ''),
+            'zipcode': data.get('zipcode', ''),
+            'bedrooms': data.get('beds', 0) or data.get('bedrooms', 0),
+            'bathrooms': data.get('baths', 0) or data.get('bathrooms', 0),
+            'square_feet': data.get('square_feet', 0) or data.get('sqFt', 0),
+            'lot_size': data.get('lot_size', 0) or data.get('lotSize', 0),
+            'year_built': data.get('year_built', 0) or data.get('yearBuilt', 0),
+            'property_type': data.get('property_type', ''),
+            'status': data.get('status', ''),
+            'latitude': data.get('latitude', 0),
+            'longitude': data.get('longitude', 0),
+            'primary_image_url': data.get('primary_image_url', '') or data.get('photoUrl', ''),
+            'days_on_market': data.get('days_on_market', 0),
+            'raw_data': data
+        })
+        
+        return standardized
+    
     def test_connection(self) -> Dict[str, Any]:
         """
         Test the connection to Redfin.

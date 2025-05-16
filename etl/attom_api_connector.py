@@ -371,6 +371,179 @@ class AttomApiConnector(BaseApiConnector):
         
         return history
     
+    def get_market_trends(self, location: str = None, **kwargs) -> Dict[str, Any]:
+        """
+        Get market trends data for a location.
+        
+        Args:
+            location (str, optional): Location string (ZIP, city, etc.)
+            **kwargs: Additional search parameters
+        
+        Returns:
+            dict: Market trend data
+        """
+        # Parse location string
+        zipcode = None
+        city = None
+        state = None
+        
+        if location:
+            # Check if it's a ZIP code (5 digits)
+            if len(location) == 5 and location.isdigit():
+                zipcode = location
+            else:
+                # Assume city, state format
+                parts = location.split(',')
+                if len(parts) >= 2:
+                    city = parts[0].strip()
+                    state = parts[1].strip()
+        
+        # Use explicit parameters if provided
+        zipcode = kwargs.get('zipcode', zipcode)
+        city = kwargs.get('city', city)
+        state = kwargs.get('state', state)
+        
+        # Build the area search parameters
+        params = {}
+        if zipcode:
+            params['postalcode'] = zipcode
+        elif city and state:
+            params['city'] = city
+            params['state'] = state
+        elif state:
+            params['state'] = state
+        else:
+            logger.warning("No location parameters provided")
+            return {}
+        
+        # Add radius parameter if provided
+        if 'radius' in kwargs:
+            params['radius'] = kwargs['radius']
+        
+        # Make request to expanded profile endpoint which includes market data
+        endpoint = self.endpoints['avm']
+        response = self._make_request(endpoint, params)
+        
+        if 'error' in response:
+            return {'error': response['error'], 'source': 'attom'}
+        
+        # Process the market data
+        market_data = {
+            'source': 'attom',
+            'location': location or f"{city}, {state}" if city and state else state or zipcode,
+            'date_generated': datetime.now().isoformat(),
+            'trends': {}
+        }
+        
+        # Extract trend data from response
+        try:
+            properties = response.get('property', [])
+            if properties:
+                # Get the first property's area data
+                area_data = properties[0].get('area', {})
+                
+                # Extract median home value
+                median_value = area_data.get('median_value')
+                if median_value:
+                    market_data['trends']['median_home_value'] = median_value
+                
+                # Extract market appreciation rates
+                appreciation = area_data.get('appreciation')
+                if appreciation:
+                    market_data['trends']['appreciation'] = appreciation
+                
+                # Extract other market indicators
+                market_data['trends']['median_sale_price'] = area_data.get('median_sale_price')
+                market_data['trends']['median_price_per_sqft'] = area_data.get('median_price_per_sqft')
+                market_data['trends']['days_on_market'] = area_data.get('days_on_market')
+                
+                # Add location details
+                market_data['location_details'] = {
+                    'zipcode': area_data.get('postal_code'),
+                    'city': area_data.get('city'),
+                    'state': area_data.get('state'),
+                    'county': area_data.get('county')
+                }
+        except Exception as e:
+            logger.error(f"Error processing ATTOM market trend data: {str(e)}")
+            market_data['error'] = f"Processing error: {str(e)}"
+        
+        return market_data
+    
+    def standardize_property(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Standardize property data from ATTOM format to common format.
+        
+        Args:
+            data (dict): Property data from ATTOM
+        
+        Returns:
+            dict: Standardized property data
+        """
+        standardized = {
+            'source': 'attom',
+            'external_id': data.get('identifier', {}).get('attomId') or data.get('attomId')
+        }
+        
+        # Extract address fields
+        address = data.get('address', {})
+        if address:
+            standardized.update({
+                'address_line1': address.get('line1') or address.get('streetAddress'),
+                'city': address.get('locality') or address.get('city'),
+                'state': address.get('countrySubd') or address.get('state'),
+                'zipcode': address.get('postal1') or address.get('zipCode'),
+            })
+        
+        # Extract location coordinates
+        location = data.get('location', {})
+        if location:
+            standardized.update({
+                'latitude': location.get('latitude'),
+                'longitude': location.get('longitude'),
+            })
+        
+        # Extract building information
+        building = data.get('building', {})
+        if building:
+            standardized.update({
+                'square_feet': building.get('size', {}).get('universalsize'),
+                'bedrooms': building.get('rooms', {}).get('beds'),
+                'bathrooms': building.get('rooms', {}).get('bathstotal'),
+                'year_built': building.get('yearbuilt'),
+                'stories': building.get('stories'),
+                'property_type': building.get('construction', {}).get('style'),
+            })
+        
+        # Extract lot information
+        lot = data.get('lot', {})
+        if lot:
+            standardized.update({
+                'lot_size': lot.get('size', {}).get('universalsize'),
+            })
+        
+        # Extract valuation
+        sale = data.get('sale', {})
+        if sale:
+            standardized.update({
+                'price': sale.get('amount', {}).get('saleAmt'),
+                'last_sold_date': sale.get('salesearchdate'),
+                'last_sold_price': sale.get('amount', {}).get('saleAmt'),
+            })
+        
+        # Extract tax information
+        tax = data.get('tax', {})
+        if tax:
+            standardized.update({
+                'tax_assessed_value': tax.get('taxAmt'),
+                'tax_annual_amount': tax.get('taxAmt'),
+            })
+        
+        # Set raw data for reference
+        standardized['raw_data'] = data
+        
+        return standardized
+    
     def get_metrics(self) -> Dict[str, Any]:
         """Get connector performance metrics."""
         # Calculate average response time
