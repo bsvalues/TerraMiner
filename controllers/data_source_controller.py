@@ -423,6 +423,30 @@ def _get_all_data_sources(connector):
     
     # Get information from active connectors
     for name, source_connector in connector.connectors.items():
+        # Skip None connectors (not yet implemented or failed to initialize)
+        if source_connector is None:
+            # Create a basic info object from database status
+            db_status = source_status_dict.get(name, {})
+            status = db_status.get('status', 'unavailable')
+            source_info = {
+                'name': name,
+                'status': status,
+                'priority': db_status.get('priority', 'unknown'),
+                'priority_num': 999,  # Sort at the end
+                'enabled': db_status.get('is_active', False),
+                'data_types': [],
+                'success_rate': 0,
+                'metrics': {
+                    'requests': 0,
+                    'errors': 0,
+                    'avg_response_time': 0
+                },
+                'message': 'Connector not implemented or failed to initialize'
+            }
+            data_sources.append(source_info)
+            continue
+
+        # Get health and metrics for active connectors
         health = source_connector.get_health_status()
         metrics = source_connector.get_metrics()
         
