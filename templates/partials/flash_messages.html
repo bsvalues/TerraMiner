@@ -1,15 +1,15 @@
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
     {% for category, message in messages %}
-      <div class="alert alert-{{ category }} mb-4 p-4 rounded-lg {% if category == 'success' %}bg-green-100 border-green-300 text-green-800{% elif category == 'error' %}bg-red-100 border-red-300 text-red-800{% elif category == 'warning' %}bg-yellow-100 border-yellow-300 text-yellow-800{% elif category == 'info' %}bg-blue-100 border-blue-300 text-blue-800{% endif %}">
+      <div class="alert alert-{{ category }} mb-4 p-4 rounded {% if category == 'success' %}bg-success bg-opacity-10 border-success text-success{% elif category == 'error' or category == 'danger' %}bg-danger bg-opacity-10 border-danger text-danger{% elif category == 'warning' %}bg-warning bg-opacity-10 border-warning text-warning{% elif category == 'info' %}bg-info bg-opacity-10 border-info text-info{% endif %}">
         {% if category == 'success' %}
-          <i class="fas fa-check-circle mr-2"></i>
+          <i class="bi bi-check-circle-fill me-2"></i>
         {% elif category == 'error' %}
-          <i class="fas fa-exclamation-circle mr-2"></i>
+          <i class="bi bi-exclamation-circle-fill me-2"></i>
         {% elif category == 'warning' %}
-          <i class="fas fa-exclamation-triangle mr-2"></i>
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
         {% elif category == 'info' %}
-          <i class="fas fa-info-circle mr-2"></i>
+          <i class="bi bi-info-circle-fill me-2"></i>
         {% endif %}
         {{ message }}
       </div>
