@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}API Credential Management{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    
+    <style>
+        /* Custom styles */
+        body {
+            background-color: #0f172a; /* Tailwind sky-900 */
+            color: #f8fafc; /* Tailwind slate-50 */
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background-color: #1e293b; /* Tailwind slate-800 */
+            border-bottom: 1px solid #334155; /* Tailwind slate-600 */
+        }
+        .nav-link {
+            color: #cbd5e1; /* Tailwind slate-300 */
+        }
+        .nav-link:hover {
+            color: #f8fafc; /* Tailwind slate-50 */
+        }
+        .card {
+            background-color: #1e293b; /* Tailwind slate-800 */
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .footer {
+            background-color: #1e293b; /* Tailwind slate-800 */
+            border-top: 1px solid #334155; /* Tailwind slate-600 */
+        }
+        /* Text colors */
+        .text-primary {
+            color: #38bdf8; /* Tailwind blue-400 */
+        }
+        .text-secondary {
+            color: #94a3b8; /* Tailwind slate-400 */
+        }
+        .text-success {
+            color: #4ade80; /* Tailwind green-400 */
+        }
+        .text-danger {
+            color: #f87171; /* Tailwind red-400 */
+        }
+        .text-warning {
+            color: #facc15; /* Tailwind yellow-400 */
+        }
+        .text-info {
+            color: #60a5fa; /* Tailwind blue-400 */
+        }
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            font-weight: 500;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .btn-primary {
+            background-color: #3b82f6; /* Tailwind blue-500 */
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #2563eb; /* Tailwind blue-600 */
+        }
+        .btn-secondary {
+            background-color: #64748b; /* Tailwind slate-500 */
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #475569; /* Tailwind slate-600 */
+        }
+        .btn-success {
+            background-color: #22c55e; /* Tailwind green-500 */
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #16a34a; /* Tailwind green-600 */
+        }
+        .btn-danger {
+            background-color: #ef4444; /* Tailwind red-500 */
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #dc2626; /* Tailwind red-600 */
+        }
+        /* Tables */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .table th {
+            text-align: left;
+            padding: 0.75rem;
+            background-color: #334155; /* Tailwind slate-700 */
+            color: #f8fafc; /* Tailwind slate-50 */
+            font-weight: 600;
+        }
+        .table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #334155; /* Tailwind slate-700 */
+        }
+        .table tr:hover {
+            background-color: #334155; /* Tailwind slate-700 */
+        }
+        /* Form controls */
+        .form-control {
+            width: 100%;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            background-color: #0f172a; /* Tailwind slate-900 */
+            border: 1px solid #334155; /* Tailwind slate-700 */
+            color: #f8fafc; /* Tailwind slate-50 */
+        }
+        .form-control:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); /* Tailwind blue-500 */
+            border-color: #3b82f6; /* Tailwind blue-500 */
+        }
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-success {
+            background-color: #22c55e; /* Tailwind green-500 */
+            color: white;
+        }
+        .badge-danger {
+            background-color: #ef4444; /* Tailwind red-500 */
+            color: white;
+        }
+        .badge-warning {
+            background-color: #f59e0b; /* Tailwind amber-500 */
+            color: white;
+        }
+        .badge-info {
+            background-color: #3b82f6; /* Tailwind blue-500 */
+            color: white;
+        }
+        .status-active {
+            color: #4ade80; /* green-400 */
+        }
+        .status-inactive {
+            color: #f87171; /* red-400 */
+        }
+        .status-warning {
+            color: #facc15; /* yellow-400 */
+        }
+    </style>
+    
+    {% block styles %}{% endblock %}
+</head>
+<body class="min-h-screen">
+    <!-- Header -->
+    <header class="header py-4 px-6">
+        <div class="container flex justify-between items-center">
+            <div class="flex items-center">
+                <a href="/" class="text-2xl font-bold text-white">
+                    <span class="text-white">Terra</span><span class="text-primary">Miner</span>
+                </a>
+                <span class="ml-2 px-2 py-1 text-xs bg-gray-700 text-blue-400 rounded-full">TerraFusion</span>
+            </div>
+            
+            <nav>
+                <ul class="flex space-x-6">
+                    <li><a href="/" class="nav-link">Home</a></li>
+                    <li><a href="/monitoring-dashboard" class="nav-link">Monitoring</a></li>
+                    <li><a href="/api-credentials" class="nav-link text-primary font-medium">API Credentials</a></li>
+                    <li><a href="/data-sources" class="nav-link">Data Sources</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="container py-8">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Footer -->
+    <footer class="footer py-4 px-6 mt-8">
+        <div class="container">
+            <p class="text-center text-secondary">TerraMiner &copy; 2025 TerraFusion. All rights reserved.</p>
+        </div>
+    </footer>
+    
+    <!-- Scripts -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>
