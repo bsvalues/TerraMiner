@@ -94,6 +94,14 @@ try:
 except Exception as e:
     logger.error(f"Failed to register Data Source Manager blueprint: {str(e)}")
 
+# Register API Credential Manager blueprint
+try:
+    from controllers.api_credential_controller import register_blueprint as register_api_credential_blueprint
+    register_api_credential_blueprint(app)
+    logger.info("Registered API Credential Manager blueprint")
+except Exception as e:
+    logger.error(f"Failed to register API Credential Manager blueprint: {str(e)}")
+
 # Setup data synchronization
 try:
     from etl.data_sync_job import setup_sync_schedule

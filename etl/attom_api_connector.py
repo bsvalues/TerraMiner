@@ -11,6 +11,7 @@ import json
 import logging
 import requests
 import time
+import datetime
 from typing import Dict, Any, Optional, List, Union
 
 from etl.base_api_connector import BaseApiConnector

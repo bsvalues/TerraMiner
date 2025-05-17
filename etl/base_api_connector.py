@@ -155,6 +155,49 @@ class BaseApiConnector(ABC):
             'is_authenticated': self.is_authenticated
         }
     
+    def test_connection(self) -> Dict[str, Any]:
+        """
+        Test the connection to the API to verify credentials and availability.
+        
+        This is a common implementation that can be overridden by specific connectors
+        if they need custom testing logic. The default implementation tries to make
+        a simple search request to verify connectivity.
+        
+        Returns:
+            Dict[str, Any]: Connection test results with success status and response time
+        """
+        start_time = time.time()
+        try:
+            # Try a minimal property search to test the connection
+            test_location = "10001"  # Use NYC ZIP code as a test
+            test_response = self.search_properties(test_location, limit=1)
+            
+            # Check if response contains any error indicators
+            if isinstance(test_response, dict) and test_response.get('error'):
+                response_time = time.time() - start_time
+                return {
+                    'success': False, 
+                    'message': f"API Error: {test_response.get('error')}",
+                    'response_time': response_time * 1000  # Convert to milliseconds
+                }
+            
+            # Success case
+            response_time = time.time() - start_time
+            return {
+                'success': True,
+                'message': f"Successfully connected to {self.__class__.__name__} API",
+                'response_time': response_time * 1000  # Convert to milliseconds
+            }
+            
+        except Exception as e:
+            response_time = time.time() - start_time
+            logger.error(f"Connection test failed for {self.__class__.__name__}: {str(e)}")
+            return {
+                'success': False,
+                'message': f"Connection error: {str(e)}",
+                'response_time': response_time * 1000  # Convert to milliseconds
+            }
+    
     @abstractmethod
     def search_properties(self, location: str, **kwargs) -> Dict[str, Any]:
         """
