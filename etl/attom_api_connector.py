@@ -431,7 +431,7 @@ class AttomApiConnector(BaseApiConnector):
         market_data = {
             'source': 'attom',
             'location': location or f"{city}, {state}" if city and state else state or zipcode,
-            'date_generated': datetime.now().isoformat(),
+            'date_generated': datetime.datetime.now().isoformat(),
             'trends': {}
         }
         
