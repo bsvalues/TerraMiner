@@ -64,8 +64,8 @@
                                         <i class="bi bi-lightning"></i> Test
                                     </button>
                                 {% else %}
-                                    <a href="{{ url_for('api_credentials.create_form', source_name=source.name) }}" class="btn btn-sm btn-success" title="Add credentials">
-                                        <i class="fas fa-plus-circle"></i> Add
+                                    <a href="{{ url_for('api_credentials.create_form', source_name=source.name) }}" class="btn btn-sm btn-success bg-gradient" title="Add credentials">
+                                        <i class="bi bi-plus-circle"></i> Add
                                     </a>
                                 {% endif %}
                             </div>
@@ -84,10 +84,10 @@
     </div>
     <div class="card-body">
         <div class="alert alert-primary">
-            <i class="fas fa-shield-alt me-2"></i> All API keys and credentials are securely stored in the database. Sensitive information is only shown when editing.
+            <i class="bi bi-shield-lock me-2"></i> All API keys and credentials are securely stored in the database. Sensitive information is only shown when editing.
         </div>
         <div class="alert alert-info">
-            <i class="fas fa-info-circle me-2"></i> Disabled credentials will not be used for API requests, but remain stored for future use.
+            <i class="bi bi-info-circle me-2"></i> Disabled credentials will not be used for API requests, but remain stored for future use.
         </div>
     </div>
 </div>
@@ -150,11 +150,11 @@
                 
                 toastElement.innerHTML = `
                     <div class="toast-header bg-success text-white">
-                        <i class="fas fa-check-circle me-2"></i>
+                        <i class="bi bi-check-circle-fill me-2"></i>
                         <strong class="me-auto">Success</strong>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
                     </div>
-                    <div class="toast-body">
+                    <div class="toast-body bg-dark text-light">
                         ${data.message}
                     </div>
                 `;

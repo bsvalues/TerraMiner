@@ -24,7 +24,7 @@
         </p>
         
         <div class="alert alert-primary mb-4">
-            <h5 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Instructions</h5>
+            <h5 class="alert-heading"><i class="bi bi-info-circle-fill me-2"></i>Instructions</h5>
             <p class="mb-0">{{ config.instructions }}</p>
         </div>
 
@@ -48,7 +48,7 @@
                             class="form-control"
                             required>
                         <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('{{ field }}')">
-                            <i class="fas fa-eye" id="{{ field }}-icon"></i>
+                            <i class="bi bi-eye" id="{{ field }}-icon"></i>
                         </button>
                     </div>
                     <div class="form-text">
@@ -76,7 +76,7 @@
                             class="form-control">
                         {% if 'password' in field or 'secret' in field %}
                         <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('{{ field }}')">
-                            <i class="fas fa-eye" id="{{ field }}-icon"></i>
+                            <i class="bi bi-eye" id="{{ field }}-icon"></i>
                         </button>
                         {% endif %}
                     </div>
@@ -145,10 +145,10 @@
     </div>
     <div class="card-body">
         <div class="alert alert-warning">
-            <i class="fas fa-shield-alt me-2"></i> All credentials are stored securely in the database.
+            <i class="bi bi-shield-lock-fill me-2"></i> All credentials are stored securely in the database.
         </div>
         <div class="alert alert-danger">
-            <i class="fas fa-exclamation-triangle me-2"></i> Never share your API keys or credentials with anyone.
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> Never share your API keys or credentials with anyone.
         </div>
     </div>
 </div>
