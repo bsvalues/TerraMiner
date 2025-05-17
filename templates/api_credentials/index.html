@@ -2,7 +2,7 @@
 
 {% block title %}API Credential Management{% endblock %}
 
-{% block content %}
+{% block api_credentials_content %}
 {% include 'partials/flash_messages.html' %}
 
 <div class="card mb-4">
@@ -47,21 +47,21 @@
                         <td>
                             <div class="btn-group" role="group">
                                 {% if source.has_credentials %}
-                                    <a href="{{ url_for('api_credentials.create_form', source_name=source.name) }}" class="btn btn-sm btn-primary" title="Edit credentials">
-                                        <i class="fas fa-edit"></i> Edit
+                                    <a href="{{ url_for('api_credentials.create_form', source_name=source.name) }}" class="btn btn-sm btn-primary bg-gradient" title="Edit credentials">
+                                        <i class="bi bi-pencil"></i> Edit
                                     </a>
                                     <form class="d-inline" method="POST" action="{{ url_for('api_credentials.toggle', credential_id=source.credentials_id) }}" id="toggle-form-{{ source.credentials_id }}">
-                                        <button type="button" onclick="toggleCredential({{ source.credentials_id }})" class="btn btn-sm btn-{{ 'danger' if source.is_enabled else 'success' }}" title="{{ 'Disable' if source.is_enabled else 'Enable' }} credentials">
-                                            <i class="fas fa-{{ 'toggle-off' if source.is_enabled else 'toggle-on' }}"></i> {{ 'Disable' if source.is_enabled else 'Enable' }}
+                                        <button type="button" onclick="toggleCredential({{ source.credentials_id }})" class="btn btn-sm btn-{{ 'danger' if source.is_enabled else 'success' }} bg-gradient" title="{{ 'Disable' if source.is_enabled else 'Enable' }} credentials">
+                                            <i class="bi bi-{{ 'toggle2-off' if source.is_enabled else 'toggle2-on' }}"></i> {{ 'Disable' if source.is_enabled else 'Enable' }}
                                         </button>
                                     </form>
                                     <form class="d-inline delete-form" method="POST" action="{{ url_for('api_credentials.delete', credential_id=source.credentials_id) }}">
-                                        <button type="button" onclick="confirmDelete(this.form)" class="btn btn-sm btn-danger" title="Delete credentials">
-                                            <i class="fas fa-trash-alt"></i> Delete
+                                        <button type="button" onclick="confirmDelete(this.form)" class="btn btn-sm btn-danger bg-gradient" title="Delete credentials">
+                                            <i class="bi bi-trash"></i> Delete
                                         </button>
                                     </form>
-                                    <button type="button" onclick="testConnection('{{ source.name }}')" class="btn btn-sm btn-info" title="Test connection">
-                                        <i class="fas fa-plug"></i> Test
+                                    <button type="button" onclick="testConnection('{{ source.name }}')" class="btn btn-sm btn-info bg-gradient" title="Test connection">
+                                        <i class="bi bi-lightning"></i> Test
                                     </button>
                                 {% else %}
                                     <a href="{{ url_for('api_credentials.create_form', source_name=source.name) }}" class="btn btn-sm btn-success" title="Add credentials">
@@ -95,10 +95,10 @@
 <!-- Test Connection Modal -->
 <div class="modal fade" id="testModal" tabindex="-1" aria-labelledby="testModalLabel" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header border-secondary">
                 <h5 class="modal-title" id="testModalLabel">Testing Connection</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="testModalContent">
                 <div class="d-flex justify-content-center align-items-center">
@@ -108,8 +108,8 @@
                     <p class="mb-0">Testing connection...</p>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -206,24 +206,24 @@
                 modalContent.innerHTML = `
                     <div class="text-center">
                         <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
-                            <i class="fas fa-check fs-1"></i>
+                            <i class="bi bi-check-lg fs-1"></i>
                         </div>
-                        <div class="alert alert-success">
+                        <div class="alert alert-success bg-success bg-opacity-25 border-success text-success">
                             ${data.message}
                         </div>
-                        <p class="text-muted">Response time: ${data.response_time.toFixed(2)}ms</p>
+                        <p class="text-light opacity-75">Response time: ${data.response_time.toFixed(2)}ms</p>
                     </div>
                 `;
             } else {
                 modalContent.innerHTML = `
                     <div class="text-center">
                         <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
-                            <i class="fas fa-times fs-1"></i>
+                            <i class="bi bi-x-lg fs-1"></i>
                         </div>
-                        <div class="alert alert-danger">
+                        <div class="alert alert-danger bg-danger bg-opacity-25 border-danger text-danger">
                             Connection failed
                         </div>
-                        <p class="text-dark">${data.message}</p>
+                        <p class="text-light">${data.message}</p>
                     </div>
                 `;
             }
@@ -233,12 +233,12 @@
             modalContent.innerHTML = `
                 <div class="text-center">
                     <div class="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
-                        <i class="fas fa-exclamation-triangle fs-1"></i>
+                        <i class="bi bi-exclamation-triangle fs-1"></i>
                     </div>
-                    <div class="alert alert-warning">
+                    <div class="alert alert-warning bg-warning bg-opacity-25 border-warning text-warning">
                         Error testing connection
                     </div>
-                    <p class="text-dark">An unexpected error occurred while testing the connection.</p>
+                    <p class="text-light">An unexpected error occurred while testing the connection.</p>
                 </div>
             `;
         });
