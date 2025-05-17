@@ -3,85 +3,72 @@
 {% block title %}API Credential Management{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold mb-2">API Credential Management</h1>
-        <p class="text-gray-600">
-            Manage API keys and credentials for all data sources in one place.
-            These credentials are used by the data connectors to fetch property information.
-        </p>
-    </div>
+{% include 'partials/flash_messages.html' %}
 
-    {% include 'partials/flash_messages.html' %}
-    
-    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 class="text-2xl font-semibold mb-4">Available Data Sources</h2>
-        
-        <div class="overflow-x-auto">
-            <table class="min-w-full bg-white">
-                <thead>
-                    <tr class="bg-gray-100">
-                        <th class="py-3 px-4 text-left font-semibold text-gray-700">Data Source</th>
-                        <th class="py-3 px-4 text-left font-semibold text-gray-700">Description</th>
-                        <th class="py-3 px-4 text-left font-semibold text-gray-700">Status</th>
-                        <th class="py-3 px-4 text-left font-semibold text-gray-700">Required Fields</th>
-                        <th class="py-3 px-4 text-left font-semibold text-gray-700">Actions</th>
+<div class="card mb-4">
+    <div class="card-header">
+        <h3 class="mb-0">Available Data Sources</h3>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Data Source</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th>Required Fields</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for source in available_sources %}
-                    <tr class="border-b hover:bg-gray-50">
-                        <td class="py-3 px-4">
-                            <span class="font-medium capitalize">{{ source.name }}</span>
+                    <tr>
+                        <td>
+                            <strong class="text-capitalize">{{ source.name }}</strong>
                         </td>
-                        <td class="py-3 px-4">{{ source.description }}</td>
-                        <td class="py-3 px-4">
+                        <td>{{ source.description }}</td>
+                        <td>
                             {% if source.connector_status == "not_implemented" %}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                                    Not Implemented
-                                </span>
+                                <span class="badge bg-secondary">Not Implemented</span>
                             {% elif source.has_credentials and source.is_enabled %}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                    Active
-                                </span>
+                                <span class="badge bg-success">Active</span>
                             {% elif source.has_credentials and not source.is_enabled %}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                    Disabled
-                                </span>
+                                <span class="badge bg-warning text-dark">Disabled</span>
                             {% else %}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                    No Credentials
-                                </span>
+                                <span class="badge bg-danger">No Credentials</span>
                             {% endif %}
                         </td>
-                        <td class="py-3 px-4">
+                        <td>
                             {% for field in source.required_fields %}
-                                <span class="mr-2 capitalize">{{ field }}</span>
+                                <span class="badge bg-info text-dark me-1 text-capitalize">{{ field }}</span>
                             {% endfor %}
                         </td>
-                        <td class="py-3 px-4">
-                            {% if source.has_credentials %}
-                                <a href="{{ url_for('api_credentials.create_form', source_name=source.name) }}" class="text-blue-600 hover:text-blue-800 mr-2" title="Edit credentials">
-                                    <i class="fas fa-edit"></i> Edit
-                                </a>
-                                <form class="inline" method="POST" action="{{ url_for('api_credentials.toggle', credential_id=source.credentials_id) }}" id="toggle-form-{{ source.credentials_id }}">
-                                    <button type="button" onclick="toggleCredential({{ source.credentials_id }})" class="text-{{ 'red' if source.is_enabled else 'green' }}-600 hover:text-{{ 'red' if source.is_enabled else 'green' }}-800 mr-2" title="{{ 'Disable' if source.is_enabled else 'Enable' }} credentials">
-                                        <i class="fas fa-{{ 'toggle-off' if source.is_enabled else 'toggle-on' }}"></i> {{ 'Disable' if source.is_enabled else 'Enable' }}
+                        <td>
+                            <div class="btn-group" role="group">
+                                {% if source.has_credentials %}
+                                    <a href="{{ url_for('api_credentials.create_form', source_name=source.name) }}" class="btn btn-sm btn-primary" title="Edit credentials">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <form class="d-inline" method="POST" action="{{ url_for('api_credentials.toggle', credential_id=source.credentials_id) }}" id="toggle-form-{{ source.credentials_id }}">
+                                        <button type="button" onclick="toggleCredential({{ source.credentials_id }})" class="btn btn-sm btn-{{ 'danger' if source.is_enabled else 'success' }}" title="{{ 'Disable' if source.is_enabled else 'Enable' }} credentials">
+                                            <i class="fas fa-{{ 'toggle-off' if source.is_enabled else 'toggle-on' }}"></i> {{ 'Disable' if source.is_enabled else 'Enable' }}
+                                        </button>
+                                    </form>
+                                    <form class="d-inline delete-form" method="POST" action="{{ url_for('api_credentials.delete', credential_id=source.credentials_id) }}">
+                                        <button type="button" onclick="confirmDelete(this.form)" class="btn btn-sm btn-danger" title="Delete credentials">
+                                            <i class="fas fa-trash-alt"></i> Delete
+                                        </button>
+                                    </form>
+                                    <button type="button" onclick="testConnection('{{ source.name }}')" class="btn btn-sm btn-info" title="Test connection">
+                                        <i class="fas fa-plug"></i> Test
                                     </button>
-                                </form>
-                                <form class="inline delete-form" method="POST" action="{{ url_for('api_credentials.delete', credential_id=source.credentials_id) }}">
-                                    <button type="button" onclick="confirmDelete(this.form)" class="text-red-600 hover:text-red-800" title="Delete credentials">
-                                        <i class="fas fa-trash-alt"></i> Delete
-                                    </button>
-                                </form>
-                                <button type="button" onclick="testConnection('{{ source.name }}')" class="ml-2 text-indigo-600 hover:text-indigo-800" title="Test connection">
-                                    <i class="fas fa-plug"></i> Test
-                                </button>
-                            {% else %}
-                                <a href="{{ url_for('api_credentials.create_form', source_name=source.name) }}" class="text-blue-600 hover:text-blue-800" title="Add credentials">
-                                    <i class="fas fa-plus-circle"></i> Add
-                                </a>
-                            {% endif %}
+                                {% else %}
+                                    <a href="{{ url_for('api_credentials.create_form', source_name=source.name) }}" class="btn btn-sm btn-success" title="Add credentials">
+                                        <i class="fas fa-plus-circle"></i> Add
+                                    </a>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -89,77 +76,50 @@
             </table>
         </div>
     </div>
-    
-    <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-2xl font-semibold mb-4">Data Source Security</h2>
-        <div class="mb-4">
-            <p class="text-gray-600">
-                <i class="fas fa-shield-alt text-blue-500 mr-2"></i> All API keys and credentials are securely stored in the database. Sensitive information is only shown when editing.
-            </p>
-            <p class="text-gray-600 mt-2">
-                <i class="fas fa-info-circle text-blue-500 mr-2"></i> Disabled credentials will not be used for API requests, but remain stored for future use.
-            </p>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="mb-0">Data Source Security</h3>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-primary">
+            <i class="fas fa-shield-alt me-2"></i> All API keys and credentials are securely stored in the database. Sensitive information is only shown when editing.
+        </div>
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i> Disabled credentials will not be used for API requests, but remain stored for future use.
         </div>
     </div>
 </div>
 
 <!-- Test Connection Modal -->
-<div id="test-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-semibold" id="test-modal-title">Testing Connection</h3>
-            <button onclick="closeTestModal()" class="text-gray-500 hover:text-gray-700">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div id="test-modal-content" class="py-4">
-            <div class="flex justify-center">
-                <div class="spinner">
-                    <div class="double-bounce1"></div>
-                    <div class="double-bounce2"></div>
-                </div>
-                <p class="ml-3">Testing connection...</p>
+<div class="modal fade" id="testModal" tabindex="-1" aria-labelledby="testModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="testModalLabel">Testing Connection</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-        </div>
-        <div class="mt-4 flex justify-end">
-            <button onclick="closeTestModal()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                Close
-            </button>
+            <div class="modal-body" id="testModalContent">
+                <div class="d-flex justify-content-center align-items-center">
+                    <div class="spinner-border text-primary me-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mb-0">Testing connection...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
-{% block styles %}
-<style>
-    .spinner {
-        width: 30px;
-        height: 30px;
-        position: relative;
-    }
-    .double-bounce1, .double-bounce2 {
-        width: 100%;
-        height: 100%;
-        border-radius: 50%;
-        background-color: #3B82F6;
-        opacity: 0.6;
-        position: absolute;
-        top: 0;
-        left: 0;
-        animation: bounce 2.0s infinite ease-in-out;
-    }
-    .double-bounce2 {
-        animation-delay: -1.0s;
-    }
-    @keyframes bounce {
-        0%, 100% { transform: scale(0.0) }
-        50% { transform: scale(1.0) }
-    }
-</style>
-{% endblock %}
-
 {% block scripts %}
 <script>
+    const testModal = new bootstrap.Modal(document.getElementById('testModal'));
+    
     function confirmDelete(form) {
         if (confirm('Are you sure you want to delete these credentials? This action cannot be undone.')) {
             form.submit();
@@ -177,15 +137,34 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Show a temporary message
-                const message = document.createElement('div');
-                message.className = 'fixed top-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-md';
-                message.innerHTML = data.message;
-                document.body.appendChild(message);
+                // Create toast notification
+                const toastContainer = document.createElement('div');
+                toastContainer.className = 'position-fixed top-0 end-0 p-3';
+                toastContainer.style.zIndex = '1070';
+                
+                const toastElement = document.createElement('div');
+                toastElement.className = 'toast show';
+                toastElement.setAttribute('role', 'alert');
+                toastElement.setAttribute('aria-live', 'assertive');
+                toastElement.setAttribute('aria-atomic', 'true');
+                
+                toastElement.innerHTML = `
+                    <div class="toast-header bg-success text-white">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong class="me-auto">Success</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${data.message}
+                    </div>
+                `;
+                
+                toastContainer.appendChild(toastElement);
+                document.body.appendChild(toastContainer);
                 
                 // Remove after 3 seconds
                 setTimeout(() => {
-                    message.remove();
+                    toastContainer.remove();
                     // Reload the page to reflect changes
                     window.location.reload();
                 }, 2000);
@@ -200,22 +179,20 @@
     }
     
     function testConnection(sourceName) {
-        const modal = document.getElementById('test-modal');
-        const modalTitle = document.getElementById('test-modal-title');
-        const modalContent = document.getElementById('test-modal-content');
+        const modalTitle = document.getElementById('testModalLabel');
+        const modalContent = document.getElementById('testModalContent');
         
         modalTitle.textContent = `Testing ${sourceName} Connection`;
         modalContent.innerHTML = `
-            <div class="flex justify-center">
-                <div class="spinner">
-                    <div class="double-bounce1"></div>
-                    <div class="double-bounce2"></div>
+            <div class="d-flex justify-content-center align-items-center">
+                <div class="spinner-border text-primary me-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
                 </div>
-                <p class="ml-3">Testing connection...</p>
+                <p class="mb-0">Testing connection...</p>
             </div>
         `;
         
-        modal.classList.remove('hidden');
+        testModal.show();
         
         fetch(`/api-credentials/test/${sourceName}`, {
             method: 'POST',
@@ -228,21 +205,25 @@
             if (data.success) {
                 modalContent.innerHTML = `
                     <div class="text-center">
-                        <div class="bg-green-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto">
-                            <i class="fas fa-check text-green-500 text-2xl"></i>
+                        <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-check fs-1"></i>
                         </div>
-                        <p class="text-green-700 mt-4">${data.message}</p>
-                        <p class="text-gray-600 mt-2">Response time: ${data.response_time.toFixed(2)}ms</p>
+                        <div class="alert alert-success">
+                            ${data.message}
+                        </div>
+                        <p class="text-muted">Response time: ${data.response_time.toFixed(2)}ms</p>
                     </div>
                 `;
             } else {
                 modalContent.innerHTML = `
                     <div class="text-center">
-                        <div class="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto">
-                            <i class="fas fa-times text-red-500 text-2xl"></i>
+                        <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-times fs-1"></i>
                         </div>
-                        <p class="text-red-700 mt-4">Connection failed</p>
-                        <p class="text-gray-900 mt-2">${data.message}</p>
+                        <div class="alert alert-danger">
+                            Connection failed
+                        </div>
+                        <p class="text-dark">${data.message}</p>
                     </div>
                 `;
             }
@@ -251,19 +232,16 @@
             console.error('Error:', error);
             modalContent.innerHTML = `
                 <div class="text-center">
-                    <div class="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto">
-                        <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                    <div class="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+                        <i class="fas fa-exclamation-triangle fs-1"></i>
                     </div>
-                    <p class="text-red-700 mt-4">Error testing connection</p>
-                    <p class="text-gray-900 mt-2">An unexpected error occurred while testing the connection.</p>
+                    <div class="alert alert-warning">
+                        Error testing connection
+                    </div>
+                    <p class="text-dark">An unexpected error occurred while testing the connection.</p>
                 </div>
             `;
         });
-    }
-    
-    function closeTestModal() {
-        const modal = document.getElementById('test-modal');
-        modal.classList.add('hidden');
     }
 </script>
 {% endblock %}
