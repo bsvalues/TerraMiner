@@ -10,6 +10,7 @@ from typing import Dict, Any, Optional, List
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text
 import os
 import logging
+from utils.crypto_utils import encrypt_value, decrypt_value
 
 # Add the root directory to the path to ensure imports work correctly
 import sys
@@ -36,14 +37,55 @@ class ApiCredential(db.Model):
     source_name = Column(String(50), unique=True, index=True)
     
     # Authentication details (one or more may be used depending on the source)
-    api_key = Column(String(500))
-    username = Column(String(100))
-    password = Column(String(255))
-    client_id = Column(String(100))
-    client_secret = Column(String(255))
-    
-    # Additional credentials in key-value format
-    additional_credentials = Column(Text)  # JSON string of additional credentials
+    # Sensitive fields are stored encrypted-at-rest. Migration required for existing data.
+    _api_key = Column("api_key", String(500))
+    _username = Column("username", String(100))
+    _password = Column("password", String(255))
+    _client_id = Column("client_id", String(100))
+    _client_secret = Column("client_secret", String(255))
+    _additional_credentials = Column("additional_credentials", Text)  # JSON string of additional credentials
+
+    @property
+    def api_key(self):
+        return decrypt_value(self._api_key)
+    @api_key.setter
+    def api_key(self, value):
+        self._api_key = encrypt_value(value)
+
+    @property
+    def username(self):
+        return decrypt_value(self._username)
+    @username.setter
+    def username(self, value):
+        self._username = encrypt_value(value)
+
+    @property
+    def password(self):
+        return decrypt_value(self._password)
+    @password.setter
+    def password(self, value):
+        self._password = encrypt_value(value)
+
+    @property
+    def client_id(self):
+        return decrypt_value(self._client_id)
+    @client_id.setter
+    def client_id(self, value):
+        self._client_id = encrypt_value(value)
+
+    @property
+    def client_secret(self):
+        return decrypt_value(self._client_secret)
+    @client_secret.setter
+    def client_secret(self, value):
+        self._client_secret = encrypt_value(value)
+
+    @property
+    def additional_credentials(self):
+        return decrypt_value(self._additional_credentials)
+    @additional_credentials.setter
+    def additional_credentials(self, value):
+        self._additional_credentials = encrypt_value(value)
     
     # Configuration
     base_url = Column(String(255))  # Optional override for source's default URL

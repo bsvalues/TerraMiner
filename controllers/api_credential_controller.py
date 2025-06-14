@@ -7,12 +7,31 @@ This module provides routes for managing API credentials for data sources in Ter
 import json
 import logging
 from datetime import datetime
-from flask import Blueprint, render_template, jsonify, request, redirect, url_for, flash, current_app
+from flask import Blueprint, render_template, jsonify, request, redirect, url_for, flash, current_app, session
 from typing import Dict, Any, List
+from middleware.auth import require_role
+import os
 
 from db import db
 from models.api_credential import ApiCredential
 from etl.real_estate_data_connector import RealEstateDataConnector
+
+def send_alert(message):
+    # Placeholder for future alert integration (email/Slack/etc.)
+    logger.warning(f"ALERT: {message}")
+
+def audit_log(action, source, user=None):
+    log_entry = {
+        "timestamp": datetime.utcnow().isoformat(),
+        "user": user or session.get('user', {}).get('username', 'anonymous'),
+        "action": action,
+        "source": source
+    }
+    log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'logs')
+    os.makedirs(log_dir, exist_ok=True)
+    log_path = os.path.join(log_dir, 'credential_audit.log')
+    with open(log_path, 'a') as f:
+        f.write(json.dumps(log_entry) + '\n')
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -126,6 +145,7 @@ def index():
         return render_template('error.html', error=str(e))
 
 @api_credential_bp.route('/create/<source_name>', methods=['GET'])
+@require_role('admin')
 def create_form(source_name):
     """Show form to create API credentials for a data source."""
     if source_name not in SOURCE_CREDENTIAL_CONFIG:
@@ -147,11 +167,15 @@ def create_form(source_name):
     )
 
 @api_credential_bp.route('/save', methods=['POST'])
+@require_role('admin')
 def save():
     """Save API credentials for a data source."""
     source_name = request.form.get('source_name')
     
     if not source_name or source_name not in SOURCE_CREDENTIAL_CONFIG:
+        logger.error("Invalid data source specified")
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": "Invalid data source specified"}), 400
         flash("Invalid data source specified", "error")
         return redirect(url_for('api_credentials.index'))
     
@@ -181,6 +205,9 @@ def save():
                 json.loads(additional_creds)
                 credential.additional_credentials = additional_creds
             except json.JSONDecodeError:
+                logger.error("Additional credentials must be valid JSON")
+                if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({"success": False, "message": "Additional credentials must be valid JSON"}), 400
                 flash("Additional credentials must be valid JSON", "error")
                 return redirect(url_for('api_credentials.create_form', source_name=source_name))
         
@@ -189,6 +216,7 @@ def save():
         credential.is_enabled = is_enabled
         
         db.session.commit()
+        audit_log('save', source_name)
         
         # Update the data source status to indicate credentials are configured
         try:
@@ -213,20 +241,28 @@ def save():
         
     except Exception as e:
         logger.error(f"Error saving credentials: {str(e)}")
+        send_alert(f"Error saving credentials for {source_name}: {str(e)}")
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": f"Error saving credentials: {str(e)}"}), 500
         flash(f"Error saving credentials: {str(e)}", "error")
         return redirect(url_for('api_credentials.create_form', source_name=source_name))
 
 @api_credential_bp.route('/delete/<int:credential_id>', methods=['POST'])
+@require_role('admin')
 def delete(credential_id):
     """Delete API credentials for a data source."""
     try:
         credential = ApiCredential.query.get(credential_id)
         if not credential:
+            logger.error("Credentials not found for deletion")
+            if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({"success": False, "message": "Credentials not found"}), 404
             flash("Credentials not found", "error")
             return redirect(url_for('api_credentials.index'))
         
         source_name = credential.source_name
         db.session.delete(credential)
+        audit_log('delete', source_name)
         
         # Update the data source status to indicate credentials are not configured
         try:
@@ -252,21 +288,27 @@ def delete(credential_id):
         
     except Exception as e:
         logger.error(f"Error deleting credentials: {str(e)}")
+        send_alert(f"Error deleting credentials: {str(e)}")
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": f"Error deleting credentials: {str(e)}"}), 500
         flash(f"Error deleting credentials: {str(e)}", "error")
     
     return redirect(url_for('api_credentials.index'))
 
 @api_credential_bp.route('/toggle/<int:credential_id>', methods=['POST'])
+@require_role('admin')
 def toggle(credential_id):
     """Toggle enabled status for API credentials."""
     try:
         credential = ApiCredential.query.get(credential_id)
         if not credential:
-            return jsonify({"success": False, "message": "Credentials not found"})
+            logger.error("Credentials not found for toggle")
+            return jsonify({"success": False, "message": "Credentials not found"}), 404
         
         # Toggle enabled status
         credential.is_enabled = not credential.is_enabled
         db.session.commit()
+        audit_log('toggle', credential.source_name)
         
         # Reset connector initialization
         try:
@@ -284,7 +326,8 @@ def toggle(credential_id):
         
     except Exception as e:
         logger.error(f"Error toggling credentials: {str(e)}")
-        return jsonify({"success": False, "message": f"Error: {str(e)}"})
+        send_alert(f"Error toggling credentials: {str(e)}")
+        return jsonify({"success": False, "message": f"Error: {str(e)}"}), 500
 
 @api_credential_bp.route('/test/<source_name>', methods=['POST'])
 def test_connection(source_name):
@@ -316,10 +359,11 @@ def test_connection(source_name):
         
     except Exception as e:
         logger.error(f"Error testing connection: {str(e)}")
+        send_alert(f"Error testing connection for {source_name}: {str(e)}")
         return jsonify({
             "success": False,
             "message": f"Error testing connection: {str(e)}"
-        })
+        }), 500
 
 def register_blueprint(app):
     """Register the API credential blueprint with the application."""

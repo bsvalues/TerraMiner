@@ -15,6 +15,7 @@ import datetime
 from typing import Dict, Any, Optional, List, Union
 
 from etl.base_api_connector import BaseApiConnector
+from etl.data_validation import validate_required_fields, normalize_address, deduplicate_records, fuzzy_deduplicate_records
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -177,6 +178,39 @@ class AttomApiConnector(BaseApiConnector):
         try:
             # Extract property data from response
             properties = response.get('property', [])
+            # Deduplicate by attomid, id, or apn (fallback order)
+            if properties and isinstance(properties, list):
+                # Try attomid, then id, then apn
+                dedup_keys = None
+                if properties and 'attomid' in properties[0]:
+                    dedup_keys = ['attomid']
+                elif properties and 'id' in properties[0]:
+                    dedup_keys = ['id']
+                elif properties and 'apn' in properties[0]:
+                    dedup_keys = ['apn']
+                else:
+                    dedup_keys = None
+                import csv
+                from datetime import datetime
+                input_count = len(properties)
+                if dedup_keys:
+                    properties = deduplicate_records(properties, dedup_keys)
+                strict_count = len(properties)
+                # Further deduplicate using fuzzy address similarity
+                threshold = getattr(self, 'fuzzy_threshold', 95)
+                properties = fuzzy_deduplicate_records(properties, address_field="address", threshold=threshold)
+                fuzzy_count = len(properties)
+                # Log deduplication metrics
+                with open('dedup_metrics.csv', 'a', newline='') as f:
+                    writer = csv.writer(f)
+                    writer.writerow([
+                        datetime.utcnow().isoformat(),
+                        'attom',
+                        input_count,
+                        strict_count,
+                        fuzzy_count,
+                        threshold
+                    ])
             return properties
         except Exception as e:
             logger.error(f"Error processing ATTOM property search results: {str(e)}")
@@ -473,7 +507,7 @@ class AttomApiConnector(BaseApiConnector):
     
     def standardize_property(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Standardize property data from ATTOM format to common format.
+        Standardize property data from ATTOM format to common format, with validation and normalization.
         
         Args:
             data (dict): Property data from ATTOM
@@ -482,21 +516,20 @@ class AttomApiConnector(BaseApiConnector):
             dict: Standardized property data
         """
         standardized = {
-            'source': 'attom',
-            'external_id': data.get('identifier', {}).get('attomId') or data.get('attomId')
+            "id": data.get("identifier", {}).get("attomId"),
+            "address": data.get("address", {}),
+            "owner": data.get("owner", {}),
+            "building": data.get("building", {}),
+            "lot": data.get("lot", {}),
+            "sale": data.get("sale", {}),
+            "tax": data.get("tax", {}),
+            "valuation": data.get("avm", {}),
         }
-        
-        # Extract address fields
-        address = data.get('address', {})
-        if address:
-            standardized.update({
-                'address_line1': address.get('line1') or address.get('streetAddress'),
-                'city': address.get('locality') or address.get('city'),
-                'state': address.get('countrySubd') or address.get('state'),
-                'zipcode': address.get('postal1') or address.get('zipCode'),
-            })
-        
-        # Extract location coordinates
+        # Validate required fields
+        if not validate_required_fields(standardized, ["address", "id"]):
+            raise ValueError("Missing required fields in ATTOM property data: ['address', 'id']")
+        # Normalize address
+        standardized["address"] = normalize_address(standardized["address"])
         location = data.get('location', {})
         if location:
             standardized.update({

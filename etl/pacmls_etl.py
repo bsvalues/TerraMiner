@@ -18,6 +18,7 @@ from app import db
 from etl.base import BaseETL
 from etl.pacmls_connector import PacMlsConnector
 from models import Property, PropertyHistory, PropertyListing
+from etl.data_validation import validate_required_fields, normalize_address, deduplicate_records
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -127,15 +128,19 @@ class PacMlsETL(BaseETL):
                     trends_data['location'] = location
                     transformed['market_trends'].append(trends_data)
             
-            # Remove duplicates based on property ID
-            unique_properties = {}
+            # Validate, normalize, and deduplicate properties
+            validated = []
             for prop in transformed['properties']:
-                prop_id = prop.get('id')
-                if prop_id:
-                    unique_properties[prop_id] = prop
-            
-            transformed['properties'] = list(unique_properties.values())
-            
+                # Validate required fields (customize fields as needed)
+                if not validate_required_fields(prop, ["address", "id"]):
+                    continue
+                # Normalize address
+                if "address" in prop:
+                    prop["address"] = normalize_address(prop["address"])
+                validated.append(prop)
+            # Deduplicate based on property ID
+            deduped = deduplicate_records(validated, ["id"])
+            transformed['properties'] = deduped
             logger.info(f"Transformed {len(transformed['properties'])} properties and {len(transformed['market_trends'])} market trend datasets")
             return transformed
         
@@ -156,7 +161,28 @@ class PacMlsETL(BaseETL):
         try:
             properties = transformed_data.get('properties', [])
             market_trends = transformed_data.get('market_trends', [])
-            
+            # Deduplicate properties by 'id'
+            from etl.data_validation import deduplicate_records, fuzzy_deduplicate_records
+            import csv
+            from datetime import datetime
+            input_count = len(properties)
+            properties = deduplicate_records(properties, ["id"])
+            strict_count = len(properties)
+            # Further deduplicate using fuzzy address similarity
+            threshold = getattr(self, 'fuzzy_threshold', 96)
+            properties = fuzzy_deduplicate_records(properties, address_field="address", threshold=threshold)
+            fuzzy_count = len(properties)
+            # Log deduplication metrics
+            with open('dedup_metrics.csv', 'a', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow([
+                    datetime.utcnow().isoformat(),
+                    'pacmls',
+                    input_count,
+                    strict_count,
+                    fuzzy_count,
+                    threshold
+                ])
             # Track stats for the result
             results = {
                 'properties_added': 0,

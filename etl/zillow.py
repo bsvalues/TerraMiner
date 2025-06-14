@@ -11,6 +11,7 @@ from app import db
 from etl.base import BaseETL
 from etl.zillow_scraper import ZillowScraper
 from models.zillow_data import ZillowMarketData, ZillowPriceTrend, ZillowProperty
+from etl.data_validation import validate_required_fields, normalize_address, deduplicate_records, fuzzy_deduplicate_records
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -64,7 +65,7 @@ class ZillowMarketDataETL(BaseETL):
     
     def transform(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Transform raw Zillow API data into a structured format.
+        Transform raw Zillow API data into a structured format, with validation and normalization.
         
         Args:
             raw_data (Dict[str, Any]): Raw data from Zillow API
@@ -73,7 +74,15 @@ class ZillowMarketDataETL(BaseETL):
             Dict[str, Any]: Transformed data ready for loading
         """
         # Format the data using the existing formatter
-        return self.scraper.format_market_data(raw_data)
+        data = self.scraper.format_market_data(raw_data)
+        # Example: Validate required fields for market data (customize as needed)
+        required_fields = ["location", "stats"]
+        if not validate_required_fields(data, required_fields):
+            raise ValueError(f"Missing required fields in Zillow market data: {required_fields}")
+        # Normalize address if present
+        if "location" in data:
+            data["location"] = normalize_address(data["location"])
+        return data
     
     def load(self, processed_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -186,7 +195,7 @@ class ZillowPropertyETL(BaseETL):
     
     def transform(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Transform raw Zillow property data.
+        Transform raw Zillow property data, with validation and normalization.
         
         Args:
             raw_data (Dict[str, Any]): Raw property data from Zillow API
@@ -207,7 +216,12 @@ class ZillowPropertyETL(BaseETL):
             "url": property_data.get("url"),
             "image_url": property_data.get("imgSrc")
         }
-        
+        # Validate required fields
+        required_fields = ["address", "zpid"]
+        if not validate_required_fields(transformed, required_fields):
+            raise ValueError(f"Missing required fields in Zillow property data: {required_fields}")
+        # Normalize address
+        transformed["address"] = normalize_address(transformed["address"])
         return transformed
     
     def load(self, processed_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -372,9 +386,27 @@ class ZillowPropertySearchETL(BaseETL):
                 error_count += 1
                 logger.exception(f"Error processing property ZPID {zpid}: {str(e)}")
         
+        import csv
+        from datetime import datetime
+        # Deduplicate properties by property_id (strict)
+        deduped_properties = deduplicate_records(properties, ["property_id"])
+        # Further deduplicate using fuzzy address similarity
+        threshold = self.config.get('fuzzy_threshold', 98)
+        fuzzy_deduped_properties = fuzzy_deduplicate_records(deduped_properties, address_field="address", threshold=threshold)
+        # Log deduplication metrics
+        with open('dedup_metrics.csv', 'a', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                datetime.utcnow().isoformat(),
+                'zillow',
+                len(properties),
+                len(deduped_properties),
+                len(fuzzy_deduped_properties),
+                threshold
+            ])
         return {
             "records_processed": len(zpids),
             "success_count": success_count,
             "error_count": error_count,
-            "properties": properties
+            "properties": fuzzy_deduped_properties
         }
