@@ -6,7 +6,7 @@ import {
   AGENTS,
   ETL_PIPELINES,
   SYSTEM_METRICS,
-  generateActivityLog,
+  INITIAL_ACTIVITY_LOG,
 } from "@/lib/mock-data";
 import {
   decomposeTask,
@@ -14,7 +14,7 @@ import {
   getMockResult,
   getSimulatedDuration,
 } from "@/lib/swarm-engine";
-import { generateId } from "@/lib/utils";
+import { generateId, formatNumber } from "@/lib/utils";
 
 import { MetricCard } from "@/components/metric-card";
 import { AgentCard } from "@/components/agent-card";
@@ -44,7 +44,7 @@ export default function CloudCoachDashboard() {
   const [agents, setAgents] = useState<Agent[]>(AGENTS);
   const [isExecuting, setIsExecuting] = useState(false);
   const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>(
-    generateActivityLog()
+    INITIAL_ACTIVITY_LOG
   );
   const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
 
@@ -301,7 +301,7 @@ export default function CloudCoachDashboard() {
               />
               <MetricCard
                 label="Tasks Processed"
-                value={SYSTEM_METRICS.tasksProcessed.toLocaleString()}
+                value={formatNumber(SYSTEM_METRICS.tasksProcessed)}
                 subtitle={`${SYSTEM_METRICS.tasksToday} today`}
                 icon={Activity}
                 trend={{ value: 12.4, label: "vs last week" }}
