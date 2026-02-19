@@ -2,8 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { Send, Loader2, RotateCcw } from "lucide-react";
-import { EXAMPLE_QUERIES } from "@/lib/mock-data";
+import { Terminal, Send, RotateCcw, Loader2 } from "lucide-react";
 
 interface CommandInputProps {
   onSubmit: (query: string) => void;
@@ -11,12 +10,24 @@ interface CommandInputProps {
   onReset?: () => void;
 }
 
-export function CommandInput({ onSubmit, isExecuting, onReset }: CommandInputProps) {
+const EXAMPLE_QUERIES = [
+  "Analyze investment opportunities in Richland WA under $400k",
+  "Find 3BR homes near PNNL with good rental yield",
+  "Compare market trends across the Tri-Cities",
+  "Recommend top properties for first-time investors",
+];
+
+export function CommandInput({
+  onSubmit,
+  isExecuting,
+  onReset,
+}: CommandInputProps) {
   const [query, setQuery] = useState("");
 
   const handleSubmit = useCallback(() => {
-    if (query.trim() && !isExecuting) {
-      onSubmit(query.trim());
+    const trimmed = query.trim();
+    if (trimmed && !isExecuting) {
+      onSubmit(trimmed);
       setQuery("");
     }
   }, [query, isExecuting, onSubmit]);
@@ -32,9 +43,9 @@ export function CommandInput({ onSubmit, isExecuting, onReset }: CommandInputPro
   );
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* Input area */}
-      <div className="flex items-center gap-2 rounded-lg border border-border bg-card p-2 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20">
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
+        <Terminal className="h-4 w-4 shrink-0 text-primary" />
         <input
           type="text"
           value={query}
@@ -42,59 +53,53 @@ export function CommandInput({ onSubmit, isExecuting, onReset }: CommandInputPro
           onKeyDown={handleKeyDown}
           placeholder="Enter a query for the agent swarm..."
           disabled={isExecuting}
-          className="flex-1 bg-transparent px-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex-1 bg-transparent px-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
           aria-label="Swarm command input"
         />
-        <div className="flex items-center gap-1">
-          {onReset && (
-            <button
-              onClick={onReset}
-              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              aria-label="Reset"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-            </button>
-          )}
+        {isExecuting && onReset ? (
+          <button
+            onClick={onReset}
+            className="flex items-center gap-1.5 rounded-md bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/20"
+          >
+            <RotateCcw className="h-3 w-3" />
+            Reset
+          </button>
+        ) : (
           <button
             onClick={handleSubmit}
             disabled={!query.trim() || isExecuting}
             className={cn(
-              "flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium transition-all",
+              "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
               query.trim() && !isExecuting
                 ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                : "cursor-not-allowed bg-muted text-muted-foreground"
+                : "bg-muted text-muted-foreground cursor-not-allowed"
             )}
-            aria-label="Execute swarm task"
           >
             {isExecuting ? (
-              <>
-                <Loader2 className="h-3 w-3 animate-spin" />
-                <span>Executing</span>
-              </>
+              <Loader2 className="h-3 w-3 animate-spin" />
             ) : (
-              <>
-                <Send className="h-3 w-3" />
-                <span>Execute</span>
-              </>
+              <Send className="h-3 w-3" />
             )}
+            Execute
           </button>
-        </div>
+        )}
       </div>
-
-      {/* Example queries */}
-      {!isExecuting && (
-        <div className="flex flex-wrap gap-1.5">
-          {EXAMPLE_QUERIES.slice(0, 3).map((example) => (
-            <button
-              key={example}
-              onClick={() => setQuery(example)}
-              className="rounded-md border border-border bg-card/50 px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
-            >
-              {example.length > 60 ? example.slice(0, 57) + "..." : example}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="flex flex-wrap gap-1.5">
+        {EXAMPLE_QUERIES.map((example) => (
+          <button
+            key={example}
+            onClick={() => {
+              if (!isExecuting) {
+                setQuery(example);
+              }
+            }}
+            disabled={isExecuting}
+            className="rounded-md border border-border bg-card/50 px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {example}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

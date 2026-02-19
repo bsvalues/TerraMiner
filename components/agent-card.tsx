@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import type { Agent } from "@/lib/types";
 import {
   TrendingUp,
@@ -118,7 +118,7 @@ export function AgentCard({ agent, isSwarmActive }: AgentCardProps) {
       <div className="flex items-center gap-4 border-t border-border pt-3">
         <div className="flex flex-col">
           <span className="text-xs font-medium text-foreground">
-            {agent.tasksCompleted.toLocaleString()}
+            {formatNumber(agent.tasksCompleted)}
           </span>
           <span className="text-[10px] text-muted-foreground">completed</span>
         </div>

@@ -7,6 +7,7 @@ import type {
 
 // ============================================================================
 // Mock Agents - Maps directly to the 4 Python agents in ai/agents/
+// Static timestamps to prevent SSR/client hydration mismatch
 // ============================================================================
 
 export const AGENTS: Agent[] = [
@@ -26,7 +27,7 @@ export const AGENTS: Agent[] = [
     currentTask: null,
     tasksCompleted: 1247,
     avgResponseTime: 2340,
-    lastActive: new Date(Date.now() - 30000).toISOString(),
+    lastActive: "2026-02-18T08:00:00.000Z",
   },
   {
     id: "agent-nl-search",
@@ -44,7 +45,7 @@ export const AGENTS: Agent[] = [
     currentTask: null,
     tasksCompleted: 3891,
     avgResponseTime: 890,
-    lastActive: new Date(Date.now() - 15000).toISOString(),
+    lastActive: "2026-02-18T08:00:15.000Z",
   },
   {
     id: "agent-recommendation",
@@ -62,7 +63,7 @@ export const AGENTS: Agent[] = [
     currentTask: null,
     tasksCompleted: 892,
     avgResponseTime: 1560,
-    lastActive: new Date(Date.now() - 120000).toISOString(),
+    lastActive: "2026-02-18T07:58:00.000Z",
   },
   {
     id: "agent-text-summarizer",
@@ -80,7 +81,7 @@ export const AGENTS: Agent[] = [
     currentTask: null,
     tasksCompleted: 2156,
     avgResponseTime: 1120,
-    lastActive: new Date(Date.now() - 60000).toISOString(),
+    lastActive: "2026-02-18T07:59:00.000Z",
   },
 ];
 
@@ -94,8 +95,8 @@ export const ETL_PIPELINES: ETLPipeline[] = [
     source: "zillow",
     displayName: "Zillow Data Feed",
     status: "healthy",
-    lastRun: new Date(Date.now() - 3600000).toISOString(),
-    nextRun: new Date(Date.now() + 3600000).toISOString(),
+    lastRun: "2026-02-18T07:00:00.000Z",
+    nextRun: "2026-02-18T09:00:00.000Z",
     recordsProcessed: 48752,
     recordsTotal: 48752,
     errorRate: 0.02,
@@ -106,8 +107,8 @@ export const ETL_PIPELINES: ETLPipeline[] = [
     source: "pacmls",
     displayName: "PACMLS Listings",
     status: "healthy",
-    lastRun: new Date(Date.now() - 1800000).toISOString(),
-    nextRun: new Date(Date.now() + 5400000).toISOString(),
+    lastRun: "2026-02-18T07:30:00.000Z",
+    nextRun: "2026-02-18T09:30:00.000Z",
     recordsProcessed: 12340,
     recordsTotal: 12341,
     errorRate: 0.08,
@@ -118,8 +119,8 @@ export const ETL_PIPELINES: ETLPipeline[] = [
     source: "attom",
     displayName: "ATTOM Property Data",
     status: "degraded",
-    lastRun: new Date(Date.now() - 7200000).toISOString(),
-    nextRun: new Date(Date.now() + 1800000).toISOString(),
+    lastRun: "2026-02-18T06:00:00.000Z",
+    nextRun: "2026-02-18T08:30:00.000Z",
     recordsProcessed: 31200,
     recordsTotal: 35400,
     errorRate: 11.86,
@@ -147,75 +148,72 @@ export const SYSTEM_METRICS: SystemMetrics = {
 // Activity Log
 // ============================================================================
 
-export function generateActivityLog(): ActivityLogEntry[] {
-  const entries: ActivityLogEntry[] = [
-    {
-      id: "log-1",
-      timestamp: new Date(Date.now() - 5000).toISOString(),
-      type: "agent_action",
-      agent: "NL Search",
-      message: 'Property search completed: "3BR homes near Richland WA" - 24 results',
-      severity: "success",
-    },
-    {
-      id: "log-2",
-      timestamp: new Date(Date.now() - 15000).toISOString(),
-      type: "task_completed",
-      agent: "Market Analyzer",
-      message: "Market trend analysis for Benton County completed in 2.3s",
-      severity: "success",
-    },
-    {
-      id: "log-3",
-      timestamp: new Date(Date.now() - 30000).toISOString(),
-      type: "system_event",
-      agent: null,
-      message: "ATTOM ETL pipeline reporting elevated error rate (11.86%)",
-      severity: "warning",
-    },
-    {
-      id: "log-4",
-      timestamp: new Date(Date.now() - 45000).toISOString(),
-      type: "swarm_event",
-      agent: null,
-      message: 'Ralph Wiggum Mode: Swarm task decomposed into 4 parallel subtasks',
-      severity: "info",
-    },
-    {
-      id: "log-5",
-      timestamp: new Date(Date.now() - 60000).toISOString(),
-      type: "agent_action",
-      agent: "Text Summarizer",
-      message: "Executive brief generated for property portfolio #TF-2847",
-      severity: "success",
-    },
-    {
-      id: "log-6",
-      timestamp: new Date(Date.now() - 90000).toISOString(),
-      type: "agent_action",
-      agent: "Recommendation Engine",
-      message: "Generated 8 property recommendations for buyer profile BP-1192",
-      severity: "success",
-    },
-    {
-      id: "log-7",
-      timestamp: new Date(Date.now() - 120000).toISOString(),
-      type: "system_event",
-      agent: null,
-      message: "Zillow ETL sync completed: 48,752 records processed",
-      severity: "info",
-    },
-    {
-      id: "log-8",
-      timestamp: new Date(Date.now() - 180000).toISOString(),
-      type: "task_completed",
-      agent: "Market Analyzer",
-      message: "Investment analysis: Richland WA market scored 8.2/10 for rental ROI",
-      severity: "success",
-    },
-  ];
-  return entries;
-}
+export const INITIAL_ACTIVITY_LOG: ActivityLogEntry[] = [
+  {
+    id: "log-1",
+    timestamp: "2026-02-18T07:59:55.000Z",
+    type: "agent_action",
+    agent: "NL Search",
+    message: 'Property search completed: "3BR homes near Richland WA" - 24 results',
+    severity: "success",
+  },
+  {
+    id: "log-2",
+    timestamp: "2026-02-18T07:59:45.000Z",
+    type: "task_completed",
+    agent: "Market Analyzer",
+    message: "Market trend analysis for Benton County completed in 2.3s",
+    severity: "success",
+  },
+  {
+    id: "log-3",
+    timestamp: "2026-02-18T07:59:30.000Z",
+    type: "system_event",
+    agent: null,
+    message: "ATTOM ETL pipeline reporting elevated error rate (11.86%)",
+    severity: "warning",
+  },
+  {
+    id: "log-4",
+    timestamp: "2026-02-18T07:59:15.000Z",
+    type: "swarm_event",
+    agent: null,
+    message: "Ralph Wiggum Mode: Swarm task decomposed into 4 parallel subtasks",
+    severity: "info",
+  },
+  {
+    id: "log-5",
+    timestamp: "2026-02-18T07:59:00.000Z",
+    type: "agent_action",
+    agent: "Text Summarizer",
+    message: "Executive brief generated for property portfolio #TF-2847",
+    severity: "success",
+  },
+  {
+    id: "log-6",
+    timestamp: "2026-02-18T07:58:30.000Z",
+    type: "agent_action",
+    agent: "Recommendation Engine",
+    message: "Generated 8 property recommendations for buyer profile BP-1192",
+    severity: "success",
+  },
+  {
+    id: "log-7",
+    timestamp: "2026-02-18T07:58:00.000Z",
+    type: "system_event",
+    agent: null,
+    message: "Zillow ETL sync completed: 48,752 records processed",
+    severity: "info",
+  },
+  {
+    id: "log-8",
+    timestamp: "2026-02-18T07:57:00.000Z",
+    type: "task_completed",
+    agent: "Market Analyzer",
+    message: "Investment analysis: Richland WA market scored 8.2/10 for rental ROI",
+    severity: "success",
+  },
+];
 
 // ============================================================================
 // Swarm Task Decomposition Examples

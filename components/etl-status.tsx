@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import type { ETLPipeline } from "@/lib/types";
 import { Database, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
 
@@ -26,13 +26,11 @@ const HEALTH_STYLES: Record<string, { icon: typeof CheckCircle2; color: string; 
   },
 };
 
-function formatRelativeTime(isoString: string): string {
-  const diff = Date.now() - new Date(isoString).getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ago`;
+function formatRunTime(isoString: string): string {
+  const d = new Date(isoString);
+  const h = String(d.getUTCHours()).padStart(2, "0");
+  const m = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${h}:${m} UTC`;
 }
 
 export function ETLStatus({ pipelines }: ETLStatusProps) {
@@ -90,8 +88,8 @@ export function ETLStatus({ pipelines }: ETLStatusProps) {
                 </div>
                 <div className="flex justify-between">
                   <span className="font-mono text-[10px] text-muted-foreground">
-                    {pipeline.recordsProcessed.toLocaleString()} /{" "}
-                    {pipeline.recordsTotal.toLocaleString()}
+                    {formatNumber(pipeline.recordsProcessed)} /{" "}
+                    {formatNumber(pipeline.recordsTotal)}
                   </span>
                   <span className="font-mono text-[10px] text-muted-foreground">
                     {completionRate}%
@@ -103,7 +101,7 @@ export function ETLStatus({ pipelines }: ETLStatusProps) {
               <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Clock className="h-2.5 w-2.5" />
-                  <span>{formatRelativeTime(pipeline.lastRun)}</span>
+                  <span>{formatRunTime(pipeline.lastRun)}</span>
                 </div>
                 {pipeline.errorRate > 1 && (
                   <span className="text-[hsl(var(--warning))]">
