@@ -1,143 +1,190 @@
-import type {
-  SubTask,
-  SwarmTask,
-  SwarmMode,
-  SubTaskStatus,
-} from "./types";
-import { generateId } from "./utils";
+// ============================================================================
+// TerraFusion Swarm Engine - Autonomous Task Decomposition & Parallel Execution
+// The brain that makes Ralph Wiggum Mode work despite tasting like burning
+// ============================================================================
+
+import type { SwarmMode, SubTask } from "./types";
 import { AGENTS } from "./mock-data";
+import { generateId } from "./utils";
 
 // ============================================================================
-// TerraFusion Swarm Engine
-// Autonomous task decomposition + parallel agent execution
-// "Ralph Wiggum Mode" - All agents fire simultaneously
+// Intent Recognition & Task Decomposition
 // ============================================================================
 
 interface DecomposedTask {
-  agentType: string;
   agentId: string;
   agentName: string;
+  agentType: string;
   action: string;
   description: string;
 }
 
-// Keyword-based task decomposition logic
-// Maps natural language intents to agent capabilities
-const INTENT_PATTERNS: {
-  pattern: RegExp;
+interface IntentPattern {
+  keywords: string[];
   agentType: string;
   action: string;
-  descriptionTemplate: string;
-}[] = [
+  description: string;
+}
+
+const INTENT_PATTERNS: IntentPattern[] = [
+  // NL Search intents
   {
-    pattern: /\b(search|find|look\s*for|show|list|where)\b/i,
+    keywords: ["find", "search", "look for", "show me", "list", "homes", "properties", "houses"],
     agentType: "nl_search",
     action: "search_properties",
-    descriptionTemplate: "Search for properties matching criteria",
+    description: "Search for properties matching criteria",
   },
   {
-    pattern: /\b(invest|roi|rental|yield|cap\s*rate|return)\b/i,
-    agentType: "market_analyzer",
-    action: "analyze_investment",
-    descriptionTemplate: "Analyze investment potential and ROI metrics",
+    keywords: ["near", "close to", "school", "neighborhood", "area", "location"],
+    agentType: "nl_search",
+    action: "search_properties",
+    description: "Location-based property search",
   },
+  // Market Analyzer intents
   {
-    pattern: /\b(trend|market|price\s*(drop|increase|change)|comparati|compare)\b/i,
+    keywords: ["analyze", "analysis", "trend", "market", "price", "value", "appreciation"],
     agentType: "market_analyzer",
     action: "analyze_market",
-    descriptionTemplate: "Analyze market trends and price movements",
+    description: "Analyze market trends and price movements",
   },
   {
-    pattern: /\b(recommend|suggest|best|top|match|similar)\b/i,
+    keywords: ["invest", "investment", "roi", "rental", "return", "opportunity", "potential"],
+    agentType: "market_analyzer",
+    action: "analyze_investment",
+    description: "Evaluate investment potential and ROI",
+  },
+  {
+    keywords: ["compare", "comparison", "versus", "vs", "between", "difference"],
+    agentType: "market_analyzer",
+    action: "comparative_analysis",
+    description: "Comparative market analysis across areas",
+  },
+  // Recommendation Engine intents
+  {
+    keywords: ["recommend", "suggestion", "best", "top", "ideal", "match", "suitable"],
     agentType: "recommendation",
     action: "get_recommendations",
-    descriptionTemplate: "Generate personalized property recommendations",
+    description: "Generate property recommendations",
   },
   {
-    pattern: /\b(summar|report|brief|overview|describe|generate\s*report)\b/i,
+    keywords: ["first-time", "buyer", "starter", "affordable", "budget"],
+    agentType: "recommendation",
+    action: "get_recommendations",
+    description: "First-time buyer recommendations",
+  },
+  // Text Summarizer intents
+  {
+    keywords: ["report", "summary", "summarize", "brief", "overview", "comprehensive"],
+    agentType: "text_summarizer",
+    action: "generate_report",
+    description: "Generate comprehensive property report",
+  },
+  {
+    keywords: ["describe", "description", "listing", "details", "about"],
     agentType: "text_summarizer",
     action: "summarize_property",
-    descriptionTemplate: "Generate executive summary and report",
+    description: "Generate property summary",
   },
 ];
 
 /**
- * Decomposes a natural language query into sub-tasks assigned to specific agents.
- * In Ralph Wiggum Mode, we intentionally assign more sub-tasks for parallel execution.
+ * Decompose a natural language query into sub-tasks assigned to specific agents.
+ * In Ralph Wiggum Mode, the decomposition is more aggressive, splitting into
+ * more parallel tasks. In single mode, it picks the best single agent.
  */
-export function decomposeTask(query: string, mode: SwarmMode): DecomposedTask[] {
-  const tasks: DecomposedTask[] = [];
+export function decomposeTask(
+  query: string,
+  mode: SwarmMode
+): DecomposedTask[] {
+  const lowerQuery = query.toLowerCase();
+  const matchedIntents: DecomposedTask[] = [];
   const usedAgentActions = new Set<string>();
 
-  // Match query against intent patterns
-  for (const intent of INTENT_PATTERNS) {
-    if (intent.pattern.test(query)) {
-      const key = `${intent.agentType}:${intent.action}`;
-      if (!usedAgentActions.has(key)) {
-        const agent = AGENTS.find((a) => a.type === intent.agentType);
-        if (agent) {
-          tasks.push({
-            agentType: intent.agentType,
-            agentId: agent.id,
-            agentName: agent.name,
-            action: intent.action,
-            description: intent.descriptionTemplate,
-          });
-          usedAgentActions.add(key);
-        }
-      }
-    }
+  // Score each intent pattern against the query
+  const scored = INTENT_PATTERNS.map((pattern) => {
+    const matchCount = pattern.keywords.filter((kw) =>
+      lowerQuery.includes(kw)
+    ).length;
+    return { pattern, score: matchCount };
+  })
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  for (const { pattern } of scored) {
+    const key = `${pattern.agentType}:${pattern.action}`;
+    if (usedAgentActions.has(key)) continue;
+
+    const agent = AGENTS.find((a) => a.type === pattern.agentType);
+    if (!agent) continue;
+
+    usedAgentActions.add(key);
+    matchedIntents.push({
+      agentId: agent.id,
+      agentName: agent.name,
+      agentType: pattern.agentType,
+      action: pattern.action,
+      description: pattern.description,
+    });
   }
 
-  // In Ralph Wiggum Mode, always include a summarizer at the end
-  if (mode === "ralph-wiggum" && tasks.length > 0) {
-    const summarizerKey = "text_summarizer:summarize_property";
-    if (!usedAgentActions.has(summarizerKey)) {
-      const summarizer = AGENTS.find((a) => a.type === "text_summarizer");
-      if (summarizer) {
-        tasks.push({
-          agentType: "text_summarizer",
-          agentId: summarizer.id,
-          agentName: summarizer.name,
-          action: "generate_report",
-          description: "Synthesize all findings into executive summary",
-        });
-      }
-    }
+  // If single mode, return only the top match
+  if (mode === "single" && matchedIntents.length > 0) {
+    return [matchedIntents[0]];
   }
 
-  // Fallback: if no patterns matched, use NL Search as default
-  if (tasks.length === 0) {
-    const nlSearch = AGENTS.find((a) => a.type === "nl_search");
-    if (nlSearch) {
-      tasks.push({
+  // If no matches found, default to NL Search + Text Summarizer
+  if (matchedIntents.length === 0) {
+    return [
+      {
+        agentId: "agent-nl-search",
+        agentName: "NL Search",
         agentType: "nl_search",
-        agentId: nlSearch.id,
-        agentName: nlSearch.name,
         action: "search_properties",
-        description: "Process natural language query",
-      });
-    }
+        description: "Search for properties matching query",
+      },
+      {
+        agentId: "agent-text-summarizer",
+        agentName: "Text Summarizer",
+        agentType: "text_summarizer",
+        action: "generate_report",
+        description: "Generate summary of results",
+      },
+    ];
   }
 
-  return tasks;
+  // In Ralph Wiggum Mode, always include a summarizer if not already present
+  if (
+    mode === "ralph-wiggum" &&
+    !matchedIntents.some((i) => i.agentType === "text_summarizer")
+  ) {
+    matchedIntents.push({
+      agentId: "agent-text-summarizer",
+      agentName: "Text Summarizer",
+      agentType: "text_summarizer",
+      action: "generate_report",
+      description: "Synthesize findings into executive brief",
+    });
+  }
+
+  return matchedIntents;
 }
 
 /**
- * Creates a SwarmTask with sub-tasks from decomposed tasks
+ * Create a SwarmTask from decomposed sub-tasks.
  */
 export function createSwarmTask(
   query: string,
   mode: SwarmMode,
   decomposed: DecomposedTask[]
-): SwarmTask {
-  const subtasks: SubTask[] = decomposed.map((d, index) => ({
+) {
+  const now = new Date().toISOString();
+  const subtasks: SubTask[] = decomposed.map((d) => ({
     id: generateId(),
     agentId: d.agentId,
     agentName: d.agentName,
     action: d.action,
     description: d.description,
-    status: "queued" as SubTaskStatus,
+    status: "queued" as const,
     progress: 0,
     result: null,
     startedAt: null,
@@ -149,65 +196,58 @@ export function createSwarmTask(
     id: generateId(),
     query,
     mode,
-    status: "decomposing",
+    status: "decomposing" as const,
     subtasks,
     synthesizedResult: null,
-    createdAt: new Date().toISOString(),
+    createdAt: now,
     completedAt: null,
     totalDuration: null,
   };
 }
 
 // ============================================================================
-// Simulated execution results for each agent type
+// Simulated Execution (Client-side mock for demo)
 // ============================================================================
 
-const MOCK_RESULTS: Record<string, string[]> = {
-  search_properties: [
-    "Found 18 properties matching criteria in Richland WA. Top match: 2847 Queensgate Dr - 3BR/2BA, 1,840 sqft, listed at $375,000. Average price in area: $362,500.",
-    "Located 24 properties within parameters. Notable listings include 4 new constructions and 6 price-reduced homes. Median days on market: 28.",
-    "Search returned 12 high-confidence matches. 8 properties are within 5% of target price range with matching amenity profiles.",
-  ],
-  analyze_investment: [
-    "Investment Analysis: Market ROI score 8.2/10. Avg rental yield 6.8% for target area. Price-to-rent ratio: 14.2 (favorable). 3-year appreciation projection: +12.4%.",
-    "Portfolio optimization suggests diversifying into Kennewick submarket. Cap rate analysis: 5.9% average, top quartile at 7.2%. Risk-adjusted return: 9.1%.",
-  ],
-  analyze_market: [
-    "Market Trends: Median home price $385,000 (+4.2% YoY). Inventory down 12% vs last quarter. Days on market: 31 (down from 45). Seller's market conditions persist.",
-    "Comparative analysis: Richland leads Tri-Cities in appreciation (+4.2%), followed by West Richland (+3.8%) and Kennewick (+3.1%). Pasco showing highest inventory growth.",
-  ],
-  get_recommendations: [
-    "Top 5 Recommendations generated based on investment criteria: 1) 2847 Queensgate Dr (Score: 94), 2) 1156 Jadwin Ave (Score: 91), 3) 3302 W 45th Pl (Score: 88), 4) 892 Stevens Dr (Score: 85), 5) 4401 W Clearwater Ave (Score: 82).",
-    "8 properties match buyer profile with >85% confidence. Prioritized by: rental potential (40%), appreciation forecast (30%), location score (20%), condition (10%).",
-  ],
-  summarize_property: [
-    "Executive Summary: Analysis of Richland WA real estate market reveals strong investment fundamentals. The area shows consistent appreciation, favorable rental yields, and declining inventory suggesting continued upward price pressure. Recommended allocation: 60% single-family, 25% multi-family, 15% commercial.",
-    "Property Portfolio Brief: 18 viable investment properties identified across 3 submarkets. Aggregate estimated annual return: 8.4%. Key risk factors: interest rate sensitivity (moderate), market concentration (low-moderate).",
-  ],
-  generate_report: [
-    "Comprehensive Report: Multi-agent analysis complete. 4 specialized agents processed the query in parallel, analyzing market data from 3 sources (Zillow, PACMLS, ATTOM). Key finding: Richland WA presents a compelling investment opportunity with above-average returns and moderate risk profile. Full data synthesis attached.",
-  ],
+const DURATION_RANGES: Record<string, [number, number]> = {
+  nl_search: [800, 2000],
+  market_analyzer: [1500, 3500],
+  recommendation: [1200, 2800],
+  text_summarizer: [900, 2200],
 };
 
 /**
- * Get a mock result for a given action
+ * Get a simulated execution duration for an agent type.
+ * Randomized within realistic ranges for each agent.
  */
-export function getMockResult(action: string): string {
-  const results = MOCK_RESULTS[action] || MOCK_RESULTS["search_properties"];
-  return results[Math.floor(Math.random() * results.length)];
+export function getSimulatedDuration(agentType: string): number {
+  const range = DURATION_RANGES[agentType] || [1000, 3000];
+  return range[0] + Math.random() * (range[1] - range[0]);
 }
 
 /**
- * Simulate execution timing for each agent type
+ * Get a mock result string for a completed action.
  */
-export function getSimulatedDuration(agentType: string): number {
-  const baseTimes: Record<string, number> = {
-    nl_search: 800,
-    market_analyzer: 2000,
-    recommendation: 1400,
-    text_summarizer: 1000,
+export function getMockResult(action: string): string {
+  const results: Record<string, string> = {
+    search_properties:
+      "Found 24 matching properties in the Tri-Cities area. Top results include 3BR/2BA homes in West Richland ($345K-$389K) and newer constructions in South Kennewick ($312K-$367K).",
+    analyze_market:
+      "Benton County market shows 4.2% YoY appreciation. Median price: $385,000. Average days on market: 28. Inventory down 12% from last quarter indicating a seller's market.",
+    analyze_investment:
+      "Investment score: 8.2/10. Estimated rental yield: 6.8% gross, 4.1% net. Cap rate: 5.3%. Price-to-rent ratio of 14.7 indicates favorable investment conditions.",
+    comparative_analysis:
+      "Richland leads with 5.1% appreciation (median $412K), followed by Kennewick at 3.8% ($358K) and Pasco at 4.5% ($325K). Pasco offers best value-to-growth ratio.",
+    get_recommendations:
+      "Top 5 recommendations: 1) 1425 Birch Ave, Richland - Score 9.2, 2) 3201 W 4th, Kennewick - Score 8.8, 3) 812 Columbia Dr, Richland - Score 8.5, 4) 2109 Road 68, Pasco - Score 8.3, 5) 4455 Gage Blvd, Kennewick - Score 8.1",
+    generate_report:
+      "Executive Brief: The Tri-Cities real estate market continues strong growth driven by DOE expansion and tech sector jobs. Key opportunity areas include West Richland for family homes and South Kennewick for investment properties.",
+    summarize_property:
+      "Property Summary: Well-maintained 3BR/2BA ranch in established Richland neighborhood. 1,856 sqft on 0.23 acres. Updated kitchen, hardwood floors, attached 2-car garage. Zoned R-1. Walk score: 72.",
   };
-  const base = baseTimes[agentType] || 1500;
-  // Add some randomness (+-30%)
-  return Math.round(base * (0.7 + Math.random() * 0.6));
+
+  return (
+    results[action] ||
+    "Analysis completed successfully. Results are ready for review in the TerraFusion dashboard."
+  );
 }
