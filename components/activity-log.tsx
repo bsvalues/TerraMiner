@@ -35,7 +35,7 @@ export function ActivityLog({ entries }: ActivityLogProps) {
           {entries.length}
         </span>
       </div>
-      <div className="flex max-h-64 flex-col gap-0.5 overflow-y-auto rounded-lg border border-border bg-card">
+      <div className="flex max-h-64 flex-col gap-0.5 overflow-y-auto rounded-lg border border-border bg-card" aria-live="polite" aria-label="Activity feed">
         {entries.map((entry) => (
           <div
             key={entry.id}

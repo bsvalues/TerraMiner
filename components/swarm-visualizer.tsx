@@ -33,7 +33,7 @@ const STATUS_COLOR = {
 export function SwarmVisualizer({ task }: SwarmVisualizerProps) {
   if (!task) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-card/50 py-12">
+      <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-card/50 py-12" role="region" aria-label="Swarm task visualizer">
         <GitBranch className="h-8 w-8 text-muted-foreground/40" />
         <div className="text-center">
           <p className="text-sm text-muted-foreground">

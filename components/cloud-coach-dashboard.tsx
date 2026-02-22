@@ -29,7 +29,6 @@ import {
   Clock,
   Gauge,
   Zap,
-  Shield,
 } from "lucide-react";
 
 function formatUptime(seconds: number): string {
@@ -250,44 +249,7 @@ export default function CloudCoachDashboard() {
   }, []);
 
   return (
-    <div className="grid-bg min-h-screen">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-              <Shield className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <h1 className="flex items-center gap-2 text-sm font-bold text-foreground">
-                TerraFusion Cloud Coach
-              </h1>
-              <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-                Elite Government OS
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <SwarmModeBadge
-              mode={swarmMode}
-              onToggle={() =>
-                setSwarmMode((m) =>
-                  m === "ralph-wiggum" ? "single" : "ralph-wiggum"
-                )
-              }
-              isExecuting={isExecuting}
-            />
-            <div className="flex items-center gap-1.5 rounded-full bg-[hsl(var(--success))]/10 px-2.5 py-1">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[hsl(var(--success))]" />
-              <span className="text-[10px] font-medium text-[hsl(var(--success))]">
-                System Online
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-7xl px-4 py-6">
+    <div className="grid-bg min-h-full px-6 py-6">
         <div className="flex flex-col gap-6">
           {/* System Vitals */}
           <section aria-label="System Metrics">
@@ -336,6 +298,17 @@ export default function CloudCoachDashboard() {
                   ? "All agents available for parallel execution"
                   : "Single agent routing mode"}
               </span>
+              <div className="ml-auto">
+                <SwarmModeBadge
+                  mode={swarmMode}
+                  onToggle={() =>
+                    setSwarmMode((m) =>
+                      m === "ralph-wiggum" ? "single" : "ralph-wiggum"
+                    )
+                  }
+                  isExecuting={isExecuting}
+                />
+              </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {agents.map((agent) => (
@@ -372,19 +345,6 @@ export default function CloudCoachDashboard() {
             </section>
           </div>
         </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-border bg-background/50 py-4">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4">
-          <p className="font-mono text-[10px] text-muted-foreground">
-            TerraFusion Cloud Coach v1.0.0 | cloud-coach-agent
-          </p>
-          <p className="font-mono text-[10px] text-muted-foreground">
-            Benton County, WA | TerraMiner Engine
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }

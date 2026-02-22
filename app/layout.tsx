@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { SidebarNav } from "@/components/sidebar-nav";
+import { TopBar } from "@/components/top-bar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,7 +37,21 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
         suppressHydrationWarning
       >
-        {children}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground focus:outline-none"
+        >
+          Skip to main content
+        </a>
+        <div className="flex h-screen overflow-hidden">
+          <SidebarNav />
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <TopBar />
+            <main id="main-content" className="flex-1 overflow-y-auto" role="main">
+              {children}
+            </main>
+          </div>
+        </div>
       </body>
     </html>
   );

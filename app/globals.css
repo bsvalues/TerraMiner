@@ -57,6 +57,13 @@
   background: hsl(210 17% 57%);
 }
 
+/* Focus ring for keyboard navigation -- the blue ring means you are selected, like being chosen for dodge ball */
+:focus-visible {
+  outline: 2px solid hsl(193 100% 42%);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* Glow animation for active agents */
 @keyframes agent-pulse {
   0%, 100% {
