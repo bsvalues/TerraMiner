@@ -7,6 +7,7 @@ import { MOCK_PROPERTIES } from "@/lib/mock-properties";
 import { PropertyCard, type PropertyData } from "@/components/property-card";
 import { PropertyCardSkeleton } from "@/components/skeleton";
 import { formatNumber } from "@/lib/utils";
+import { scoreProperty } from "@/lib/terra-engine";
 import { VoiceSearch } from "@/components/voice-search";
 import {
   Search,
@@ -20,7 +21,7 @@ import {
   Database,
 } from "lucide-react";
 
-type SortKey = "price-asc" | "price-desc" | "newest" | "beds" | "sqft";
+type SortKey = "price-asc" | "price-desc" | "newest" | "beds" | "sqft" | "score";
 type StatusFilter = "all" | "active" | "pending" | "sold" | "new";
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
@@ -29,6 +30,7 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "newest", label: "Newest Listings" },
   { value: "beds", label: "Most Bedrooms" },
   { value: "sqft", label: "Largest" },
+  { value: "score", label: "Investment Score" },
 ];
 
 const CITIES = ["All Cities", "Richland", "Kennewick", "Pasco", "West Richland"];
@@ -75,14 +77,15 @@ export default function PropertiesPage() {
   if (maxPrice) queryParams.set("max_price", maxPrice);
   if (minBeds > 0) queryParams.set("min_beds", String(minBeds));
 
-  const sortMap: Record<SortKey, { sort_by: string; sort_dir: string }> = {
+  const sortMap: Record<string, { sort_by: string; sort_dir: string }> = {
     "price-asc": { sort_by: "price", sort_dir: "asc" },
     "price-desc": { sort_by: "price", sort_dir: "desc" },
     newest: { sort_by: "created_at", sort_dir: "desc" },
     beds: { sort_by: "beds", sort_dir: "desc" },
     sqft: { sort_by: "sqft", sort_dir: "desc" },
+    score: { sort_by: "price", sort_dir: "asc" }, // server fallback; client-side re-sort below
   };
-  const sort = sortMap[sortBy];
+  const sort = sortMap[sortBy] || sortMap["newest"];
   queryParams.set("sort_by", sort.sort_by);
   queryParams.set("sort_dir", sort.sort_dir);
   queryParams.set("limit", String(PAGE_SIZE));
@@ -131,11 +134,26 @@ export default function PropertiesPage() {
       case "price-desc": result.sort((a, b) => Number(b.price) - Number(a.price)); break;
       case "beds": result.sort((a, b) => Number(b.beds) - Number(a.beds)); break;
       case "sqft": result.sort((a, b) => Number(b.sqft) - Number(a.sqft)); break;
+      case "score": result.sort((a, b) => {
+        const sa = scoreProperty({ price: Number(a.price), sqft: Number(a.sqft), beds: Number(a.beds), baths: Number(a.baths), city: a.city, status: a.status });
+        const sb = scoreProperty({ price: Number(b.price), sqft: Number(b.sqft), beds: Number(b.beds), baths: Number(b.baths), city: b.city, status: b.status });
+        return sb.total_score - sa.total_score;
+      }); break;
     }
     return result.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   }, [properties, isFromDB, debouncedSearch, sortBy, cityFilter, typeFilter, statusFilter, minPrice, maxPrice, minBeds, page]);
 
-  const displayProperties = isFromDB ? properties : filteredProperties;
+  // Client-side re-sort by investment score when selected (server can't sort by computed field)
+  const scoreSorted = useMemo(() => {
+    if (sortBy !== "score") return properties;
+    return [...properties].sort((a, b) => {
+      const sa = scoreProperty({ price: Number(a.price), sqft: Number(a.sqft), beds: Number(a.beds), baths: Number(a.baths), city: a.city, status: a.status });
+      const sb = scoreProperty({ price: Number(b.price), sqft: Number(b.sqft), beds: Number(b.beds), baths: Number(b.baths), city: b.city, status: b.status });
+      return sb.total_score - sa.total_score;
+    });
+  }, [properties, sortBy]);
+
+  const displayProperties = isFromDB ? scoreSorted : filteredProperties;
   const displayTotal = isFromDB ? total : (() => {
     let result = MOCK_PROPERTIES as unknown as PropertyData[];
     if (debouncedSearch) { const q = debouncedSearch.toLowerCase(); result = result.filter((p) => p.address.toLowerCase().includes(q) || p.city.toLowerCase().includes(q)); }

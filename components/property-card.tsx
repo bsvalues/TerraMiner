@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { cn, formatNumber } from "@/lib/utils";
-import { Bed, Bath, Maximize, Calendar, MapPin } from "lucide-react";
+import { Bed, Bath, Maximize, Calendar, MapPin, TrendingUp } from "lucide-react";
+import { scoreProperty } from "@/lib/terra-engine";
 
 // Universal property shape -- works with both DB rows and mock data
 export interface PropertyData {
@@ -66,6 +67,26 @@ export function PropertyCard({ property, view = "grid" }: PropertyCardProps) {
   const baths = Number(property.baths);
   const sqft = Number(property.sqft);
 
+  // TerraFusion Engine investment grade
+  const score = scoreProperty({
+    price,
+    sqft,
+    beds,
+    baths,
+    year_built: property.year_built ?? property.yearBuilt,
+    lot_size: property.lot_size ?? property.lotSize,
+    city: property.city,
+    status: property.status,
+  });
+
+  const gradeColor: Record<string, string> = {
+    A: "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]",
+    B: "bg-primary/15 text-primary",
+    C: "bg-[hsl(var(--warning))]/15 text-[hsl(var(--warning))]",
+    D: "bg-destructive/15 text-destructive",
+    F: "bg-destructive/15 text-destructive",
+  };
+
   if (view === "list") {
     return (
       <Link href={`/properties/${property.id}`} className="flex items-center gap-4 rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/30">
@@ -90,6 +111,9 @@ export function PropertyCard({ property, view = "grid" }: PropertyCardProps) {
           <p className="shrink-0 text-sm font-bold text-primary">
             ${formatNumber(price)}
           </p>
+          <span className={cn("shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold", gradeColor[score.investment_grade] || gradeColor.C)}>
+            {score.investment_grade}
+          </span>
         </div>
       </Link>
     );
@@ -107,11 +131,17 @@ export function PropertyCard({ property, view = "grid" }: PropertyCardProps) {
             {typeLabel}
           </span>
         </div>
-        {daysOnMarket <= 7 && daysOnMarket > 0 && (
-          <div className="absolute right-2 top-2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
-            HOT
+        <div className="absolute right-2 top-2 flex flex-col items-end gap-1">
+          {daysOnMarket <= 7 && daysOnMarket > 0 && (
+            <div className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+              HOT
+            </div>
+          )}
+          <div className={cn("flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold backdrop-blur-sm", gradeColor[score.investment_grade] || gradeColor.C)}>
+            <TrendingUp className="h-2.5 w-2.5" />
+            {score.investment_grade}
           </div>
-        )}
+        </div>
         {property.data_source && (
           <div className="absolute bottom-2 right-2 rounded bg-card/60 px-1.5 py-0.5 text-[9px] font-mono text-muted-foreground backdrop-blur-sm">
             {property.data_source}
