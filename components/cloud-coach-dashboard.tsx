@@ -52,17 +52,16 @@ export default function CloudCoachDashboard() {
     fetcher,
     { refreshInterval: 10000, fallbackData: { entries: INITIAL_ACTIVITY_LOG } }
   );
-  const { data: metricsData } = useSWR<{
-    activeAgents: number;
-    totalAgents: number;
-    tasksProcessed: number;
-    tasksToday: number;
-    uptimeSeconds: number;
-    swarmEfficiency: number;
+  const { data: rawMetrics } = useSWR<{
     source: string;
+    metrics: Record<string, number>;
   }>("/api/system/metrics", fetcher, {
     refreshInterval: 15000,
   });
+
+  // Unwrap the nested metrics object for easy access
+  const metricsData = rawMetrics?.metrics;
+  const dbSource = rawMetrics?.source;
 
   const livePipelines = etlData?.pipelines ?? ETL_PIPELINES;
   const liveActivity = activityData?.entries ?? INITIAL_ACTIVITY_LOG;
@@ -299,7 +298,7 @@ export default function CloudCoachDashboard() {
               />
               <MetricCard
                 label="Uptime"
-                value={formatUptime(metricsData?.uptimeSeconds ?? SYSTEM_METRICS.uptime)}
+                value={formatUptime(metricsData?.uptime ?? SYSTEM_METRICS.uptime)}
                 subtitle="continuous"
                 icon={Clock}
                 accentColor="text-[hsl(var(--success))]"

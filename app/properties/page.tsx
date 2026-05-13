@@ -136,6 +136,7 @@ export default function PropertiesPage() {
   aria-label="Search properties"
   />
   <VoiceSearch
+    compact
     onResult={(transcript) => setSearchQuery(transcript)}
     className="absolute right-3 top-1/2 -translate-y-1/2"
   />

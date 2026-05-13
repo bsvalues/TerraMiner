@@ -11,8 +11,8 @@ export async function GET() {
       source: "database",
       metrics: {
         ...SYSTEM_METRICS,
+        tasksProcessed: dbMetrics.totalTasks > 0 ? dbMetrics.totalTasks + SYSTEM_METRICS.tasksProcessed : SYSTEM_METRICS.tasksProcessed,
         totalProperties: dbMetrics.totalProperties,
-        totalTasks: dbMetrics.totalTasks,
         healthySources: dbMetrics.healthySources,
         recentActivity: dbMetrics.recentActivity,
         cpuUsage: Math.round(SYSTEM_METRICS.cpuUsage + (Math.random() - 0.5) * 10),

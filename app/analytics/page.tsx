@@ -1,5 +1,6 @@
 "use client";
 
+import useSWR from "swr";
 import {
   AreaChart,
   Area,
@@ -24,7 +25,9 @@ import {
   PROPERTY_DISTRIBUTION_DATA,
   CITY_BREAKDOWN_DATA,
 } from "@/lib/mock-chart-data";
-import { TrendingUp, BarChart3, Activity, PieChartIcon } from "lucide-react";
+import { TrendingUp, BarChart3, Activity, PieChartIcon, Database } from "lucide-react";
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 // Custom tooltip -- this tooltip has information in it which is what tooltips are for
 function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string }>; label?: string }) {
@@ -51,7 +54,48 @@ const CHART_MUTED = "hsl(213 28% 36%)";
 const GRID_COLOR = "hsl(213 28% 26%)";
 const TEXT_COLOR = "hsl(210 17% 57%)";
 
+const TYPE_COLORS: Record<string, string> = {
+  single_family: CHART_PRIMARY,
+  condo: CHART_SUCCESS,
+  townhouse: CHART_WARNING,
+  multi_family: CHART_ERROR,
+  land: CHART_MUTED,
+};
+
+const TYPE_LABELS: Record<string, string> = {
+  single_family: "Single Family",
+  condo: "Condo",
+  townhouse: "Townhouse",
+  multi_family: "Multi-Family",
+  land: "Land",
+};
+
 export default function AnalyticsPage() {
+  const { data: analyticsData } = useSWR("/api/analytics", fetcher, {
+    revalidateOnFocus: false,
+  });
+
+  const isFromDB = analyticsData?.dataSource === "postgresql";
+
+  // Build property type donut data from DB or fallback to mock
+  const propertyTypeData = isFromDB && analyticsData?.properties?.byType?.length
+    ? analyticsData.properties.byType.map((row: { property_type: string; count: string }) => ({
+        type: TYPE_LABELS[row.property_type] || row.property_type,
+        count: Number(row.count),
+        fill: TYPE_COLORS[row.property_type] || CHART_MUTED,
+      }))
+    : PROPERTY_DISTRIBUTION_DATA;
+
+  // Build city breakdown data from DB or fallback to mock
+  const cityData = isFromDB && analyticsData?.properties?.byCity?.length
+    ? analyticsData.properties.byCity.map((row: { city: string; count: string }) => ({
+        city: row.city,
+        active: Number(row.count),
+        sold: 0,
+        pending: 0,
+      }))
+    : CITY_BREAKDOWN_DATA;
+
   return (
     <div className="grid-bg min-h-full px-6 py-6">
       <div className="flex flex-col gap-6">
@@ -92,11 +136,16 @@ export default function AnalyticsPage() {
               <h3 className="text-sm font-semibold text-foreground">
                 Property Types
               </h3>
+              {isFromDB && (
+                <span className="ml-auto flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-medium text-primary">
+                  <Database className="h-2.5 w-2.5" /> Live
+                </span>
+              )}
             </div>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie
-                  data={PROPERTY_DISTRIBUTION_DATA}
+                  data={propertyTypeData}
                   cx="50%"
                   cy="50%"
                   innerRadius={50}
@@ -105,7 +154,7 @@ export default function AnalyticsPage() {
                   dataKey="count"
                   nameKey="type"
                 >
-                  {PROPERTY_DISTRIBUTION_DATA.map((entry, i) => (
+                  {propertyTypeData.map((entry: { fill: string }, i: number) => (
                     <Cell key={i} fill={entry.fill} />
                   ))}
                 </Pie>
@@ -113,7 +162,7 @@ export default function AnalyticsPage() {
               </PieChart>
             </ResponsiveContainer>
             <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1">
-              {PROPERTY_DISTRIBUTION_DATA.map((entry) => (
+              {propertyTypeData.map((entry: { type: string; fill: string }) => (
                 <div key={entry.type} className="flex items-center gap-1">
                   <span className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.fill }} />
                   <span className="text-[10px] text-muted-foreground">{entry.type}</span>
@@ -157,7 +206,7 @@ export default function AnalyticsPage() {
               </h3>
             </div>
             <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={CITY_BREAKDOWN_DATA}>
+              <BarChart data={cityData}>
                 <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
                 <XAxis dataKey="city" tick={{ fontSize: 10, fill: TEXT_COLOR }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: TEXT_COLOR }} axisLine={false} tickLine={false} />
