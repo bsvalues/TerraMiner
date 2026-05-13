@@ -25,7 +25,7 @@ import {
   PROPERTY_DISTRIBUTION_DATA,
   CITY_BREAKDOWN_DATA,
 } from "@/lib/mock-chart-data";
-import { TrendingUp, BarChart3, Activity, PieChartIcon, Database } from "lucide-react";
+import { TrendingUp, BarChart3, Activity, PieChartIcon, Database, Download } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -113,11 +113,24 @@ export default function AnalyticsPage() {
       <div className="flex flex-col gap-6">
         {/* Market Snapshot Summary */}
         {isFromDB && priceStats && (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-foreground">Market Snapshot</h2>
+              <a
+                href="/api/properties/export"
+                download
+                className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+              >
+                <Download className="h-3 w-3" />
+                Export CSV
+              </a>
+            </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <SnapshotCard label="Total Listings" value={totalListings?.toLocaleString() ?? "--"} sub="In database" color="text-primary" />
             <SnapshotCard label="Average Price" value={avgPrice ? `$${(avgPrice / 1000).toFixed(0)}k` : "--"} sub="Across all properties" color="text-[hsl(var(--success))]" />
             <SnapshotCard label="Price Range" value={minPrice && maxPrice ? `$${(minPrice / 1000).toFixed(0)}k - $${(maxPrice / 1000).toFixed(0)}k` : "--"} sub="Low to high" color="text-[hsl(var(--warning))]" />
             <SnapshotCard label="Cities" value={cityData.length.toString()} sub="Active markets" color="text-primary" />
+          </div>
           </div>
         )}
 

@@ -14,6 +14,7 @@ import {
   MapPin,
   TrendingUp,
   Zap,
+  Download,
 } from "lucide-react";
 
 interface CommandItem {
@@ -44,6 +45,7 @@ export function CommandPalette() {
     { id: "act-search", label: "Search Properties", description: "Find listings by keyword", icon: Search, action: () => { router.push("/properties"); setTimeout(() => document.querySelector<HTMLButtonElement>('[aria-label="Search properties"]')?.click(), 500); }, category: "Actions" },
     { id: "act-top-picks", label: "Top Investment Picks", description: "Sort by TerraFusion score", icon: TrendingUp, action: () => router.push("/properties?sort=score"), category: "Actions" },
     { id: "act-swarm", label: "Run Swarm Query", description: "Execute an AI swarm task", icon: Zap, action: () => { router.push("/"); setTimeout(() => document.querySelector<HTMLInputElement>('input[placeholder*="swarm"]')?.focus(), 500); }, category: "Actions" },
+    { id: "act-export", label: "Export Properties CSV", description: "Download all properties with scores", icon: Download, action: () => { window.location.href = "/api/properties/export"; }, category: "Actions" },
   ];
 
   const filtered = query.trim()

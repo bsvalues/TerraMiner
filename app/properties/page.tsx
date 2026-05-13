@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Database,
   MapPin,
+  Download,
 } from "lucide-react";
 
 function MapLoading() {
@@ -249,6 +250,17 @@ export default function PropertiesPage() {
                 <MapPin className="h-4 w-4" />
               </button>
             </div>
+            {isFromDB && (
+              <a
+                href="/api/properties/export"
+                download
+                className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                aria-label="Export CSV"
+              >
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">Export</span>
+              </a>
+            )}
           </div>
 
           {/* Filter panel */}
