@@ -86,15 +86,21 @@ export default function AnalyticsPage() {
       }))
     : PROPERTY_DISTRIBUTION_DATA;
 
-  // Build city breakdown data from DB or fallback to mock
-  const cityData = isFromDB && analyticsData?.properties?.byCity?.length
-    ? analyticsData.properties.byCity.map((row: { city: string; count: string }) => ({
-        city: row.city,
-        active: Number(row.count),
-        sold: 0,
-        pending: 0,
-      }))
-    : CITY_BREAKDOWN_DATA;
+  // Build city breakdown data from DB with per-status counts, or fallback to mock
+  const cityData = (() => {
+    const byCityStatus = analyticsData?.properties?.byCityStatus;
+    if (!isFromDB || !byCityStatus?.length) return CITY_BREAKDOWN_DATA;
+    const cityMap: Record<string, { city: string; active: number; sold: number; pending: number }> = {};
+    for (const row of byCityStatus as { city: string; status: string; count: number }[]) {
+      if (!cityMap[row.city]) cityMap[row.city] = { city: row.city, active: 0, sold: 0, pending: 0 };
+      const s = row.status.toLowerCase();
+      if (s === "active" || s === "new") cityMap[row.city].active += Number(row.count);
+      else if (s === "sold") cityMap[row.city].sold += Number(row.count);
+      else if (s === "pending") cityMap[row.city].pending += Number(row.count);
+      else cityMap[row.city].active += Number(row.count);
+    }
+    return Object.values(cityMap);
+  })();
 
   return (
     <div className="grid-bg min-h-full px-6 py-6">

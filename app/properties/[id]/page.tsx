@@ -18,7 +18,11 @@ import {
   DollarSign,
   Layers,
   Hash,
+  Gauge,
+  TrendingUp,
+  Shield,
 } from "lucide-react";
+import { scoreProperty } from "@/lib/terra-engine";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -93,6 +97,26 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
 
   const pricePerSqft =
     property.sqft > 0 ? Math.round(property.price / property.sqft) : 0;
+
+  // TerraFusion Engine investment score
+  const score = scoreProperty({
+    price: property.price,
+    sqft: property.sqft,
+    beds: property.beds,
+    baths: property.baths,
+    year_built: property.yearBuilt,
+    lot_size: property.lotSize,
+    city: property.city,
+    status: property.status,
+  });
+
+  const gradeColors: Record<string, string> = {
+    A: "text-[hsl(var(--success))] bg-[hsl(var(--success))]/10",
+    B: "text-primary bg-primary/10",
+    C: "text-[hsl(var(--warning))] bg-[hsl(var(--warning))]/10",
+    D: "text-destructive/80 bg-destructive/10",
+    F: "text-destructive bg-destructive/10",
+  };
 
   return (
     <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-4 md:p-6">
@@ -247,6 +271,38 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
             </div>
           </div>
 
+          {/* TerraFusion Engine Score */}
+          <div className="rounded-xl border border-primary/20 bg-card p-5">
+            <div className="mb-3 flex items-center gap-2">
+              <Gauge className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-semibold text-foreground">
+                Investment Score
+              </h2>
+              <span className="ml-auto text-[9px] text-muted-foreground">TerraFusion Engine</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className={cn("flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-xl font-black", gradeColors[score.investment_grade] || gradeColors.C)}>
+                {score.investment_grade}
+              </div>
+              <div className="flex-1">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-bold text-foreground">{score.total_score}</span>
+                  <span className="text-xs text-muted-foreground">/ 100</span>
+                </div>
+                <p className={cn("text-xs font-semibold", score.recommendation === "Strong Buy" ? "text-[hsl(var(--success))]" : score.recommendation === "Buy" ? "text-primary" : "text-[hsl(var(--warning))]")}>
+                  {score.recommendation}
+                </p>
+              </div>
+            </div>
+            {/* Score breakdown */}
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <ScoreFactor icon={DollarSign} label="Value" value={score.value_score} />
+              <ScoreFactor icon={MapPin} label="Location" value={score.location_score} />
+              <ScoreFactor icon={Shield} label="Condition" value={score.condition_score} />
+              <ScoreFactor icon={TrendingUp} label="Market" value={score.market_score} />
+            </div>
+          </div>
+
           {/* Quick Actions */}
           <div className="rounded-xl border border-border bg-card p-5">
             <h2 className="mb-3 text-sm font-semibold text-foreground">
@@ -309,6 +365,25 @@ function DetailRow({
         <span className="text-xs">{label}</span>
       </div>
       <span className="text-xs font-medium text-foreground">{value}</span>
+    </div>
+  );
+}
+
+function ScoreFactor({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof DollarSign;
+  label: string;
+  value: number;
+}) {
+  const color = value >= 80 ? "text-[hsl(var(--success))]" : value >= 60 ? "text-primary" : value >= 40 ? "text-[hsl(var(--warning))]" : "text-destructive";
+  return (
+    <div className="flex items-center gap-1.5 rounded-md bg-muted/30 px-2 py-1.5">
+      <Icon className="h-3 w-3 text-muted-foreground" />
+      <span className="flex-1 text-[10px] text-muted-foreground">{label}</span>
+      <span className={cn("text-xs font-bold", color)}>{value}</span>
     </div>
   );
 }

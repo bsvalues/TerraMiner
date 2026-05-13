@@ -218,13 +218,14 @@ export async function addActivityEntry(type: string, message: string, severity: 
 
 export async function getPropertyStats() {
   const sql = getSQL();
-  const [byCity, byType, byStatus, priceStats] = await Promise.all([
+  const [byCity, byType, byStatus, priceStats, byCityStatus] = await Promise.all([
     sql`SELECT city, COUNT(*) as count, AVG(price)::int as avg_price FROM properties GROUP BY city ORDER BY count DESC`,
     sql`SELECT property_type, COUNT(*) as count FROM properties GROUP BY property_type`,
     sql`SELECT status, COUNT(*) as count FROM properties GROUP BY status`,
     sql`SELECT MIN(price)::int as min_price, MAX(price)::int as max_price, AVG(price)::int as avg_price, COUNT(*) as total FROM properties`,
+    sql`SELECT city, LOWER(status) as status, COUNT(*)::int as count FROM properties GROUP BY city, status ORDER BY city`,
   ]);
-  return { byCity, byType, byStatus, priceStats: priceStats[0] };
+  return { byCity, byType, byStatus, priceStats: priceStats[0], byCityStatus };
 }
 
 export async function getAgentStats() {
