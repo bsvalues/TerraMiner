@@ -23,6 +23,7 @@ import {
   Shield,
   Share2,
   Check,
+  ChevronRight,
 } from "lucide-react";
 import { scoreProperty } from "@/lib/terra-engine";
 import { PropertyComparison } from "@/components/property-comparison";
@@ -127,14 +128,14 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <Link
-            href="/properties"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            aria-label="Back to properties"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
           <div>
+            <nav className="mb-1 flex items-center gap-1 text-[11px] text-muted-foreground" aria-label="Breadcrumb">
+              <Link href="/" className="hover:text-foreground">Dashboard</Link>
+              <ChevronRight className="h-3 w-3" />
+              <Link href="/properties" className="hover:text-foreground">Properties</Link>
+              <ChevronRight className="h-3 w-3" />
+              <span className="text-foreground">{property.address}</span>
+            </nav>
             <h1 className="text-lg font-bold text-foreground">
               {property.address}
             </h1>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Terminal, Send, RotateCcw, Loader2 } from "lucide-react";
 import { VoiceSearch } from "@/components/voice-search";
@@ -42,6 +42,22 @@ export function CommandInput({
     },
     [handleSubmit]
   );
+
+  // Number key shortcuts (1-4) to fire suggestion chips
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (isExecuting) return;
+      // Don't fire if user is typing in an input/textarea
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      const idx = parseInt(e.key) - 1;
+      if (idx >= 0 && idx < EXAMPLE_QUERIES.length) {
+        onSubmit(EXAMPLE_QUERIES[idx]);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isExecuting, onSubmit]);
 
   return (
     <div className="flex flex-col gap-2">
@@ -96,7 +112,7 @@ export function CommandInput({
         )}
       </div>
       <div className="flex flex-wrap gap-1.5">
-        {EXAMPLE_QUERIES.map((example) => (
+        {EXAMPLE_QUERIES.map((example, i) => (
           <button
             key={example}
             onClick={() => {
@@ -105,8 +121,11 @@ export function CommandInput({
               }
             }}
             disabled={isExecuting}
-            className="rounded-md border border-border bg-card/50 px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-md border border-border bg-card/50 px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
           >
+            <kbd className="flex h-4 w-4 items-center justify-center rounded border border-border bg-muted/50 text-[9px] font-bold">
+              {i + 1}
+            </kbd>
             {example}
           </button>
         ))}
