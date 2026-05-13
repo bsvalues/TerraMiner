@@ -1,36 +1,69 @@
 "use client";
 
 import { cn, formatNumber } from "@/lib/utils";
-import type { Property } from "@/lib/mock-properties";
 import { Bed, Bath, Maximize, Calendar, MapPin } from "lucide-react";
 
-const STATUS_STYLES: Record<Property["status"], { label: string; className: string }> = {
+// Universal property shape -- works with both DB rows and mock data
+export interface PropertyData {
+  id: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  price: number;
+  beds: number;
+  baths: number;
+  sqft: number;
+  property_type?: string;
+  propertyType?: string;
+  status: string;
+  description?: string;
+  features?: string[] | unknown;
+  year_built?: number;
+  yearBuilt?: number;
+  days_on_market?: number;
+  daysOnMarket?: number;
+  mls_id?: string;
+  mlsId?: string;
+  lot_size?: number;
+  lotSize?: number;
+  data_source?: string;
+}
+
+const STATUS_STYLES: Record<string, { label: string; className: string }> = {
   active: { label: "Active", className: "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]" },
   new: { label: "New", className: "bg-primary/15 text-primary" },
   pending: { label: "Pending", className: "bg-[hsl(var(--warning))]/15 text-[hsl(var(--warning))]" },
   sold: { label: "Sold", className: "bg-destructive/15 text-destructive" },
 };
 
-const TYPE_LABELS: Record<Property["propertyType"], string> = {
+const TYPE_LABELS: Record<string, string> = {
   "single-family": "Single Family",
+  "single_family": "Single Family",
   "condo": "Condo",
   "townhouse": "Townhouse",
   "multi-family": "Multi-Family",
+  "multi_family": "Multi-Family",
   "land": "Land",
 };
 
 interface PropertyCardProps {
-  property: Property;
+  property: PropertyData;
   view?: "grid" | "list";
 }
 
 export function PropertyCard({ property, view = "grid" }: PropertyCardProps) {
-  const status = STATUS_STYLES[property.status];
+  const statusKey = property.status || "active";
+  const status = STATUS_STYLES[statusKey] || STATUS_STYLES.active;
+  const propType = property.property_type || property.propertyType || "single_family";
+  const typeLabel = TYPE_LABELS[propType] || propType;
+  const daysOnMarket = property.days_on_market ?? property.daysOnMarket ?? 0;
+  const mlsId = property.mls_id || property.mlsId || "";
+  const features = Array.isArray(property.features) ? property.features as string[] : [];
 
   if (view === "list") {
     return (
       <div className="flex items-center gap-4 rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/30">
-        {/* Color block placeholder -- this square represents a house in the same way a crayon represents the sun */}
         <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded-md bg-secondary/50">
           <MapPin className="h-5 w-5 text-muted-foreground" />
         </div>
@@ -59,7 +92,6 @@ export function PropertyCard({ property, view = "grid" }: PropertyCardProps) {
 
   return (
     <div className="group flex flex-col overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
-      {/* Image placeholder -- the house lives in a colorful rectangle dimension */}
       <div className="relative flex h-40 items-center justify-center bg-secondary/30">
         <MapPin className="h-8 w-8 text-muted-foreground/50" />
         <div className="absolute left-2 top-2 flex gap-1.5">
@@ -67,17 +99,21 @@ export function PropertyCard({ property, view = "grid" }: PropertyCardProps) {
             {status.label}
           </span>
           <span className="rounded-full bg-card/80 px-2 py-0.5 text-[10px] font-medium text-foreground backdrop-blur-sm">
-            {TYPE_LABELS[property.propertyType]}
+            {typeLabel}
           </span>
         </div>
-        {property.daysOnMarket <= 7 && (
+        {daysOnMarket <= 7 && daysOnMarket > 0 && (
           <div className="absolute right-2 top-2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
             HOT
           </div>
         )}
+        {property.data_source && (
+          <div className="absolute bottom-2 right-2 rounded bg-card/60 px-1.5 py-0.5 text-[9px] font-mono text-muted-foreground backdrop-blur-sm">
+            {property.data_source}
+          </div>
+        )}
       </div>
 
-      {/* Content -- the data about the house is also a house for data */}
       <div className="flex flex-1 flex-col gap-2 p-3">
         <div className="flex items-start justify-between gap-2">
           <div>
@@ -91,7 +127,6 @@ export function PropertyCard({ property, view = "grid" }: PropertyCardProps) {
           </p>
         </div>
 
-        {/* Stats row */}
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <Bed className="h-3.5 w-3.5" /> {property.beds} bd
@@ -104,24 +139,30 @@ export function PropertyCard({ property, view = "grid" }: PropertyCardProps) {
           </span>
         </div>
 
-        {/* Features */}
-        <div className="flex flex-wrap gap-1">
-          {property.features.slice(0, 3).map((feature) => (
-            <span
-              key={feature}
-              className="rounded bg-secondary/50 px-1.5 py-0.5 text-[10px] text-muted-foreground"
-            >
-              {feature}
-            </span>
-          ))}
-        </div>
+        {features.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {features.slice(0, 3).map((feature) => (
+              <span
+                key={String(feature)}
+                className="rounded bg-secondary/50 px-1.5 py-0.5 text-[10px] text-muted-foreground"
+              >
+                {String(feature)}
+              </span>
+            ))}
+          </div>
+        )}
 
-        {/* Footer */}
         <div className="mt-auto flex items-center justify-between border-t border-border pt-2 text-[10px] text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Calendar className="h-3 w-3" /> {property.daysOnMarket}d on market
-          </span>
-          <span className="font-mono">{property.mlsId}</span>
+          {daysOnMarket > 0 ? (
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" /> {daysOnMarket}d on market
+            </span>
+          ) : (
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" /> New listing
+            </span>
+          )}
+          {mlsId && <span className="font-mono">{mlsId}</span>}
         </div>
       </div>
     </div>

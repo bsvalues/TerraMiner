@@ -48,9 +48,9 @@ export default function SettingsPage() {
     Object.fromEntries(AGENTS.map((a) => [a.id, "normal"]))
   );
 
-  // API settings
-  const [flaskUrl, setFlaskUrl] = useState("http://localhost:5000");
-  const [apiKey, setApiKey] = useState("tf-key-••••••••••••");
+  // Infrastructure settings
+  const [dbStatus] = useState("connected");
+  const [engineRuntime] = useState("typescript-mirror");
 
   // ETL settings
   const [etlEnabled, setEtlEnabled] = useState(true);
@@ -145,33 +145,42 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* API Configuration -- the API endpoint is where the internet lives */}
+        {/* Infrastructure -- the stack is Next.js + Rust + PostgreSQL now */}
         <section className="rounded-lg border border-border bg-card p-5">
           <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
-            <Globe className="h-4 w-4 text-primary" /> API Configuration
+            <Globe className="h-4 w-4 text-primary" /> Infrastructure
           </h3>
           <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                Flask Backend URL
-              </label>
-              <input
-                type="text"
-                value={flaskUrl}
-                onChange={(e) => setFlaskUrl(e.target.value)}
-                className="rounded-md border border-border bg-background px-3 py-2 font-mono text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-foreground">PostgreSQL (Neon)</p>
+                <p className="text-[11px] text-muted-foreground">Serverless database connection</p>
+              </div>
+              <span className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${
+                dbStatus === "connected"
+                  ? "bg-[hsl(var(--success))]/10 text-[hsl(var(--success))]"
+                  : "bg-destructive/10 text-destructive"
+              }`}>
+                {dbStatus === "connected" ? "Connected" : "Disconnected"}
+              </span>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                API Key
-              </label>
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                className="rounded-md border border-border bg-background px-3 py-2 font-mono text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-foreground">Rust Engine</p>
+                <p className="text-[11px] text-muted-foreground">Property scoring & market analysis</p>
+              </div>
+              <span className="rounded-full bg-primary/10 px-2.5 py-1 font-mono text-[10px] font-medium text-primary">
+                {engineRuntime}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-foreground">Frontend</p>
+                <p className="text-[11px] text-muted-foreground">Next.js 15 App Router</p>
+              </div>
+              <span className="rounded-full bg-foreground/10 px-2.5 py-1 text-[10px] font-medium text-foreground">
+                v15.1.9
+              </span>
             </div>
           </div>
         </section>

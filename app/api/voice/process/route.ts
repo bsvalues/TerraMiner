@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { processVoiceCommand } from "@/lib/api-client";
+import { getProperties } from "@/lib/db";
+import { parseIntent } from "@/lib/terra-engine";
 
 export async function POST(request: Request) {
   try {
@@ -12,42 +13,55 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await processVoiceCommand(body.command);
+    const command = body.command;
 
-    if (result.source === "live" && result.data) {
-      return NextResponse.json({
-        status: "success",
-        source: "live",
-        ...result.data,
-        timestamp: new Date().toISOString(),
-      });
+    // Use the Rust engine (TS mirror) to parse intent
+    const intent = parseIntent(command);
+
+    // If it's a property search, actually query the database
+    if (intent.intent === "property_search") {
+      try {
+        const result = await getProperties({
+          city: intent.entities.city || undefined,
+          min_beds: intent.entities.min_beds || undefined,
+          min_price: intent.entities.min_price || undefined,
+          max_price: intent.entities.max_price || undefined,
+          limit: 5,
+        });
+
+        return NextResponse.json({
+          status: "success",
+          source: "database",
+          intent: intent.intent,
+          entities: intent.entities,
+          confidence: intent.confidence,
+          response: `Found ${result.total} properties matching your query.`,
+          properties: result.properties,
+          timestamp: new Date().toISOString(),
+        });
+      } catch {
+        // DB unavailable, return intent without results
+      }
     }
 
-    // Mock voice processing fallback
-    const command = body.command.toLowerCase();
-    let intent = "unknown";
-    let response = "I understood your command but the backend is offline.";
-
-    if (command.includes("search") || command.includes("find")) {
-      intent = "property_search";
-      response = `Searching for properties matching: "${body.command}"`;
-    } else if (command.includes("market") || command.includes("trend")) {
-      intent = "market_analysis";
-      response = `Analyzing market trends for your query: "${body.command}"`;
-    } else if (command.includes("recommend") || command.includes("suggest")) {
-      intent = "recommendation";
-      response = `Getting property recommendations: "${body.command}"`;
-    } else if (command.includes("value") || command.includes("worth")) {
-      intent = "valuation";
-      response = `Estimating property value for: "${body.command}"`;
+    // Return parsed intent for non-search queries or when DB is down
+    let response = `Understood: "${command}"`;
+    if (intent.intent === "market_analysis") {
+      response = `Analyzing market trends for: "${command}"`;
+    } else if (intent.intent === "property_valuation") {
+      response = `Estimating property value for: "${command}"`;
+    } else if (intent.intent === "recommendation") {
+      response = `Getting recommendations for: "${command}"`;
+    } else if (intent.intent === "property_search") {
+      response = `Searching properties: "${command}"`;
     }
 
     return NextResponse.json({
       status: "success",
-      source: "mock",
-      success: true,
-      intent,
-      entities: {},
+      source: "engine",
+      intent: intent.intent,
+      entities: intent.entities,
+      confidence: intent.confidence,
       response,
       timestamp: new Date().toISOString(),
     });

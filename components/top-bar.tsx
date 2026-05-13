@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import useSWR from "swr";
-import { Bell, Search, Wifi, WifiOff } from "lucide-react";
+import { Bell, Search, Database, DatabaseZap } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -32,13 +32,13 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
 export function TopBar() {
   const pathname = usePathname();
 
-  // Poll system status every 30 seconds to detect Flask backend
+  // Poll system metrics every 30 seconds -- checks PostgreSQL connection health
   const { data: systemData } = useSWR("/api/system/metrics", fetcher, {
     refreshInterval: 30000,
     revalidateOnFocus: false,
   });
 
-  const backendConnected = systemData?.backend?.connected === true;
+  const dbConnected = systemData?.source === "database";
 
   // Match route -- agent detail pages fall back to agents
   const pageInfo =
@@ -49,7 +49,7 @@ export function TopBar() {
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card/50 px-6">
-      {/* Page title -- these words float like a brick doesn&apos;t */}
+      {/* Page title */}
       <div>
         <h1 className="text-sm font-semibold text-foreground">
           {pageInfo.title}
@@ -59,28 +59,28 @@ export function TopBar() {
         </p>
       </div>
 
-      {/* Right side actions -- the buttons are tiny soldiers */}
+      {/* Right side actions */}
       <div className="flex items-center gap-2">
-        {/* Backend connection indicator */}
+        {/* Database connection indicator */}
         <div
           className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium ${
-            backendConnected
+            dbConnected
               ? "bg-[hsl(var(--success))]/10 text-[hsl(var(--success))]"
               : "bg-[hsl(var(--warning))]/10 text-[hsl(var(--warning))]"
           }`}
           title={
-            backendConnected
-              ? `Connected to Flask: ${systemData?.backend?.primarySource || "unknown"}`
-              : "Flask backend offline -- using mock data"
+            dbConnected
+              ? "Connected to PostgreSQL (Neon)"
+              : "PostgreSQL offline -- using mock data"
           }
         >
-          {backendConnected ? (
-            <Wifi className="h-3 w-3" />
+          {dbConnected ? (
+            <DatabaseZap className="h-3 w-3" />
           ) : (
-            <WifiOff className="h-3 w-3" />
+            <Database className="h-3 w-3" />
           )}
           <span className="hidden sm:inline">
-            {backendConnected ? "Live" : "Mock"}
+            {dbConnected ? "PostgreSQL" : "Mock"}
           </span>
         </div>
 

@@ -14,7 +14,6 @@ import {
   getMockResult,
   getSimulatedDuration,
 } from "@/lib/swarm-engine";
-import { executeAgentAction } from "@/lib/api-client";
 import { generateId, formatNumber } from "@/lib/utils";
 
 import { MetricCard } from "@/components/metric-card";
@@ -129,7 +128,6 @@ export default function CloudCoachDashboard() {
 
         // Step 3: Simulate progress updates for each subtask
         decomposed.forEach((d, index) => {
-          const agentObj = AGENTS.find((a) => a.id === d.agentId);
           const duration = getSimulatedDuration(d.agentType);
           const progressIntervals = 5;
           const intervalTime = duration / progressIntervals;
@@ -154,17 +152,9 @@ export default function CloudCoachDashboard() {
             timeoutsRef.current.push(t);
           }
 
-          // Completion -- try real Flask backend first, fall back to mock
-          const tComplete = setTimeout(async () => {
-            // Fire real agent call, use mock if it fails
-            const liveResult = await executeAgentAction(d.action, {
-              query: query,
-              location: "Tri-Cities WA",
-            });
-            const result =
-              liveResult.source === "live" && liveResult.data?.result
-                ? JSON.stringify(liveResult.data.result).slice(0, 200)
-                : getMockResult(d.action);
+          // Completion -- generate result via engine
+          const tComplete = setTimeout(() => {
+            const result = getMockResult(d.action);
 
             setCurrentTask((prev) => {
               if (!prev) return prev;

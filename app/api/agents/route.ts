@@ -1,28 +1,38 @@
 import { NextResponse } from "next/server";
 import { AGENTS } from "@/lib/mock-data";
-import { getAgentToolStatus } from "@/lib/api-client";
+import { getRecentTasks } from "@/lib/db";
 
 export async function GET() {
-  // Try Flask backend first, fall back to mock data
-  const liveStatus = await getAgentToolStatus();
+  try {
+    // Pull task stats from PostgreSQL
+    const tasks = await getRecentTasks(100);
+    const totalDbTasks = tasks.length;
 
-  // Always return agent metadata (names, types, capabilities come from our config)
-  // Enrich with live status when Flask is available
-  const enrichedAgents = AGENTS.map((agent) => ({
-    ...agent,
-    backendConnected: liveStatus.source === "live",
-    toolsAvailable: liveStatus.data?.agent_tools_available ?? false,
-  }));
+    const enrichedAgents = AGENTS.map((agent) => ({
+      ...agent,
+      backendConnected: true,
+      dbTasks: totalDbTasks,
+    }));
 
-  return NextResponse.json({
-    status: "success",
-    agents: enrichedAgents,
-    total: enrichedAgents.length,
-    active: enrichedAgents.filter(
-      (a) => a.status === "active" || a.status === "processing"
-    ).length,
-    backendSource: liveStatus.source,
-    backendError: liveStatus.error,
-    timestamp: new Date().toISOString(),
-  });
+    return NextResponse.json({
+      status: "success",
+      source: "database",
+      agents: enrichedAgents,
+      total: enrichedAgents.length,
+      active: enrichedAgents.filter(
+        (a) => a.status === "active" || a.status === "processing"
+      ).length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch {
+    // Fallback to mock data if DB is unavailable
+    return NextResponse.json({
+      status: "success",
+      source: "mock",
+      agents: AGENTS,
+      total: AGENTS.length,
+      active: AGENTS.filter((a) => a.status === "active").length,
+      timestamp: new Date().toISOString(),
+    });
+  }
 }
