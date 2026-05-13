@@ -29,7 +29,6 @@ import { TrendingUp, BarChart3, Activity, PieChartIcon, Database } from "lucide-
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-// Custom tooltip -- this tooltip has information in it which is what tooltips are for
 function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string }>; label?: string }) {
   if (!active || !payload?.length) return null;
   return (
@@ -50,7 +49,7 @@ const CHART_PRIMARY = "hsl(193 100% 42%)";
 const CHART_SUCCESS = "hsl(134 61% 41%)";
 const CHART_WARNING = "hsl(45 100% 51%)";
 const CHART_ERROR = "hsl(354 70% 54%)";
-const CHART_MUTED = "hsl(213 28% 36%)";
+const CHART_MUTED = "hsl(210 17% 57%)";
 const GRID_COLOR = "hsl(213 28% 26%)";
 const TEXT_COLOR = "hsl(210 17% 57%)";
 
@@ -102,21 +101,33 @@ export default function AnalyticsPage() {
     return Object.values(cityMap);
   })();
 
+  // Market snapshot stats from DB
+  const priceStats = analyticsData?.properties?.priceStats;
+  const totalListings = priceStats?.total ? Number(priceStats.total) : null;
+  const avgPrice = priceStats?.avg_price ? Number(priceStats.avg_price) : null;
+  const minPrice = priceStats?.min_price ? Number(priceStats.min_price) : null;
+  const maxPrice = priceStats?.max_price ? Number(priceStats.max_price) : null;
+
   return (
     <div className="grid-bg min-h-full px-6 py-6">
       <div className="flex flex-col gap-6">
+        {/* Market Snapshot Summary */}
+        {isFromDB && priceStats && (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <SnapshotCard label="Total Listings" value={totalListings?.toLocaleString() ?? "--"} sub="In database" color="text-primary" />
+            <SnapshotCard label="Average Price" value={avgPrice ? `$${(avgPrice / 1000).toFixed(0)}k` : "--"} sub="Across all properties" color="text-[hsl(var(--success))]" />
+            <SnapshotCard label="Price Range" value={minPrice && maxPrice ? `$${(minPrice / 1000).toFixed(0)}k - $${(maxPrice / 1000).toFixed(0)}k` : "--"} sub="Low to high" color="text-[hsl(var(--warning))]" />
+            <SnapshotCard label="Cities" value={cityData.length.toString()} sub="Active markets" color="text-primary" />
+          </div>
+        )}
+
         {/* Top row: Market Trend + Property Distribution */}
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Market trend area chart -- the line goes up and down like a mountain made of money */}
           <div className="col-span-2 rounded-lg border border-border bg-card p-5">
             <div className="mb-4 flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold text-foreground">
-                Market Trend - Median Home Price
-              </h3>
-              <span className="ml-auto text-[10px] text-muted-foreground">
-                Last 12 months
-              </span>
+              <h3 className="text-sm font-semibold text-foreground">Market Trend - Median Home Price</h3>
+              <span className="ml-auto text-[10px] text-muted-foreground">Last 12 months</span>
             </div>
             <ResponsiveContainer width="100%" height={260}>
               <AreaChart data={MARKET_TREND_DATA}>
@@ -135,13 +146,10 @@ export default function AnalyticsPage() {
             </ResponsiveContainer>
           </div>
 
-          {/* Property type pie chart -- the pie is not edible which is the worst kind of pie */}
           <div className="rounded-lg border border-border bg-card p-5">
             <div className="mb-4 flex items-center gap-2">
               <PieChartIcon className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold text-foreground">
-                Property Types
-              </h3>
+              <h3 className="text-sm font-semibold text-foreground">Property Types</h3>
               {isFromDB && (
                 <span className="ml-auto flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-medium text-primary">
                   <Database className="h-2.5 w-2.5" /> Live
@@ -150,16 +158,7 @@ export default function AnalyticsPage() {
             </div>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
-                <Pie
-                  data={propertyTypeData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={80}
-                  paddingAngle={3}
-                  dataKey="count"
-                  nameKey="type"
-                >
+                <Pie data={propertyTypeData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="count" nameKey="type">
                   {propertyTypeData.map((entry: { fill: string }, i: number) => (
                     <Cell key={i} fill={entry.fill} />
                   ))}
@@ -180,16 +179,11 @@ export default function AnalyticsPage() {
 
         {/* Middle row: Agent Performance + City Breakdown */}
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* Agent performance bar chart */}
           <div className="rounded-lg border border-border bg-card p-5">
             <div className="mb-4 flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold text-foreground">
-                Agent Performance
-              </h3>
-              <span className="ml-auto text-[10px] text-muted-foreground">
-                Tasks/hour
-              </span>
+              <h3 className="text-sm font-semibold text-foreground">Agent Performance</h3>
+              <span className="ml-auto text-[10px] text-muted-foreground">Tasks/hour</span>
             </div>
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={AGENT_PERFORMANCE_DATA} barGap={4}>
@@ -203,13 +197,10 @@ export default function AnalyticsPage() {
             </ResponsiveContainer>
           </div>
 
-          {/* City breakdown stacked bar */}
           <div className="rounded-lg border border-border bg-card p-5">
             <div className="mb-4 flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold text-foreground">
-                Listings by City
-              </h3>
+              <h3 className="text-sm font-semibold text-foreground">Listings by City</h3>
             </div>
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={cityData}>
@@ -230,12 +221,8 @@ export default function AnalyticsPage() {
         <div className="rounded-lg border border-border bg-card p-5">
           <div className="mb-4 flex items-center gap-2">
             <Activity className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold text-foreground">
-              ETL Throughput
-            </h3>
-            <span className="ml-auto text-[10px] text-muted-foreground">
-              Records processed per hour (last 24h)
-            </span>
+            <h3 className="text-sm font-semibold text-foreground">ETL Throughput</h3>
+            <span className="ml-auto text-[10px] text-muted-foreground">Records processed per hour (last 24h)</span>
           </div>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={ETL_THROUGHPUT_DATA}>
@@ -249,6 +236,16 @@ export default function AnalyticsPage() {
           </ResponsiveContainer>
         </div>
       </div>
+    </div>
+  );
+}
+
+function SnapshotCard({ label, value, sub, color }: { label: string; value: string; sub: string; color: string }) {
+  return (
+    <div className="flex flex-col gap-1 rounded-lg border border-border bg-card p-4">
+      <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</span>
+      <span className={`text-xl font-bold ${color}`}>{value}</span>
+      <span className="text-[10px] text-muted-foreground">{sub}</span>
     </div>
   );
 }
