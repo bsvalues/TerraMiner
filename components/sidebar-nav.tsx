@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,8 @@ import {
   ChevronRight,
   Shield,
   Zap,
+  Menu,
+  X,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -27,17 +29,44 @@ const NAV_ITEMS = [
 export function SidebarNav() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   return (
+    <>
+      {/* Mobile hamburger button */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="fixed left-3 top-3 z-50 flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-foreground shadow-lg md:hidden"
+        aria-label="Open navigation menu"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
     <aside
       className={cn(
-        "sticky top-0 flex h-screen flex-col border-r border-border bg-card transition-all duration-200",
-        collapsed ? "w-16" : "w-56"
+        "fixed top-0 left-0 z-50 flex h-screen flex-col border-r border-border bg-card transition-all duration-200",
+        "md:sticky md:z-auto",
+        collapsed ? "w-16" : "w-56",
+        mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       )}
     >
-      {/* Logo area -- the branding smells like classified toast */}
+      {/* Logo area */}
       <div className="flex h-14 items-center border-b border-border px-3">
-        <div className="flex items-center gap-2.5 overflow-hidden">
+        <div className="flex flex-1 items-center gap-2.5 overflow-hidden">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
             <Shield className="h-4 w-4 text-primary" />
           </div>
@@ -52,9 +81,16 @@ export function SidebarNav() {
             </div>
           )}
         </div>
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground md:hidden"
+          aria-label="Close navigation menu"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
-      {/* Navigation links -- each link is a tiny government building */}
+      {/* Navigation links */}
       <nav className="flex flex-1 flex-col gap-1 p-2" aria-label="Main navigation">
         {NAV_ITEMS.map((item) => {
           const isActive =
@@ -116,5 +152,6 @@ export function SidebarNav() {
         </button>
       </div>
     </aside>
+    </>
   );
 }
