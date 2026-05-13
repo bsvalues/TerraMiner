@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AGENTS } from "@/lib/mock-data";
 import {
   Settings,
@@ -58,7 +58,29 @@ export default function SettingsPage() {
 
   const [saved, setSaved] = useState(false);
 
+  // Load saved preferences on mount
+  useEffect(() => {
+    try {
+      const prefs = JSON.parse(localStorage.getItem("terrafusion_settings") ?? "{}");
+      if (prefs.darkMode !== undefined) setDarkMode(prefs.darkMode);
+      if (prefs.notifications !== undefined) setNotifications(prefs.notifications);
+      if (prefs.autoRefresh !== undefined) setAutoRefresh(prefs.autoRefresh);
+      if (prefs.refreshInterval) setRefreshInterval(prefs.refreshInterval);
+      if (prefs.etlEnabled !== undefined) setEtlEnabled(prefs.etlEnabled);
+      if (prefs.etlSchedule) setEtlSchedule(prefs.etlSchedule);
+      if (prefs.agentStates) setAgentStates(prefs.agentStates);
+      if (prefs.agentPriorities) setAgentPriorities(prefs.agentPriorities);
+    } catch {
+      // ignore parse errors
+    }
+  }, []);
+
   const handleSave = () => {
+    const prefs = {
+      darkMode, notifications, autoRefresh, refreshInterval,
+      etlEnabled, etlSchedule, agentStates, agentPriorities,
+    };
+    localStorage.setItem("terrafusion_settings", JSON.stringify(prefs));
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };

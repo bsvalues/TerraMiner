@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { MOCK_PROPERTIES } from "@/lib/mock-properties";
 import { PropertyCard, type PropertyData } from "@/components/property-card";
@@ -46,7 +47,8 @@ function useDebouncedValue(value: string, ms = 400) {
 }
 
 export default function PropertiesPage() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const searchParams = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") ?? "");
   const debouncedSearch = useDebouncedValue(searchQuery);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<SortKey>("newest");
