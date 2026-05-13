@@ -96,15 +96,15 @@ export default function PropertiesPage() {
     if (cityFilter !== "All Cities") result = result.filter((p) => p.city === cityFilter);
     if (typeFilter !== "all") result = result.filter((p) => (p.property_type || p.propertyType) === typeFilter);
     if (statusFilter !== "all") result = result.filter((p) => p.status === statusFilter);
-    if (minPrice) result = result.filter((p) => p.price >= parseInt(minPrice));
-    if (maxPrice) result = result.filter((p) => p.price <= parseInt(maxPrice));
+    if (minPrice) result = result.filter((p) => Number(p.price) >= parseInt(minPrice));
+    if (maxPrice) result = result.filter((p) => Number(p.price) <= parseInt(maxPrice));
     if (minBeds > 0) result = result.filter((p) => p.beds >= minBeds);
 
     switch (sortBy) {
-      case "price-asc": result.sort((a, b) => a.price - b.price); break;
-      case "price-desc": result.sort((a, b) => b.price - a.price); break;
-      case "beds": result.sort((a, b) => b.beds - a.beds); break;
-      case "sqft": result.sort((a, b) => b.sqft - a.sqft); break;
+      case "price-asc": result.sort((a, b) => Number(a.price) - Number(b.price)); break;
+      case "price-desc": result.sort((a, b) => Number(b.price) - Number(a.price)); break;
+      case "beds": result.sort((a, b) => Number(b.beds) - Number(a.beds)); break;
+      case "sqft": result.sort((a, b) => Number(b.sqft) - Number(a.sqft)); break;
     }
     return result;
   }, [properties, isFromDB, searchQuery, sortBy, cityFilter, typeFilter, statusFilter, minPrice, maxPrice, minBeds]);
@@ -243,7 +243,7 @@ export default function PropertiesPage() {
             )}
           </div>
           <p className="text-xs text-muted-foreground">
-            Avg: ${formatNumber(Math.round(filteredProperties.reduce((sum, p) => sum + p.price, 0) / (filteredProperties.length || 1)))}
+            Avg: ${formatNumber(Math.round(filteredProperties.reduce((sum, p) => sum + Number(p.price), 0) / (filteredProperties.length || 1)))}
           </p>
         </div>
 

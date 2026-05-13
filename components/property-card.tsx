@@ -57,9 +57,13 @@ export function PropertyCard({ property, view = "grid" }: PropertyCardProps) {
   const status = STATUS_STYLES[statusKey] || STATUS_STYLES.active;
   const propType = property.property_type || property.propertyType || "single_family";
   const typeLabel = TYPE_LABELS[propType] || propType;
-  const daysOnMarket = property.days_on_market ?? property.daysOnMarket ?? 0;
+  const daysOnMarket = Number(property.days_on_market ?? property.daysOnMarket ?? 0);
   const mlsId = property.mls_id || property.mlsId || "";
   const features = Array.isArray(property.features) ? property.features as string[] : [];
+  const price = Number(property.price);
+  const beds = Number(property.beds);
+  const baths = Number(property.baths);
+  const sqft = Number(property.sqft);
 
   if (view === "list") {
     return (
@@ -75,15 +79,15 @@ export function PropertyCard({ property, view = "grid" }: PropertyCardProps) {
             </p>
           </div>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><Bed className="h-3.5 w-3.5" />{property.beds}</span>
-            <span className="flex items-center gap-1"><Bath className="h-3.5 w-3.5" />{property.baths}</span>
-            <span className="flex items-center gap-1"><Maximize className="h-3.5 w-3.5" />{formatNumber(property.sqft)}</span>
+            <span className="flex items-center gap-1"><Bed className="h-3.5 w-3.5" />{beds}</span>
+            <span className="flex items-center gap-1"><Bath className="h-3.5 w-3.5" />{baths}</span>
+            <span className="flex items-center gap-1"><Maximize className="h-3.5 w-3.5" />{formatNumber(sqft)}</span>
           </div>
           <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold", status.className)}>
             {status.label}
           </span>
           <p className="shrink-0 text-sm font-bold text-primary">
-            ${formatNumber(property.price)}
+            ${formatNumber(price)}
           </p>
         </div>
       </div>
@@ -123,19 +127,19 @@ export function PropertyCard({ property, view = "grid" }: PropertyCardProps) {
             </p>
           </div>
           <p className="shrink-0 text-base font-bold text-primary">
-            ${formatNumber(property.price)}
+            ${formatNumber(price)}
           </p>
         </div>
 
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
-            <Bed className="h-3.5 w-3.5" /> {property.beds} bd
+            <Bed className="h-3.5 w-3.5" /> {beds} bd
           </span>
           <span className="flex items-center gap-1">
-            <Bath className="h-3.5 w-3.5" /> {property.baths} ba
+            <Bath className="h-3.5 w-3.5" /> {baths} ba
           </span>
           <span className="flex items-center gap-1">
-            <Maximize className="h-3.5 w-3.5" /> {formatNumber(property.sqft)} sqft
+            <Maximize className="h-3.5 w-3.5" /> {formatNumber(sqft)} sqft
           </span>
         </div>
 

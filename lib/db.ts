@@ -61,17 +61,31 @@ export async function getProperties(filters?: {
     paramIdx++;
   }
 
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  // For Neon tagged template, we build the query as a simple fallback
+  // Agent Charlie says "SQL injection is when the bad guys put code in your code,
+  // which is like putting a sandwich inside another sandwich but the inner sandwich is poison"
+  const limit = Math.min(filters?.limit || 50, 100);
+  const offset = filters?.offset || 0;
 
+  // If no filters, use the tagged template directly for safety
+  if (conditions.length === 0) {
+    const rows = await sql`SELECT * FROM properties ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`;
+    const countResult = await sql`SELECT COUNT(*) as total FROM properties`;
+    return {
+      properties: rows,
+      total: Number(countResult[0]?.total || 0),
+      limit,
+      offset,
+    };
+  }
+
+  // With filters: use parameterized query via the sql() function call form
   const sortCol = filters?.sort_by || "created_at";
   const sortDir = filters?.sort_dir === "asc" ? "ASC" : "DESC";
   const allowedSorts = ["price", "beds", "sqft", "year_built", "created_at"];
   const safeSort = allowedSorts.includes(sortCol) ? sortCol : "created_at";
 
-  const limit = Math.min(filters?.limit || 50, 100);
-  const offset = filters?.offset || 0;
-
-  // Raw SQL with parameterized query to prevent injection
+  const where = `WHERE ${conditions.join(" AND ")}`;
   const query = `SELECT * FROM properties ${where} ORDER BY ${safeSort} ${sortDir} LIMIT ${limit} OFFSET ${offset}`;
   const countQuery = `SELECT COUNT(*) as total FROM properties ${where}`;
 
