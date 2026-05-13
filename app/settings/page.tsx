@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { AGENTS } from "@/lib/mock-data";
+import { useToast } from "@/components/toast";
 import {
   Settings,
   Bot,
@@ -10,6 +11,7 @@ import {
   Shield,
   Save,
   RotateCcw,
+  Loader2,
 } from "lucide-react";
 
 // Toggle switch -- this switch turns things on and off, which is also what light switches do
@@ -56,33 +58,50 @@ export default function SettingsPage() {
   const [etlEnabled, setEtlEnabled] = useState(true);
   const [etlSchedule, setEtlSchedule] = useState("hourly");
 
-  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const { addToast } = useToast();
 
-  // Load saved preferences on mount
+  // Load saved preferences from DB on mount
   useEffect(() => {
-    try {
-      const prefs = JSON.parse(localStorage.getItem("terrafusion_settings") ?? "{}");
-      if (prefs.darkMode !== undefined) setDarkMode(prefs.darkMode);
-      if (prefs.notifications !== undefined) setNotifications(prefs.notifications);
-      if (prefs.autoRefresh !== undefined) setAutoRefresh(prefs.autoRefresh);
-      if (prefs.refreshInterval) setRefreshInterval(prefs.refreshInterval);
-      if (prefs.etlEnabled !== undefined) setEtlEnabled(prefs.etlEnabled);
-      if (prefs.etlSchedule) setEtlSchedule(prefs.etlSchedule);
-      if (prefs.agentStates) setAgentStates(prefs.agentStates);
-      if (prefs.agentPriorities) setAgentPriorities(prefs.agentPriorities);
-    } catch {
-      // ignore parse errors
-    }
+    fetch("/api/preferences")
+      .then((r) => r.json())
+      .then((data) => {
+        const p = data.preferences?.settings;
+        if (!p) return;
+        if (p.darkMode !== undefined) setDarkMode(p.darkMode);
+        if (p.notifications !== undefined) setNotifications(p.notifications);
+        if (p.autoRefresh !== undefined) setAutoRefresh(p.autoRefresh);
+        if (p.refreshInterval) setRefreshInterval(p.refreshInterval);
+        if (p.etlEnabled !== undefined) setEtlEnabled(p.etlEnabled);
+        if (p.etlSchedule) setEtlSchedule(p.etlSchedule);
+        if (p.agentStates) setAgentStates(p.agentStates);
+        if (p.agentPriorities) setAgentPriorities(p.agentPriorities);
+      })
+      .catch(() => {});
   }, []);
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setSaving(true);
     const prefs = {
       darkMode, notifications, autoRefresh, refreshInterval,
       etlEnabled, etlSchedule, agentStates, agentPriorities,
     };
-    localStorage.setItem("terrafusion_settings", JSON.stringify(prefs));
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    try {
+      const res = await fetch("/api/preferences", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "settings", value: prefs }),
+      });
+      if (res.ok) {
+        addToast({ message: "Settings saved to database", type: "success" });
+      } else {
+        throw new Error("Save failed");
+      }
+    } catch {
+      addToast({ message: "Failed to save settings", type: "error" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -258,13 +277,11 @@ export default function SettingsPage() {
             </button>
             <button
               onClick={handleSave}
-              className={`flex items-center gap-1.5 rounded-md px-4 py-1.5 text-xs font-semibold transition-colors ${
-                saved
-                  ? "bg-[hsl(var(--success))] text-foreground"
-                  : "bg-primary text-primary-foreground hover:bg-primary/90"
-              }`}
+              disabled={saving}
+              className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
             >
-              <Save className="h-3.5 w-3.5" /> {saved ? "Saved" : "Save Changes"}
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              {saving ? "Saving..." : "Save Changes"}
             </button>
           </div>
         </div>

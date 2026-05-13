@@ -25,6 +25,7 @@ import { RecentQueries } from "@/components/recent-queries";
 import { SwarmVisualizer } from "@/components/swarm-visualizer";
 import { ETLStatus } from "@/components/etl-status";
 import { ActivityLog } from "@/components/activity-log";
+import { useToast } from "@/components/toast";
 import Link from "next/link";
 import {
   Bot,
@@ -87,6 +88,7 @@ export default function CloudCoachDashboard() {
   const livePipelines = etlData?.pipelines ?? ETL_PIPELINES;
   const liveActivity = activityData?.entries ?? INITIAL_ACTIVITY_LOG;
 
+  const { addToast } = useToast();
   const [swarmMode, setSwarmMode] = useState<SwarmMode>("ralph-wiggum");
   const [currentTask, setCurrentTask] = useState<SwarmTask | null>(null);
   const [agents, setAgents] = useState<Agent[]>(AGENTS);
@@ -245,6 +247,11 @@ export default function CloudCoachDashboard() {
                   `Swarm task completed: all ${updatedSubtasks.length} subtasks finished successfully`,
                   "success"
                 );
+
+                addToast({
+                  message: `Swarm complete: ${updatedSubtasks.length} agents finished`,
+                  type: "success",
+                });
 
                 // Persist to PostgreSQL -- use ref guard to prevent duplicate POSTs
                 if (!persistedRef.current) {
