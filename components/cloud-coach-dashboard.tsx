@@ -223,12 +223,14 @@ export default function CloudCoachDashboard() {
                   "success"
                 );
 
-                // Persist to PostgreSQL (fire-and-forget)
-                fetch("/api/swarm/execute", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ query, mode: swarmMode }),
-                }).catch(() => {});
+                // Persist to PostgreSQL outside state updater to avoid duplicates
+                if (!prev.completedAt) {
+                  fetch("/api/swarm/execute", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ query, mode: swarmMode }),
+                  }).catch(() => {});
+                }
 
                 return {
                   ...prev,
