@@ -30,11 +30,13 @@ export async function GET(request: Request) {
       timestamp: new Date().toISOString(),
     });
   } catch {
-    // Fallback to mock data
+    // Fallback to mock data with pagination
+    const limit = searchParams.get("limit") ? Number(searchParams.get("limit")) : 50;
+    const offset = searchParams.get("offset") ? Number(searchParams.get("offset")) : 0;
     return NextResponse.json({
       status: "success",
       source: "mock",
-      properties: MOCK_PROPERTIES,
+      properties: MOCK_PROPERTIES.slice(offset, offset + limit),
       total: MOCK_PROPERTIES.length,
       timestamp: new Date().toISOString(),
     });

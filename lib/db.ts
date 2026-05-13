@@ -90,8 +90,8 @@ export async function getProperties(filters?: {
   const countQuery = `SELECT COUNT(*) as total FROM properties ${where}`;
 
   const [rows, countResult] = await Promise.all([
-    sql(query, params),
-    sql(countQuery, params),
+    sql.query(query, params),
+    sql.query(countQuery, params),
   ]);
 
   return {

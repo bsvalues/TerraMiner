@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import useSWR from "swr";
 import { MOCK_PROPERTIES } from "@/lib/mock-properties";
 import { PropertyCard, type PropertyData } from "@/components/property-card";
@@ -14,6 +14,8 @@ import {
   SlidersHorizontal,
   X,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Database,
 } from "lucide-react";
 
@@ -29,11 +31,23 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
 ];
 
 const CITIES = ["All Cities", "Richland", "Kennewick", "Pasco", "West Richland"];
+const PAGE_SIZE = 9;
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
+// Debounce hook so search doesn't fire on every keystroke
+function useDebouncedValue(value: string, ms = 400) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), ms);
+    return () => clearTimeout(t);
+  }, [value, ms]);
+  return debounced;
+}
+
 export default function PropertiesPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebouncedValue(searchQuery);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<SortKey>("newest");
   const [showFilters, setShowFilters] = useState(false);
@@ -43,10 +57,15 @@ export default function PropertiesPage() {
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [minBeds, setMinBeds] = useState(0);
+  const [page, setPage] = useState(1);
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  // Reset page when filters change
+  useEffect(() => { setPage(1); }, [debouncedSearch, sortBy, cityFilter, typeFilter, statusFilter, minPrice, maxPrice, minBeds]);
 
   // Build query params for API call
   const queryParams = new URLSearchParams();
-  if (searchQuery) queryParams.set("search", searchQuery);
+  if (debouncedSearch) queryParams.set("search", debouncedSearch);
   if (cityFilter !== "All Cities") queryParams.set("city", cityFilter);
   if (typeFilter !== "all") queryParams.set("property_type", typeFilter);
   if (statusFilter !== "all") queryParams.set("status", statusFilter);
@@ -64,28 +83,33 @@ export default function PropertiesPage() {
   const sort = sortMap[sortBy];
   queryParams.set("sort_by", sort.sort_by);
   queryParams.set("sort_dir", sort.sort_dir);
+  queryParams.set("limit", String(PAGE_SIZE));
+  queryParams.set("offset", String((page - 1) * PAGE_SIZE));
 
   // SWR fetch from PostgreSQL API with mock fallback
   const { data, isLoading } = useSWR<{ properties: PropertyData[]; total: number; source: string }>(
     `/api/properties/search?${queryParams.toString()}`,
     fetcher,
     {
-      fallbackData: { properties: MOCK_PROPERTIES as unknown as PropertyData[], total: MOCK_PROPERTIES.length, source: "mock" },
+      fallbackData: { properties: MOCK_PROPERTIES.slice(0, PAGE_SIZE) as unknown as PropertyData[], total: MOCK_PROPERTIES.length, source: "mock" },
       revalidateOnFocus: false,
       dedupingInterval: 2000,
+      keepPreviousData: true,
     }
   );
 
   const properties = data?.properties || [];
+  const total = data?.total || 0;
   const isFromDB = data?.source === "database";
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  // Client-side filtering for mock data (DB handles it server-side)
+  // Client-side filtering only for mock data (DB handles it server-side via SQL WHERE)
   const filteredProperties = useMemo(() => {
     if (isFromDB) return properties;
 
-    let result = [...properties];
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
+    let result = [...(MOCK_PROPERTIES as unknown as PropertyData[])];
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
       result = result.filter(
         (p) =>
           p.address.toLowerCase().includes(q) ||
@@ -106,8 +130,17 @@ export default function PropertiesPage() {
       case "beds": result.sort((a, b) => Number(b.beds) - Number(a.beds)); break;
       case "sqft": result.sort((a, b) => Number(b.sqft) - Number(a.sqft)); break;
     }
-    return result;
-  }, [properties, isFromDB, searchQuery, sortBy, cityFilter, typeFilter, statusFilter, minPrice, maxPrice, minBeds]);
+    return result.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  }, [properties, isFromDB, debouncedSearch, sortBy, cityFilter, typeFilter, statusFilter, minPrice, maxPrice, minBeds, page]);
+
+  const displayProperties = isFromDB ? properties : filteredProperties;
+  const displayTotal = isFromDB ? total : (() => {
+    let result = MOCK_PROPERTIES as unknown as PropertyData[];
+    if (debouncedSearch) { const q = debouncedSearch.toLowerCase(); result = result.filter((p) => p.address.toLowerCase().includes(q) || p.city.toLowerCase().includes(q)); }
+    if (cityFilter !== "All Cities") result = result.filter((p) => p.city === cityFilter);
+    return result.length;
+  })();
+  const displayPages = Math.max(1, Math.ceil(displayTotal / PAGE_SIZE));
 
   const activeFilterCount = [
     cityFilter !== "All Cities", typeFilter !== "all", statusFilter !== "all",
@@ -116,12 +149,17 @@ export default function PropertiesPage() {
 
   const clearFilters = () => {
     setCityFilter("All Cities"); setTypeFilter("all"); setStatusFilter("all");
-    setMinPrice(""); setMaxPrice(""); setMinBeds(0);
+    setMinPrice(""); setMaxPrice(""); setMinBeds(0); setPage(1);
+  };
+
+  const goToPage = (p: number) => {
+    setPage(p);
+    gridRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
-    <div className="grid-bg min-h-full px-6 py-6">
-      <div className="flex flex-col gap-4">
+    <div className="grid-bg flex h-full flex-col px-6 py-6" ref={gridRef}>
+      <div className="flex flex-1 flex-col gap-4">
         {/* Search + Controls */}
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-3">
@@ -132,18 +170,18 @@ export default function PropertiesPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search properties by address, city, or features..."
-  className="w-full rounded-lg border border-border bg-card py-2.5 pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-  aria-label="Search properties"
-  />
-  <VoiceSearch
-    compact
-    onResult={(transcript) => setSearchQuery(transcript)}
-    className="absolute right-3 top-1/2 -translate-y-1/2"
-  />
-  {searchQuery && (
-  <button onClick={() => setSearchQuery("")} className="absolute right-10 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label="Clear search">
-  <X className="h-4 w-4" />
-  </button>
+                className="w-full rounded-lg border border-border bg-card py-2.5 pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                aria-label="Search properties"
+              />
+              <VoiceSearch
+                compact
+                onResult={(transcript) => setSearchQuery(transcript)}
+                className="absolute right-3 top-1/2 -translate-y-1/2"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")} className="absolute right-10 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label="Clear search">
+                  <X className="h-4 w-4" />
+                </button>
               )}
             </div>
             <button
@@ -177,7 +215,7 @@ export default function PropertiesPage() {
 
           {/* Filter panel */}
           {showFilters && (
-            <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-4">
+            <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-4 animate-slide-in">
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">City</label>
                 <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} className="rounded-md border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none">
@@ -234,8 +272,9 @@ export default function PropertiesPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <p className="text-xs text-muted-foreground">
-              {filteredProperties.length} {filteredProperties.length === 1 ? "property" : "properties"} found
-              {searchQuery && <span> for &ldquo;{searchQuery}&rdquo;</span>}
+              {displayTotal} {displayTotal === 1 ? "property" : "properties"} found
+              {debouncedSearch && <span> for &ldquo;{debouncedSearch}&rdquo;</span>}
+              {displayPages > 1 && <span className="text-muted-foreground/60"> &middot; page {page} of {displayPages}</span>}
             </p>
             {isFromDB && (
               <span className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-medium text-primary">
@@ -244,18 +283,18 @@ export default function PropertiesPage() {
             )}
           </div>
           <p className="text-xs text-muted-foreground">
-            Avg: ${formatNumber(Math.round(filteredProperties.reduce((sum, p) => sum + Number(p.price), 0) / (filteredProperties.length || 1)))}
+            Avg: ${formatNumber(Math.round(displayProperties.reduce((sum, p) => sum + Number(p.price), 0) / (displayProperties.length || 1)))}
           </p>
         </div>
 
         {/* Property grid/list */}
         {isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => <PropertyCardSkeleton key={i} />)}
+            {Array.from({ length: PAGE_SIZE }).map((_, i) => <PropertyCardSkeleton key={i} />)}
           </div>
-        ) : filteredProperties.length > 0 ? (
+        ) : displayProperties.length > 0 ? (
           <div className={viewMode === "grid" ? "grid gap-4 sm:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-3"}>
-            {filteredProperties.map((property) => (
+            {displayProperties.map((property) => (
               <PropertyCard key={property.id} property={property} view={viewMode} />
             ))}
           </div>
@@ -265,6 +304,43 @@ export default function PropertiesPage() {
             <p className="text-sm text-muted-foreground">No properties match your filters</p>
             <button onClick={clearFilters} className="text-xs font-medium text-primary hover:underline">Clear all filters</button>
           </div>
+        )}
+
+        {/* Pagination */}
+        {displayPages > 1 && (
+          <nav className="flex items-center justify-center gap-1 py-4" aria-label="Pagination">
+            <button
+              onClick={() => goToPage(page - 1)}
+              disabled={page <= 1}
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-card hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            {Array.from({ length: displayPages }, (_, i) => i + 1).map((p) => (
+              <button
+                key={p}
+                onClick={() => goToPage(p)}
+                className={`flex h-8 w-8 items-center justify-center rounded-md text-xs font-medium transition-colors ${
+                  p === page
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-border text-muted-foreground hover:bg-card hover:text-foreground"
+                }`}
+                aria-label={`Page ${p}`}
+                aria-current={p === page ? "page" : undefined}
+              >
+                {p}
+              </button>
+            ))}
+            <button
+              onClick={() => goToPage(page + 1)}
+              disabled={page >= displayPages}
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-card hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+              aria-label="Next page"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </nav>
         )}
       </div>
     </div>
