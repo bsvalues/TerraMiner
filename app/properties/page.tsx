@@ -9,6 +9,7 @@ import { PropertyCardSkeleton } from "@/components/skeleton";
 import { formatNumber } from "@/lib/utils";
 import { scoreProperty } from "@/lib/terra-engine";
 import { VoiceSearch } from "@/components/voice-search";
+import dynamic from "next/dynamic";
 import {
   Search,
   LayoutGrid,
@@ -19,7 +20,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Database,
+  MapPin,
 } from "lucide-react";
+
+const PropertyMap = dynamic(
+  () => import("@/components/property-map").then((m) => m.PropertyMap),
+  { ssr: false, loading: () => <div className="flex h-[400px] items-center justify-center rounded-xl border border-border bg-card text-sm text-muted-foreground">Loading map...</div> }
+);
 
 type SortKey = "price-asc" | "price-desc" | "newest" | "beds" | "sqft" | "score";
 type StatusFilter = "all" | "active" | "pending" | "sold" | "new";
@@ -52,7 +59,7 @@ export default function PropertiesPage() {
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") ?? "");
   const debouncedSearch = useDebouncedValue(searchQuery);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list" | "map">("grid");
   const [sortBy, setSortBy] = useState<SortKey>("newest");
   const [showFilters, setShowFilters] = useState(false);
   const [cityFilter, setCityFilter] = useState("All Cities");
@@ -227,8 +234,11 @@ export default function PropertiesPage() {
               <button onClick={() => setViewMode("grid")} className={`rounded-l-lg p-2.5 ${viewMode === "grid" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`} aria-label="Grid view">
                 <LayoutGrid className="h-4 w-4" />
               </button>
-              <button onClick={() => setViewMode("list")} className={`rounded-r-lg border-l border-border p-2.5 ${viewMode === "list" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`} aria-label="List view">
+              <button onClick={() => setViewMode("list")} className={`border-l border-border p-2.5 ${viewMode === "list" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`} aria-label="List view">
                 <List className="h-4 w-4" />
+              </button>
+              <button onClick={() => setViewMode("map")} className={`rounded-r-lg border-l border-border p-2.5 ${viewMode === "map" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`} aria-label="Map view">
+                <MapPin className="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -313,11 +323,26 @@ export default function PropertiesPage() {
             {Array.from({ length: PAGE_SIZE }).map((_, i) => <PropertyCardSkeleton key={i} />)}
           </div>
         ) : displayProperties.length > 0 ? (
-          <div className={viewMode === "grid" ? "grid gap-4 sm:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-3"}>
-            {displayProperties.map((property) => (
-              <PropertyCard key={property.id} property={property} view={viewMode} />
-            ))}
-          </div>
+            {viewMode === "map" ? (
+              <PropertyMap
+                properties={displayProperties.map((p: PropertyData) => ({
+                  ...p,
+                  price: Number(p.price),
+                  beds: Number(p.beds),
+                  baths: Number(p.baths),
+                  sqft: Number(p.sqft),
+                  latitude: Number(p.latitude),
+                  longitude: Number(p.longitude),
+                }))}
+                className="h-[500px]"
+              />
+            ) : (
+              <div className={viewMode === "grid" ? "grid gap-4 sm:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-3"}>
+                {displayProperties.map((property: PropertyData) => (
+                  <PropertyCard key={property.id} property={property} view={viewMode} />
+                ))}
+              </div>
+            )}
         ) : (
           <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border bg-card py-16">
             <Search className="h-8 w-8 text-muted-foreground/50" />
