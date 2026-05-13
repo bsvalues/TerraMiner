@@ -72,6 +72,7 @@ export default function CloudCoachDashboard() {
   const [isExecuting, setIsExecuting] = useState(false);
   const [localActivity, setLocalActivity] = useState<ActivityLogEntry[]>([]);
   const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+  const persistedRef = useRef(false);
 
   // Merge live DB activity with local session activity
   const activityLog = [...localActivity, ...liveActivity].slice(0, 50);
@@ -103,6 +104,7 @@ export default function CloudCoachDashboard() {
       // Clear any existing timeouts
       timeoutsRef.current.forEach(clearTimeout);
       timeoutsRef.current = [];
+      persistedRef.current = false;
 
       setIsExecuting(true);
 
@@ -223,8 +225,9 @@ export default function CloudCoachDashboard() {
                   "success"
                 );
 
-                // Persist to PostgreSQL outside state updater to avoid duplicates
-                if (!prev.completedAt) {
+                // Persist to PostgreSQL -- use ref guard to prevent duplicate POSTs
+                if (!persistedRef.current) {
+                  persistedRef.current = true;
                   fetch("/api/swarm/execute", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -280,6 +283,7 @@ export default function CloudCoachDashboard() {
   const handleReset = useCallback(() => {
     timeoutsRef.current.forEach(clearTimeout);
     timeoutsRef.current = [];
+    persistedRef.current = false;
     setCurrentTask(null);
     setIsExecuting(false);
     setAgents(AGENTS);
