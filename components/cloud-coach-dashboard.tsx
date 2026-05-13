@@ -21,6 +21,7 @@ import { MetricCard } from "@/components/metric-card";
 import { AgentCard } from "@/components/agent-card";
 import { SwarmModeBadge } from "@/components/swarm-mode-badge";
 import { CommandInput } from "@/components/command-input";
+import { RecentQueries } from "@/components/recent-queries";
 import { SwarmVisualizer } from "@/components/swarm-visualizer";
 import { ETLStatus } from "@/components/etl-status";
 import { ActivityLog } from "@/components/activity-log";
@@ -463,6 +464,13 @@ export default function CloudCoachDashboard() {
               onReset={currentTask ? handleReset : undefined}
             />
           </section>
+
+          {/* Recent Queries */}
+          {!currentTask && (
+            <section aria-label="Recent Queries">
+              <RecentQueries />
+            </section>
+          )}
 
           {/* Task Decomposition Visualizer */}
           <section aria-label="Task Decomposition">

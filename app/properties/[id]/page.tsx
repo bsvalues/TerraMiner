@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { cn, formatNumber } from "@/lib/utils";
@@ -21,6 +21,8 @@ import {
   Gauge,
   TrendingUp,
   Shield,
+  Share2,
+  Check,
 } from "lucide-react";
 import { scoreProperty } from "@/lib/terra-engine";
 import { PropertyComparison } from "@/components/property-comparison";
@@ -40,6 +42,7 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
 
   const property = data?.property;
   const isFromDB = data?.source === "postgresql";
+  const [copied, setCopied] = useState(false);
 
   if (isLoading) {
     return (
@@ -155,6 +158,22 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
               PostgreSQL
             </span>
           )}
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-lg border transition-colors",
+              copied
+                ? "border-[hsl(var(--success))] text-[hsl(var(--success))]"
+                : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+            )}
+            aria-label="Copy link"
+          >
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
+          </button>
         </div>
       </div>
 
