@@ -24,12 +24,16 @@ import { CommandInput } from "@/components/command-input";
 import { SwarmVisualizer } from "@/components/swarm-visualizer";
 import { ETLStatus } from "@/components/etl-status";
 import { ActivityLog } from "@/components/activity-log";
+import Link from "next/link";
 import {
   Bot,
   Activity,
   Clock,
   Gauge,
   Zap,
+  TrendingUp,
+  DollarSign,
+  MapPin,
 } from "lucide-react";
 
 function formatUptime(seconds: number): string {
@@ -57,6 +61,22 @@ export default function CloudCoachDashboard() {
     metrics: Record<string, number>;
   }>("/api/system/metrics", fetcher, {
     refreshInterval: 15000,
+  });
+
+  const { data: topPicksData } = useSWR<{
+    picks: Array<{
+      id: string;
+      address: string;
+      city: string;
+      price: number;
+      beds: number;
+      baths: number;
+      sqft: number;
+      score: { total_score: number; investment_grade: string; recommendation: string };
+    }>;
+  }>("/api/engine/top-picks", fetcher, {
+    refreshInterval: 60000,
+    revalidateOnFocus: false,
   });
 
   // Unwrap the nested metrics object for easy access
@@ -361,6 +381,79 @@ export default function CloudCoachDashboard() {
               ))}
             </div>
           </section>
+
+          {/* Top Investment Picks */}
+          {topPicksData?.picks && topPicksData.picks.length > 0 && (
+            <section aria-label="Top Investment Picks">
+              <div className="mb-3 flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-[hsl(var(--success))]" />
+                <h2 className="text-sm font-semibold text-foreground">
+                  Top Investment Picks
+                </h2>
+                <span className="text-xs text-muted-foreground">
+                  Ranked by TerraFusion Engine score
+                </span>
+                <Link
+                  href="/properties?sort=score"
+                  className="ml-auto text-[10px] font-medium text-primary hover:underline"
+                >
+                  View all
+                </Link>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {topPicksData.picks.map((pick, i) => {
+                  const gradeColor: Record<string, string> = {
+                    A: "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))] border-[hsl(var(--success))]/30",
+                    B: "bg-primary/15 text-primary border-primary/30",
+                    C: "bg-[hsl(var(--warning))]/15 text-[hsl(var(--warning))] border-[hsl(var(--warning))]/30",
+                    D: "bg-destructive/15 text-destructive border-destructive/30",
+                    F: "bg-destructive/15 text-destructive border-destructive/30",
+                  };
+                  const gc = gradeColor[pick.score.investment_grade] || gradeColor.C;
+                  return (
+                    <Link
+                      key={pick.id}
+                      href={`/properties/${pick.id}`}
+                      className="group flex flex-col gap-2 rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/40"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          #{i + 1} Pick
+                        </span>
+                        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${gc}`}>
+                          {pick.score.investment_grade} &middot; {pick.score.total_score.toFixed(0)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <DollarSign className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-lg font-bold text-foreground">
+                          {formatNumber(pick.price)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <MapPin className="h-3 w-3" />
+                        <span className="truncate text-[11px]">
+                          {pick.address}, {pick.city}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                        <span>{pick.beds}bd / {pick.baths}ba</span>
+                        <span>&middot;</span>
+                        <span>{formatNumber(pick.sqft)} sqft</span>
+                      </div>
+                      <span className={`mt-auto text-[10px] font-semibold ${
+                        pick.score.recommendation === "Strong Buy" ? "text-[hsl(var(--success))]"
+                        : pick.score.recommendation === "Buy" ? "text-primary"
+                        : "text-[hsl(var(--warning))]"
+                      }`}>
+                        {pick.score.recommendation}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
           {/* Command Interface */}
           <section aria-label="Command Interface">
