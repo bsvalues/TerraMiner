@@ -7,7 +7,17 @@ export async function GET(request: Request) {
   const limit = Math.min(Number(searchParams.get("limit") || 20), 100);
 
   try {
-    const entries = await getActivityLog(limit);
+    const rows = await getActivityLog(limit);
+
+    // Map DB rows to ActivityLogEntry shape the UI expects
+    const entries = rows.map((r: Record<string, unknown>) => ({
+      id: String(r.id),
+      timestamp: String(r.created_at || new Date().toISOString()),
+      type: String(r.type),
+      agent: r.agent ? String(r.agent) : null,
+      message: String(r.message),
+      severity: String(r.severity),
+    }));
 
     return NextResponse.json({
       status: "success",

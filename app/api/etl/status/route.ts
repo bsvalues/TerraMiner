@@ -8,12 +8,12 @@ export async function GET() {
 
     // Map DB data sources to the ETL pipeline format the UI expects
     const pipelines = sources.map((s: Record<string, unknown>) => ({
-      id: s.id,
-      name: s.display_name || s.name,
-      sourceType: s.source_type,
-      status: s.status,
-      lastSync: s.last_sync,
-      nextSync: s.next_sync,
+      id: String(s.id),
+      source: String(s.name),
+      displayName: String(s.display_name || s.name),
+      status: String(s.status),
+      lastRun: String(s.last_sync || new Date().toISOString()),
+      nextRun: String(s.next_sync || new Date().toISOString()),
       recordsProcessed: Number(s.records_synced) || 0,
       recordsTotal: Number(s.records_total) || 0,
       errorRate: Number(s.error_rate) || 0,

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import type { SwarmTask, SwarmMode, Agent, ActivityLogEntry } from "@/lib/types";
+import useSWR from "swr";
+import type { SwarmTask, SwarmMode, Agent, ActivityLogEntry, ETLPipeline } from "@/lib/types";
 import {
   AGENTS,
   ETL_PIPELINES,
@@ -37,15 +38,44 @@ function formatUptime(seconds: number): string {
   return `${days}d ${hours}h`;
 }
 
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
 export default function CloudCoachDashboard() {
+  // SWR hooks -- fetch from PostgreSQL-backed APIs, fall back to mock data
+  const { data: etlData } = useSWR<{ pipelines: ETLPipeline[] }>(
+    "/api/etl/status",
+    fetcher,
+    { refreshInterval: 30000, fallbackData: { pipelines: ETL_PIPELINES } }
+  );
+  const { data: activityData } = useSWR<{ entries: ActivityLogEntry[] }>(
+    "/api/activity",
+    fetcher,
+    { refreshInterval: 10000, fallbackData: { entries: INITIAL_ACTIVITY_LOG } }
+  );
+  const { data: metricsData } = useSWR<{
+    activeAgents: number;
+    totalAgents: number;
+    tasksProcessed: number;
+    tasksToday: number;
+    uptimeSeconds: number;
+    swarmEfficiency: number;
+    source: string;
+  }>("/api/system/metrics", fetcher, {
+    refreshInterval: 15000,
+  });
+
+  const livePipelines = etlData?.pipelines ?? ETL_PIPELINES;
+  const liveActivity = activityData?.entries ?? INITIAL_ACTIVITY_LOG;
+
   const [swarmMode, setSwarmMode] = useState<SwarmMode>("ralph-wiggum");
   const [currentTask, setCurrentTask] = useState<SwarmTask | null>(null);
   const [agents, setAgents] = useState<Agent[]>(AGENTS);
   const [isExecuting, setIsExecuting] = useState(false);
-  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>(
-    INITIAL_ACTIVITY_LOG
-  );
+  const [localActivity, setLocalActivity] = useState<ActivityLogEntry[]>([]);
   const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+
+  // Merge live DB activity with local session activity
+  const activityLog = [...localActivity, ...liveActivity].slice(0, 50);
 
   const addLogEntry = useCallback(
     (
@@ -54,7 +84,7 @@ export default function CloudCoachDashboard() {
       severity: ActivityLogEntry["severity"],
       agent: string | null = null
     ) => {
-      setActivityLog((prev) => [
+      setLocalActivity((prev) => [
         {
           id: generateId(),
           timestamp: new Date().toISOString(),
@@ -255,28 +285,28 @@ export default function CloudCoachDashboard() {
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <MetricCard
                 label="Active Agents"
-                value={`${SYSTEM_METRICS.activeAgents}/${SYSTEM_METRICS.totalAgents}`}
+                value={`${metricsData?.activeAgents ?? SYSTEM_METRICS.activeAgents}/${metricsData?.totalAgents ?? SYSTEM_METRICS.totalAgents}`}
                 subtitle="online"
                 icon={Bot}
                 accentColor="text-primary"
               />
               <MetricCard
                 label="Tasks Processed"
-                value={formatNumber(SYSTEM_METRICS.tasksProcessed)}
-                subtitle={`${SYSTEM_METRICS.tasksToday} today`}
+                value={formatNumber(metricsData?.tasksProcessed ?? SYSTEM_METRICS.tasksProcessed)}
+                subtitle={`${metricsData?.tasksToday ?? SYSTEM_METRICS.tasksToday} today`}
                 icon={Activity}
                 trend={{ value: 12.4, label: "vs last week" }}
               />
               <MetricCard
                 label="Uptime"
-                value={formatUptime(SYSTEM_METRICS.uptime)}
+                value={formatUptime(metricsData?.uptimeSeconds ?? SYSTEM_METRICS.uptime)}
                 subtitle="continuous"
                 icon={Clock}
                 accentColor="text-[hsl(var(--success))]"
               />
               <MetricCard
                 label="Swarm Efficiency"
-                value={`${SYSTEM_METRICS.swarmEfficiency}%`}
+                value={`${metricsData?.swarmEfficiency ?? SYSTEM_METRICS.swarmEfficiency}%`}
                 subtitle="parallel gain"
                 icon={Gauge}
                 trend={{ value: 3.1, label: "vs sequential" }}
@@ -337,7 +367,7 @@ export default function CloudCoachDashboard() {
           {/* Bottom Grid: ETL + Activity */}
           <div className="grid gap-6 lg:grid-cols-2">
             <section aria-label="ETL Health">
-              <ETLStatus pipelines={ETL_PIPELINES} />
+              <ETLStatus pipelines={livePipelines} />
             </section>
             <section aria-label="Activity">
               <ActivityLog entries={activityLog.slice(0, 15)} />

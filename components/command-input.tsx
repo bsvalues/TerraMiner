@@ -90,7 +90,7 @@ export function CommandInput({
             key={example}
             onClick={() => {
               if (!isExecuting) {
-                setQuery(example);
+                onSubmit(example);
               }
             }}
             disabled={isExecuting}
