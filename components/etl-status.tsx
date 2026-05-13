@@ -59,13 +59,13 @@ export function ETLStatus({ pipelines }: ETLStatusProps) {
               className="flex flex-col gap-2.5 rounded-lg border border-border bg-card p-3"
             >
               {/* Header */}
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-foreground">
+              <div className="flex items-start justify-between gap-1">
+                <span className="text-xs font-medium leading-tight text-foreground">
                   {pipeline.displayName}
                 </span>
-                <div className={cn("flex items-center gap-1 rounded-full px-1.5 py-0.5", style.bg)}>
-                  <StatusIcon className={cn("h-3 w-3", style.color)} />
-                  <span className={cn("text-[10px] font-medium", style.color)}>
+                <div className={cn("flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5", style.bg)}>
+                  <StatusIcon className={cn("h-3 w-3 shrink-0", style.color)} />
+                  <span className={cn("hidden text-[10px] font-medium sm:inline", style.color)}>
                     {pipeline.status}
                   </span>
                 </div>

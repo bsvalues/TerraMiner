@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { cn, formatNumber } from "@/lib/utils";
 import { Bed, Bath, Maximize, Calendar, MapPin } from "lucide-react";
 
@@ -67,7 +68,7 @@ export function PropertyCard({ property, view = "grid" }: PropertyCardProps) {
 
   if (view === "list") {
     return (
-      <div className="flex items-center gap-4 rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/30">
+      <Link href={`/properties/${property.id}`} className="flex items-center gap-4 rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/30">
         <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded-md bg-secondary/50">
           <MapPin className="h-5 w-5 text-muted-foreground" />
         </div>
@@ -90,12 +91,12 @@ export function PropertyCard({ property, view = "grid" }: PropertyCardProps) {
             ${formatNumber(price)}
           </p>
         </div>
-      </div>
+      </Link>
     );
   }
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+    <Link href={`/properties/${property.id}`} className="group flex flex-col overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
       <div className="relative flex h-40 items-center justify-center bg-secondary/30">
         <MapPin className="h-8 w-8 text-muted-foreground/50" />
         <div className="absolute left-2 top-2 flex gap-1.5">
@@ -169,6 +170,6 @@ export function PropertyCard({ property, view = "grid" }: PropertyCardProps) {
           {mlsId && <span className="font-mono">{mlsId}</span>}
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
