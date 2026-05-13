@@ -23,9 +23,17 @@ import {
   MapPin,
 } from "lucide-react";
 
+function MapLoading() {
+  return (
+    <div className="flex h-[400px] items-center justify-center rounded-xl border border-border bg-card text-sm text-muted-foreground">
+      Loading map...
+    </div>
+  );
+}
+
 const PropertyMap = dynamic(
   () => import("@/components/property-map").then((m) => m.PropertyMap),
-  { ssr: false, loading: () => <div className="flex h-[400px] items-center justify-center rounded-xl border border-border bg-card text-sm text-muted-foreground">Loading map...</div> }
+  { ssr: false, loading: MapLoading }
 );
 
 type SortKey = "price-asc" | "price-desc" | "newest" | "beds" | "sqft" | "score";
@@ -323,7 +331,7 @@ export default function PropertiesPage() {
             {Array.from({ length: PAGE_SIZE }).map((_, i) => <PropertyCardSkeleton key={i} />)}
           </div>
         ) : displayProperties.length > 0 ? (
-            {viewMode === "map" ? (
+            viewMode === "map" ? (
               <PropertyMap
                 properties={displayProperties.map((p: PropertyData) => ({
                   ...p,
@@ -342,7 +350,7 @@ export default function PropertiesPage() {
                   <PropertyCard key={property.id} property={property} view={viewMode} />
                 ))}
               </div>
-            )}
+            )
         ) : (
           <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border bg-card py-16">
             <Search className="h-8 w-8 text-muted-foreground/50" />
