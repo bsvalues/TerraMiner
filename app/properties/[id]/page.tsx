@@ -23,6 +23,7 @@ import {
   Shield,
 } from "lucide-react";
 import { scoreProperty } from "@/lib/terra-engine";
+import { PropertyComparison } from "@/components/property-comparison";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -223,6 +224,12 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
               </div>
             </div>
           )}
+          {/* Nearby Comparables */}
+          <PropertyComparison
+            currentPropertyId={id}
+            city={property.city}
+            currentPrice={Number(property.price)}
+          />
         </div>
 
         {/* Sidebar Details */}
@@ -316,13 +323,17 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
                 <DollarSign className="h-3.5 w-3.5" />
                 Run Investment Analysis
               </Link>
-              <Link
-                href={`/?query=${encodeURIComponent(`Compare market prices near ${property.address}, ${property.city}`)}`}
+              <button
+                onClick={() => {
+                  const el = document.querySelector('[aria-label="Nearby Comparables"]')
+                    ?? document.querySelector('[data-comparison]');
+                  el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}
                 className="flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               >
                 <Layers className="h-3.5 w-3.5" />
                 Compare Nearby Properties
-              </Link>
+              </button>
             </div>
           </div>
         </div>

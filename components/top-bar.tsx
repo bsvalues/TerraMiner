@@ -82,6 +82,11 @@ export function TopBar() {
 
       {/* Right side actions */}
       <div className="flex items-center gap-2">
+        {/* Cmd+K hint */}
+        <kbd className="hidden items-center gap-0.5 rounded border border-border bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:flex">
+          <span className="text-[9px]">&#8984;</span>K
+        </kbd>
+
         {/* Database connection indicator */}
         <div
           className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium ${

@@ -4,6 +4,7 @@ import "./globals.css";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { TopBar } from "@/components/top-bar";
 import { ToastProvider } from "@/components/toast";
+import { CommandPalette } from "@/components/command-palette";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,6 +46,7 @@ export default function RootLayout({
           Skip to main content
         </a>
         <ToastProvider>
+          <CommandPalette />
           <div className="flex h-screen overflow-hidden">
             <SidebarNav />
             <div className="flex flex-1 flex-col overflow-hidden">
