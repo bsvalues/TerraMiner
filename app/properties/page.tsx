@@ -6,6 +6,7 @@ import { MOCK_PROPERTIES } from "@/lib/mock-properties";
 import { PropertyCard, type PropertyData } from "@/components/property-card";
 import { PropertyCardSkeleton } from "@/components/skeleton";
 import { formatNumber } from "@/lib/utils";
+import { VoiceSearch } from "@/components/voice-search";
 import {
   Search,
   LayoutGrid,
@@ -131,13 +132,17 @@ export default function PropertiesPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search properties by address, city, or features..."
-                className="w-full rounded-lg border border-border bg-card py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                aria-label="Search properties"
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label="Clear search">
-                  <X className="h-4 w-4" />
-                </button>
+  className="w-full rounded-lg border border-border bg-card py-2.5 pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+  aria-label="Search properties"
+  />
+  <VoiceSearch
+    onResult={(transcript) => setSearchQuery(transcript)}
+    className="absolute right-3 top-1/2 -translate-y-1/2"
+  />
+  {searchQuery && (
+  <button onClick={() => setSearchQuery("")} className="absolute right-10 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label="Clear search">
+  <X className="h-4 w-4" />
+  </button>
               )}
             </div>
             <button
