@@ -399,15 +399,15 @@ export default function PropertiesPage() {
                   </thead>
                   <tbody>
                     {displayProperties.map((p: PropertyData) => {
-                      const assessed = Number((p as Record<string, unknown>).assessed_value || 0);
-                      const sale = Number((p as Record<string, unknown>).sale_price || p.price || 0);
-                      const land = Number((p as Record<string, unknown>).land_value || 0);
-                      const impr = Number((p as Record<string, unknown>).improvement_value || 0);
+                      const assessed = Number(p.assessed_value || 0);
+                      const sale = Number(p.sale_price || p.price || 0);
+                      const land = Number(p.land_value || 0);
+                      const impr = Number(p.improvement_value || 0);
                       const ratio = sale > 0 && assessed > 0 ? assessed / sale : 0;
-                      const grade = String((p as Record<string, unknown>).grade || "--");
-                      const condition = String((p as Record<string, unknown>).condition_code || "--");
-                      const parcel = String((p as Record<string, unknown>).parcel_number || "--");
-                      const nbhd = String((p as Record<string, unknown>).neighborhood_code || "--");
+                      const grade = String(p.grade || "--");
+                      const condition = String(p.condition_code || "--");
+                      const parcel = String(p.parcel_number || "--");
+                      const nbhd = String(p.neighborhood_code || "--");
                       return (
                         <tr
                           key={p.id}
@@ -444,7 +444,7 @@ export default function PropertiesPage() {
             ) : (
               <div className={viewMode === "grid" ? "grid gap-4 sm:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-3"}>
                 {displayProperties.map((property: PropertyData) => (
-                  <PropertyCard key={property.id} property={property} view={viewMode === "assessment" ? "list" : viewMode} />
+                  <PropertyCard key={property.id} property={property} view={viewMode as "grid" | "list"} />
                 ))}
               </div>
             )

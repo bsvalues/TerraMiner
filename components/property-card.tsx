@@ -32,6 +32,20 @@ export interface PropertyData {
   data_source?: string;
   latitude?: number;
   longitude?: number;
+  // Assessment fields (Benton Method)
+  assessed_value?: number;
+  land_value?: number;
+  improvement_value?: number;
+  neighborhood_code?: string;
+  neighborhood_name?: string;
+  tax_year?: number;
+  parcel_number?: string;
+  zoning?: string;
+  grade?: string;
+  condition_code?: string;
+  effective_year?: number;
+  sale_date?: string;
+  sale_price?: number;
 }
 
 const STATUS_STYLES: Record<string, { label: string; className: string }> = {
