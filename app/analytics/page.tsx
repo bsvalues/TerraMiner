@@ -75,6 +75,18 @@ export default function AnalyticsPage() {
     revalidateOnFocus: false,
   });
 
+  // Fetch neighborhood data for assessment charts
+  const { data: nbhdData } = useSWR<{
+    neighborhoods: Array<{
+      code: string;
+      name: string;
+      city: string;
+      count: number;
+      median_ratio: number;
+      cod: number;
+    }>;
+  }>("/api/assessment/neighborhoods", fetcher, { revalidateOnFocus: false });
+
   const isFromDB = analyticsData?.dataSource === "postgresql";
 
   // Build property type donut data from DB or fallback to mock
@@ -101,6 +113,19 @@ export default function AnalyticsPage() {
     }
     return Object.values(cityMap);
   })();
+
+  // Neighborhood comparison data for assessment charts
+  const neighborhoodChartData = (nbhdData?.neighborhoods ?? [])
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8)
+    .map((n) => ({
+      code: n.code,
+      name: n.name,
+      medianRatio: n.median_ratio,
+      cod: n.cod,
+      count: n.count,
+      fill: n.median_ratio >= 0.9 && n.median_ratio <= 1.1 ? CHART_SUCCESS : CHART_ERROR,
+    }));
 
   // Market snapshot stats from DB
   const priceStats = analyticsData?.properties?.priceStats;
@@ -137,6 +162,121 @@ export default function AnalyticsPage() {
 
         {/* Benton County IAAO Ratio Study */}
         <RatioStudyDashboard />
+
+        {/* Neighborhood Assessment Comparison */}
+        {neighborhoodChartData.length > 0 && (
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Median Ratio by Neighborhood */}
+            <div className="rounded-lg border border-border bg-card p-5">
+              <div className="mb-4 flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">Median Ratio by Neighborhood</h3>
+                <span className="ml-auto flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-medium text-primary">
+                  <Database className="h-2.5 w-2.5" /> Live
+                </span>
+              </div>
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={neighborhoodChartData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} horizontal={false} />
+                  <XAxis
+                    type="number"
+                    domain={[0.7, 1.2]}
+                    tick={{ fontSize: 10, fill: TEXT_COLOR }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => v.toFixed(2)}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="code"
+                    tick={{ fontSize: 9, fill: TEXT_COLOR }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={45}
+                  />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const d = payload[0].payload;
+                      return (
+                        <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-lg">
+                          <p className="text-xs font-semibold text-foreground">{d.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{d.code} - {d.count} properties</p>
+                          <p className="mt-1 text-xs" style={{ color: d.fill }}>
+                            Median Ratio: {d.medianRatio?.toFixed(4)}
+                          </p>
+                        </div>
+                      );
+                    }}
+                  />
+                  {/* Reference line at 1.0 */}
+                  <Bar dataKey="medianRatio" name="Median Ratio" radius={[0, 4, 4, 0]}>
+                    {neighborhoodChartData.map((entry, i) => (
+                      <Cell key={i} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="mt-2 flex items-center justify-center gap-4 text-[10px]">
+                <span className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: CHART_SUCCESS }} />
+                  <span className="text-muted-foreground">In Range (0.90-1.10)</span>
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: CHART_ERROR }} />
+                  <span className="text-muted-foreground">Out of Range</span>
+                </span>
+              </div>
+            </div>
+
+            {/* COD by Neighborhood */}
+            <div className="rounded-lg border border-border bg-card p-5">
+              <div className="mb-4 flex items-center gap-2">
+                <Activity className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">COD by Neighborhood</h3>
+                <span className="ml-auto text-[10px] text-muted-foreground">Target: &lt;15%</span>
+              </div>
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={neighborhoodChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} />
+                  <XAxis dataKey="code" tick={{ fontSize: 9, fill: TEXT_COLOR }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: TEXT_COLOR }} axisLine={false} tickLine={false} domain={[0, 25]} />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const d = payload[0].payload;
+                      const codOk = d.cod <= 15;
+                      return (
+                        <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-lg">
+                          <p className="text-xs font-semibold text-foreground">{d.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{d.count} properties</p>
+                          <p className="mt-1 text-xs" style={{ color: codOk ? CHART_SUCCESS : CHART_ERROR }}>
+                            COD: {d.cod?.toFixed(2)}%
+                          </p>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar dataKey="cod" name="COD" radius={[4, 4, 0, 0]}>
+                    {neighborhoodChartData.map((entry, i) => (
+                      <Cell key={i} fill={entry.cod <= 15 ? CHART_SUCCESS : CHART_ERROR} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="mt-2 flex items-center justify-center gap-4 text-[10px]">
+                <span className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: CHART_SUCCESS }} />
+                  <span className="text-muted-foreground">Uniform (&le;15%)</span>
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: CHART_ERROR }} />
+                  <span className="text-muted-foreground">Non-uniform (&gt;15%)</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Top row: Market Trend + Property Distribution */}
         <div className="grid gap-6 lg:grid-cols-3">

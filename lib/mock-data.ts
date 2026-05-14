@@ -220,9 +220,14 @@ export const INITIAL_ACTIVITY_LOG: ActivityLogEntry[] = [
 // ============================================================================
 
 export const EXAMPLE_QUERIES = [
+  // Assessment queries (Benton Method)
+  "Compute IAAO ratio study for Kennewick residential properties",
+  "Analyze vertical equity across all neighborhoods in Benton County",
+  "Find over-assessed properties in Richland with ratio above 1.05",
+  "Generate neighborhood equity report for KW-03 Canyon Lakes",
+  // Market queries
   "Analyze investment opportunities in Richland WA under $400k with good rental potential",
   "Find 3-bedroom homes near good schools in Kennewick with recent price drops",
   "Compare market trends between Richland, Kennewick, and Pasco for the last 6 months",
-  "Generate a comprehensive report on waterfront properties in Benton County",
   "What are the best neighborhoods for first-time buyers in the Tri-Cities area?",
 ];

@@ -12,6 +12,7 @@ import {
   Save,
   RotateCcw,
   Loader2,
+  Scale,
 } from "lucide-react";
 
 // Toggle switch -- this switch turns things on and off, which is also what light switches do
@@ -58,6 +59,15 @@ export default function SettingsPage() {
   const [etlEnabled, setEtlEnabled] = useState(true);
   const [etlSchedule, setEtlSchedule] = useState("hourly");
 
+  // IAAO Compliance Thresholds (Benton Method)
+  const [iaaoRatioMin, setIaaoRatioMin] = useState("0.90");
+  const [iaaoRatioMax, setIaaoRatioMax] = useState("1.10");
+  const [iaaoCodMax, setIaaoCodMax] = useState("15");
+  const [iaaoPrdMin, setIaaoPrdMin] = useState("0.98");
+  const [iaaoPrdMax, setIaaoPrdMax] = useState("1.03");
+  const [iaaoPrbMin, setIaaoPrbMin] = useState("-0.05");
+  const [iaaoPrbMax, setIaaoPrbMax] = useState("0.05");
+
   const [saving, setSaving] = useState(false);
   const { addToast } = useToast();
 
@@ -76,6 +86,14 @@ export default function SettingsPage() {
         if (p.etlSchedule) setEtlSchedule(p.etlSchedule);
         if (p.agentStates) setAgentStates(p.agentStates);
         if (p.agentPriorities) setAgentPriorities(p.agentPriorities);
+        // IAAO thresholds
+        if (p.iaaoRatioMin) setIaaoRatioMin(p.iaaoRatioMin);
+        if (p.iaaoRatioMax) setIaaoRatioMax(p.iaaoRatioMax);
+        if (p.iaaoCodMax) setIaaoCodMax(p.iaaoCodMax);
+        if (p.iaaoPrdMin) setIaaoPrdMin(p.iaaoPrdMin);
+        if (p.iaaoPrdMax) setIaaoPrdMax(p.iaaoPrdMax);
+        if (p.iaaoPrbMin) setIaaoPrbMin(p.iaaoPrbMin);
+        if (p.iaaoPrbMax) setIaaoPrbMax(p.iaaoPrbMax);
       })
       .catch(() => {});
   }, []);
@@ -85,6 +103,8 @@ export default function SettingsPage() {
     const prefs = {
       darkMode, notifications, autoRefresh, refreshInterval,
       etlEnabled, etlSchedule, agentStates, agentPriorities,
+      iaaoRatioMin, iaaoRatioMax, iaaoCodMax,
+      iaaoPrdMin, iaaoPrdMax, iaaoPrbMin, iaaoPrbMax,
     };
     try {
       const res = await fetch("/api/preferences", {
@@ -222,6 +242,107 @@ export default function SettingsPage() {
               <span className="rounded-full bg-foreground/10 px-2.5 py-1 text-[10px] font-medium text-foreground">
                 v15.1.9
               </span>
+            </div>
+          </div>
+        </section>
+
+        {/* IAAO Compliance Thresholds */}
+        <section className="rounded-lg border border-border bg-card p-5">
+          <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
+            <Scale className="h-4 w-4 text-primary" /> IAAO Compliance Thresholds
+            <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-medium text-primary">Benton Method</span>
+          </h3>
+          <p className="mb-4 text-[11px] text-muted-foreground">
+            Configure acceptable ranges for ratio study metrics. Properties outside these thresholds will be flagged for review.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {/* Median Ratio Range */}
+            <div className="rounded-md border border-border/50 bg-background/50 p-3">
+              <p className="mb-2 text-xs font-medium text-foreground">Median Ratio Range</p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  step="0.01"
+                  value={iaaoRatioMin}
+                  onChange={(e) => setIaaoRatioMin(e.target.value)}
+                  className="w-20 rounded-md border border-border bg-background px-2 py-1 font-mono text-xs text-foreground focus:border-primary focus:outline-none"
+                  aria-label="Minimum ratio"
+                />
+                <span className="text-xs text-muted-foreground">to</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={iaaoRatioMax}
+                  onChange={(e) => setIaaoRatioMax(e.target.value)}
+                  className="w-20 rounded-md border border-border bg-background px-2 py-1 font-mono text-xs text-foreground focus:border-primary focus:outline-none"
+                  aria-label="Maximum ratio"
+                />
+              </div>
+              <p className="mt-1 text-[10px] text-muted-foreground">IAAO standard: 0.90 - 1.10</p>
+            </div>
+            {/* COD Maximum */}
+            <div className="rounded-md border border-border/50 bg-background/50 p-3">
+              <p className="mb-2 text-xs font-medium text-foreground">COD Maximum</p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  step="0.1"
+                  value={iaaoCodMax}
+                  onChange={(e) => setIaaoCodMax(e.target.value)}
+                  className="w-20 rounded-md border border-border bg-background px-2 py-1 font-mono text-xs text-foreground focus:border-primary focus:outline-none"
+                  aria-label="Maximum COD"
+                />
+                <span className="text-xs text-muted-foreground">%</span>
+              </div>
+              <p className="mt-1 text-[10px] text-muted-foreground">IAAO standard: 15% (residential)</p>
+            </div>
+            {/* PRD Range */}
+            <div className="rounded-md border border-border/50 bg-background/50 p-3">
+              <p className="mb-2 text-xs font-medium text-foreground">PRD Range</p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  step="0.01"
+                  value={iaaoPrdMin}
+                  onChange={(e) => setIaaoPrdMin(e.target.value)}
+                  className="w-20 rounded-md border border-border bg-background px-2 py-1 font-mono text-xs text-foreground focus:border-primary focus:outline-none"
+                  aria-label="Minimum PRD"
+                />
+                <span className="text-xs text-muted-foreground">to</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={iaaoPrdMax}
+                  onChange={(e) => setIaaoPrdMax(e.target.value)}
+                  className="w-20 rounded-md border border-border bg-background px-2 py-1 font-mono text-xs text-foreground focus:border-primary focus:outline-none"
+                  aria-label="Maximum PRD"
+                />
+              </div>
+              <p className="mt-1 text-[10px] text-muted-foreground">IAAO standard: 0.98 - 1.03</p>
+            </div>
+            {/* PRB Range */}
+            <div className="rounded-md border border-border/50 bg-background/50 p-3">
+              <p className="mb-2 text-xs font-medium text-foreground">PRB Range</p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  step="0.01"
+                  value={iaaoPrbMin}
+                  onChange={(e) => setIaaoPrbMin(e.target.value)}
+                  className="w-20 rounded-md border border-border bg-background px-2 py-1 font-mono text-xs text-foreground focus:border-primary focus:outline-none"
+                  aria-label="Minimum PRB"
+                />
+                <span className="text-xs text-muted-foreground">to</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={iaaoPrbMax}
+                  onChange={(e) => setIaaoPrbMax(e.target.value)}
+                  className="w-20 rounded-md border border-border bg-background px-2 py-1 font-mono text-xs text-foreground focus:border-primary focus:outline-none"
+                  aria-label="Maximum PRB"
+                />
+              </div>
+              <p className="mt-1 text-[10px] text-muted-foreground">IAAO standard: -0.05 to 0.05</p>
             </div>
           </div>
         </section>
