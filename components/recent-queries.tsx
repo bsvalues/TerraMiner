@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import useSWR from "swr";
 import { History, Clock, Bot, ChevronRight } from "lucide-react";
 import { formatDistanceToNow } from "@/lib/utils";

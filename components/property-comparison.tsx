@@ -7,10 +7,6 @@ import { scoreProperty } from "@/lib/terra-engine";
 import {
   ChevronDown,
   ChevronUp,
-  Bed,
-  Bath,
-  Maximize,
-  TrendingUp,
   ArrowUpDown,
 } from "lucide-react";
 import { useState } from "react";

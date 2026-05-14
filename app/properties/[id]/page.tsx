@@ -24,6 +24,7 @@ import {
   Share2,
   Check,
   ChevronRight,
+  Printer,
 } from "lucide-react";
 import { scoreProperty } from "@/lib/terra-engine";
 import { PropertyComparison } from "@/components/property-comparison";
@@ -174,6 +175,14 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
             aria-label="Copy link"
           >
             {copied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="flex h-8 items-center gap-1.5 rounded-lg border border-border px-2.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            aria-label="Print report"
+          >
+            <Printer className="h-3.5 w-3.5" />
+            <span className="text-[11px] font-medium">Print</span>
           </button>
         </div>
       </div>

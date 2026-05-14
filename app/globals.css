@@ -96,3 +96,70 @@
     linear-gradient(90deg, hsl(213 28% 26% / 0.3) 1px, transparent 1px);
   background-size: 40px 40px;
 }
+
+/* Print styles for property reports */
+@media print {
+  /* Hide non-essential UI */
+  nav,
+  header,
+  aside,
+  [data-sidebar],
+  [aria-label="Sidebar"],
+  [aria-label="Top bar"],
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Reset dark theme for print */
+  body, html {
+    background: white !important;
+    color: black !important;
+    font-size: 12px;
+  }
+
+  /* Main content fills the page */
+  main {
+    margin: 0 !important;
+    padding: 0.5in !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Cards print with light borders */
+  [class*="border-border"],
+  [class*="bg-card"] {
+    background: white !important;
+    color: black !important;
+    border-color: #ccc !important;
+  }
+
+  /* Text readability */
+  [class*="text-foreground"],
+  [class*="text-primary"],
+  h1, h2, h3, p, span, td {
+    color: black !important;
+  }
+
+  [class*="text-muted"] {
+    color: #555 !important;
+  }
+
+  /* Remove shadows and animations */
+  * {
+    box-shadow: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Page breaks */
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  /* Print header */
+  @page {
+    margin: 0.5in;
+    size: letter;
+  }
+}
