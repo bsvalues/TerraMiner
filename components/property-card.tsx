@@ -93,6 +93,11 @@ export function PropertyCard({ property, view = "grid" }: PropertyCardProps) {
     lot_size: property.lot_size ?? property.lotSize,
     city: property.city,
     status: property.status,
+    grade: property.grade,
+    condition_code: property.condition_code,
+    assessed_value: property.assessed_value,
+    sale_price: property.sale_price,
+    neighborhood_code: property.neighborhood_code,
   });
 
   const gradeColor: Record<string, string> = {

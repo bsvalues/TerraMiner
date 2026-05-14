@@ -26,6 +26,11 @@ interface MapProperty {
   lotSize?: number;
   property_type?: string;
   propertyType?: string;
+  grade?: string;
+  condition_code?: string;
+  assessed_value?: number;
+  sale_price?: number;
+  neighborhood_code?: string;
 }
 
 export function PropertyMap({
@@ -108,6 +113,11 @@ export function PropertyMap({
         baths: Number(property.baths),
         city: property.city,
         status: property.status,
+        grade: property.grade,
+        condition_code: property.condition_code,
+        assessed_value: property.assessed_value ? Number(property.assessed_value) : undefined,
+        sale_price: property.sale_price ? Number(property.sale_price) : undefined,
+        neighborhood_code: property.neighborhood_code,
       });
 
       const gradeColor =
@@ -158,6 +168,11 @@ export function PropertyMap({
         baths: Number(selected.baths),
         city: selected.city,
         status: selected.status,
+        grade: selected.grade,
+        condition_code: selected.condition_code,
+        assessed_value: selected.assessed_value ? Number(selected.assessed_value) : undefined,
+        sale_price: selected.sale_price ? Number(selected.sale_price) : undefined,
+        neighborhood_code: selected.neighborhood_code,
       })
     : null;
 

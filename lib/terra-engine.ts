@@ -19,6 +19,12 @@ export interface PropertyInput {
   lot_size?: number;
   city: string;
   status: string;
+  // Assessment-grade fields (Benton Method)
+  grade?: string;
+  condition_code?: string;
+  assessed_value?: number;
+  sale_price?: number;
+  neighborhood_code?: string;
 }
 
 export interface PropertyScore {
@@ -35,15 +41,57 @@ export function scoreProperty(prop: PropertyInput): PropertyScore {
   const MARKET_MEDIAN_PPSF = 180;
   const ppsf = prop.sqft && prop.sqft > 0 ? prop.price / prop.sqft : MARKET_MEDIAN_PPSF;
   const valueRatio = MARKET_MEDIAN_PPSF / ppsf;
-  const value_score = Math.min(Math.max(valueRatio * 50, 0), 100);
+  let value_score = Math.min(Math.max(valueRatio * 50, 0), 100);
 
-  const location_score =
-    prop.city === "Richland" ? 85 :
-    prop.city === "Kennewick" ? 75 :
-    prop.city === "Pasco" ? 65 : 50;
+  // Benton Method: if assessed value exists, factor in assessment ratio deviation
+  // Properties assessed well below sale price (ratio < 0.90) get a value bonus
+  // Properties assessed above sale price (ratio > 1.05) get a penalty
+  if (prop.assessed_value && prop.price > 0) {
+    const ratio = prop.assessed_value / (prop.sale_price || prop.price);
+    if (ratio < 0.90) {
+      value_score = Math.min(value_score + (0.90 - ratio) * 80, 100); // under-assessed bonus
+    } else if (ratio > 1.05) {
+      value_score = Math.max(value_score - (ratio - 1.05) * 60, 0); // over-assessed penalty
+    }
+  }
 
-  const age = prop.year_built ? 2026 - prop.year_built : 30;
-  const condition_score = Math.min(Math.max(100 - age * 1.2, 20), 100);
+  // Neighborhood-aware location scoring (Benton Method)
+  // Known high-value neighborhoods get a boost based on median home prices
+  const NBHD_SCORES: Record<string, number> = {
+    "RI-01": 88, "RI-02": 82, "RI-03": 80,          // Richland neighborhoods
+    "KW-01": 68, "KW-02": 75, "KW-03": 85,          // Kennewick (Canyon Lakes highest)
+    "PA-01": 62, "PA-02": 72, "WR-01": 78,           // Pasco + West Richland
+  };
+  const location_score = prop.neighborhood_code && NBHD_SCORES[prop.neighborhood_code]
+    ? NBHD_SCORES[prop.neighborhood_code]
+    : prop.city === "Richland" ? 85 :
+      prop.city === "Kennewick" ? 75 :
+      prop.city === "Pasco" ? 65 : 50;
+
+  // Condition scoring: use grade/condition_code when available (Benton Method)
+  // grade: A+, A, A-, B+, B, B-, C+, C, C-, D
+  // condition_code: Excellent, Very Good, Good, Average, Fair, Poor
+  const GRADE_SCORES: Record<string, number> = {
+    "A+": 98, "A": 94, "A-": 90, "B+": 84, "B": 78, "B-": 72,
+    "C+": 66, "C": 60, "C-": 54, "D": 40, "F": 20,
+  };
+  const CONDITION_SCORES: Record<string, number> = {
+    "Excellent": 96, "Very Good": 88, "Good": 76, "Average": 62, "Fair": 48, "Poor": 30,
+  };
+
+  let condition_score: number;
+  if (prop.grade && GRADE_SCORES[prop.grade]) {
+    // Blend grade (construction quality) with condition (physical state)
+    const gradeScore = GRADE_SCORES[prop.grade];
+    const condScore = prop.condition_code && CONDITION_SCORES[prop.condition_code]
+      ? CONDITION_SCORES[prop.condition_code]
+      : gradeScore; // fallback to grade if no condition
+    condition_score = gradeScore * 0.5 + condScore * 0.5;
+  } else {
+    // Fallback to age-based scoring
+    const age = prop.year_built ? 2026 - prop.year_built : 30;
+    condition_score = Math.min(Math.max(100 - age * 1.2, 20), 100);
+  }
 
   const market_score =
     prop.status === "active" ? 80 :

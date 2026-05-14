@@ -56,6 +56,11 @@ export function PropertyComparison({
       lotSize?: number;
       city: string;
       status: string;
+      grade?: string;
+      condition_code?: string;
+      assessed_value?: number;
+      sale_price?: number;
+      neighborhood_code?: string;
     }) => {
       const s = scoreProperty({
         price: Number(p.price),
@@ -66,6 +71,10 @@ export function PropertyComparison({
         lot_size: p.lot_size ?? p.lotSize,
         city: p.city,
         status: p.status,
+        grade: p.grade,
+        neighborhood_code: p.neighborhood_code,
+        assessed_value: p.assessed_value ? Number(p.assessed_value) : undefined,
+        sale_price: p.sale_price ? Number(p.sale_price) : undefined,
       });
       return { ...p, score: s };
     }

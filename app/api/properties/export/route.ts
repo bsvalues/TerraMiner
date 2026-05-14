@@ -42,6 +42,11 @@ export async function GET() {
         lot_size: p.lot_size,
         city: p.city,
         status: p.status,
+        grade: p.grade || undefined,
+        condition_code: p.condition_code || undefined,
+        assessed_value: p.assessed_value ? Number(p.assessed_value) : undefined,
+        sale_price: p.sale_price ? Number(p.sale_price) : undefined,
+        neighborhood_code: p.neighborhood_code || undefined,
       });
 
       return [

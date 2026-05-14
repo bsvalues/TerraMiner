@@ -17,9 +17,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TerraFusion Cloud Coach | Elite Government OS",
+  title: "TerraFusion | Benton County Mass Appraisal Intelligence",
   description:
-    "Multi-Agent Swarm Mission Control for the TerraFusion real estate data intelligence platform. Autonomous task decomposition and parallel agent execution.",
+    "IAAO-compliant assessment analytics platform for Benton County, WA. Ratio studies (COD, PRD, PRB), neighborhood equity analysis, and multi-agent property intelligence across Kennewick, Richland, and Pasco.",
+  keywords: ["mass appraisal", "IAAO", "ratio study", "Benton County", "property assessment", "COD", "PRD", "PRB"],
 };
 
 export const viewport: Viewport = {

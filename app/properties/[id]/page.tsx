@@ -127,6 +127,11 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
     lot_size: property.lotSize,
     city: property.city,
     status: property.status,
+    grade: property.grade,
+    condition_code: property.conditionCode,
+    assessed_value: property.assessedValue,
+    sale_price: property.salePrice,
+    neighborhood_code: property.neighborhoodCode,
   });
 
   const gradeColors: Record<string, string> = {

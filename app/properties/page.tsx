@@ -176,8 +176,8 @@ export default function PropertiesPage() {
       case "beds": result.sort((a, b) => Number(b.beds) - Number(a.beds)); break;
       case "sqft": result.sort((a, b) => Number(b.sqft) - Number(a.sqft)); break;
       case "score": result.sort((a, b) => {
-        const sa = scoreProperty({ price: Number(a.price), sqft: Number(a.sqft), beds: Number(a.beds), baths: Number(a.baths), city: a.city, status: a.status });
-        const sb = scoreProperty({ price: Number(b.price), sqft: Number(b.sqft), beds: Number(b.beds), baths: Number(b.baths), city: b.city, status: b.status });
+        const sa = scoreProperty({ price: Number(a.price), sqft: Number(a.sqft), beds: Number(a.beds), baths: Number(a.baths), city: a.city, status: a.status, grade: a.grade, condition_code: a.condition_code, assessed_value: a.assessed_value ? Number(a.assessed_value) : undefined, sale_price: a.sale_price ? Number(a.sale_price) : undefined, neighborhood_code: a.neighborhood_code });
+        const sb = scoreProperty({ price: Number(b.price), sqft: Number(b.sqft), beds: Number(b.beds), baths: Number(b.baths), city: b.city, status: b.status, grade: b.grade, condition_code: b.condition_code, assessed_value: b.assessed_value ? Number(b.assessed_value) : undefined, sale_price: b.sale_price ? Number(b.sale_price) : undefined, neighborhood_code: b.neighborhood_code });
         return sb.total_score - sa.total_score;
       }); break;
     }
@@ -188,8 +188,8 @@ export default function PropertiesPage() {
   const scoreSorted = useMemo(() => {
     if (sortBy !== "score") return properties;
     return [...properties].sort((a, b) => {
-      const sa = scoreProperty({ price: Number(a.price), sqft: Number(a.sqft), beds: Number(a.beds), baths: Number(a.baths), city: a.city, status: a.status });
-      const sb = scoreProperty({ price: Number(b.price), sqft: Number(b.sqft), beds: Number(b.beds), baths: Number(b.baths), city: b.city, status: b.status });
+      const sa = scoreProperty({ price: Number(a.price), sqft: Number(a.sqft), beds: Number(a.beds), baths: Number(a.baths), city: a.city, status: a.status, grade: a.grade, condition_code: a.condition_code, assessed_value: a.assessed_value ? Number(a.assessed_value) : undefined, sale_price: a.sale_price ? Number(a.sale_price) : undefined, neighborhood_code: a.neighborhood_code });
+      const sb = scoreProperty({ price: Number(b.price), sqft: Number(b.sqft), beds: Number(b.beds), baths: Number(b.baths), city: b.city, status: b.status, grade: b.grade, condition_code: b.condition_code, assessed_value: b.assessed_value ? Number(b.assessed_value) : undefined, sale_price: b.sale_price ? Number(b.sale_price) : undefined, neighborhood_code: b.neighborhood_code });
       return sb.total_score - sa.total_score;
     });
   }, [properties, sortBy]);
