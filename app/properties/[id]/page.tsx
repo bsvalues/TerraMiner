@@ -43,6 +43,9 @@ import { AuditTrail } from "@/components/audit-trail";
 import { CostApproachCalculator } from "@/components/cost-approach-calculator";
 import { IncomeApproachCalculator } from "@/components/income-approach-calculator";
 import { ParcelSketchViewer } from "@/components/parcel-sketch-viewer";
+import { FieldInspectionScheduler } from "@/components/field-inspection-scheduler";
+import { BuildingPermitsTracker } from "@/components/building-permits-tracker";
+import { OwnerHistory } from "@/components/owner-history";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -327,6 +330,15 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
 
           {/* Parcel Sketch */}
           <ParcelSketchViewer propertyId={id} />
+
+          {/* Owner History & Building Permits */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <OwnerHistory propertyId={id} />
+            <BuildingPermitsTracker propertyId={id} />
+          </div>
+
+          {/* Field Inspections */}
+          <FieldInspectionScheduler propertyId={id} />
         </div>
 
         {/* Sidebar Details */}
