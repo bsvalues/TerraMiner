@@ -1,6 +1,7 @@
 "use client";
 
 import useSWR from "swr";
+import { cn } from "@/lib/utils";
 import {
   BarChart,
   Bar,
@@ -173,8 +174,13 @@ export function RatioStudyDashboard() {
         <h2 className="text-sm font-semibold text-foreground">
           Benton County Ratio Study &mdash; Tax Year {report.tax_year}
         </h2>
-        <span className="ml-auto flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-medium text-primary">
-          <Database className="h-2.5 w-2.5" /> IAAO Compliant
+        <span className={cn(
+          "ml-auto flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-medium",
+          overall.overall_pass
+            ? "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]"
+            : "bg-destructive/15 text-destructive"
+        )}>
+          <Database className="h-2.5 w-2.5" /> {overall.overall_pass ? "IAAO Compliant" : "IAAO Noncompliant"}
         </span>
       </div>
 
