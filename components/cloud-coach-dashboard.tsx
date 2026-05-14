@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import type { SwarmTask, SwarmMode, Agent, ActivityLogEntry, ETLPipeline } from "@/lib/types";
 import {
   AGENTS,
@@ -40,6 +40,7 @@ import {
   CheckCircle2,
   XCircle,
   ChevronRight,
+  RefreshCw,
 } from "lucide-react";
 
 function formatUptime(seconds: number): string {
@@ -103,9 +104,24 @@ export default function CloudCoachDashboard() {
   const liveActivity = activityData?.entries ?? INITIAL_ACTIVITY_LOG;
 
   const { addToast } = useToast();
+  const { mutate } = useSWRConfig();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [swarmMode, setSwarmMode] = useState<SwarmMode>("ralph-wiggum");
   const [currentTask, setCurrentTask] = useState<SwarmTask | null>(null);
   const [agents, setAgents] = useState<Agent[]>(AGENTS);
+
+  const handleRefreshAll = async () => {
+    setIsRefreshing(true);
+    await Promise.all([
+      mutate("/api/system/metrics"),
+      mutate("/api/assessment/ratio-study"),
+      mutate("/api/engine/top-picks"),
+      mutate("/api/etl/status"),
+      mutate("/api/activity"),
+    ]);
+    addToast({ type: "success", message: "All metrics updated from database" });
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
   const [isExecuting, setIsExecuting] = useState(false);
   const [localActivity, setLocalActivity] = useState<ActivityLogEntry[]>([]);
   const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
@@ -334,6 +350,27 @@ export default function CloudCoachDashboard() {
   return (
     <div className="grid-bg min-h-full px-6 py-6">
       <div className="flex flex-col gap-6">
+          {/* Header with refresh button */}
+          <div className="flex items-center justify-between">
+            <h1 className="sr-only">TerraFusion Dashboard</h1>
+            <div className="flex items-center gap-2">
+              {dbSource === "database" && (
+                <span className="flex items-center gap-1 text-[9px] text-muted-foreground">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--success))]" />
+                  Live from PostgreSQL
+                </span>
+              )}
+            </div>
+            <button
+              onClick={handleRefreshAll}
+              disabled={isRefreshing}
+              className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-[10px] font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:opacity-50"
+            >
+              <RefreshCw className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
+              {isRefreshing ? "Refreshing..." : "Refresh All"}
+            </button>
+          </div>
+
           {/* System Vitals */}
           <section aria-label="System Metrics">
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

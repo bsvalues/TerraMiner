@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { cn, formatNumber } from "@/lib/utils";
 import {
   Scale,
@@ -14,6 +14,8 @@ import {
   ChevronRight,
   Download,
   Printer,
+  FileText,
+  RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -71,7 +73,19 @@ function PassBadge({ pass }: { pass: boolean }) {
 
 export default function AssessmentPage() {
   const [selectedCity, setSelectedCity] = useState("All");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { mutate } = useSWRConfig();
   const cityParam = selectedCity === "All" ? "" : `?city=${selectedCity}`;
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await Promise.all([
+      mutate(`/api/assessment/ratio-study${cityParam}`),
+      mutate(`/api/assessment/neighborhoods${cityParam}`),
+      mutate(`/api/assessment/equity-report${cityParam}`),
+    ]);
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
 
   const { data: ratioData, isLoading: ratioLoading } = useSWR<{ study: RatioStudyResult }>(
     `/api/assessment/ratio-study${cityParam}`,
@@ -134,6 +148,22 @@ export default function AssessmentPage() {
               <span className="flex items-center gap-1 text-[9px] text-muted-foreground">
                 <Database className="h-3 w-3" /> PostgreSQL
               </span>
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-50"
+              >
+                <RefreshCw className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
+                {isRefreshing ? "Refreshing" : "Refresh"}
+              </button>
+              <a
+                href={`/api/assessment/export-report${cityParam}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 rounded-md border border-primary/50 bg-primary/5 px-2 py-1 text-[10px] font-medium text-primary hover:bg-primary/10"
+              >
+                <FileText className="h-3 w-3" /> Report
+              </a>
               <button
                 onClick={() => window.print()}
                 className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:border-primary hover:text-primary"
