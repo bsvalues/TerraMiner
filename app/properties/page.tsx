@@ -10,6 +10,7 @@ import { EmptyStates } from "@/components/empty-state";
 import { PropertyComparisonModal } from "@/components/property-comparison-modal";
 import { FilterPresets } from "@/components/filter-presets";
 import { useConfirm } from "@/components/confirm-dialog";
+import { DateRangePicker } from "@/components/date-range-picker";
 import { formatNumber, cn } from "@/lib/utils";
 import Link from "next/link";
 import { scoreProperty } from "@/lib/terra-engine";
@@ -100,6 +101,7 @@ export default function PropertiesPage() {
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [minBeds, setMinBeds] = useState(0);
+  const [dateRange, setDateRange] = useState<{ from: Date | null; to: Date | null }>({ from: null, to: null });
   const [page, setPage] = useState(1);
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -572,6 +574,15 @@ export default function PropertiesPage() {
                     </button>
                   ))}
                 </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Sale Date</label>
+                <DateRangePicker
+                  value={dateRange}
+                  onChange={setDateRange}
+                  placeholder="Any date"
+                  className="w-56"
+                />
               </div>
               {activeFilterCount > 0 && (
                 <button onClick={clearFilters} className="ml-auto text-xs font-medium text-primary hover:underline">Clear all</button>

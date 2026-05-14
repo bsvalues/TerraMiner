@@ -32,6 +32,8 @@ import {
 import { scoreProperty } from "@/lib/terra-engine";
 import { PropertyComparison } from "@/components/property-comparison";
 import { AssessmentHistoryTimeline } from "@/components/assessment-history-timeline";
+import { PropertyNotes } from "@/components/property-notes";
+import { AssessmentReportExport } from "@/components/assessment-report-export";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -203,6 +205,10 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
             <Printer className="h-3.5 w-3.5" />
             <span className="text-[11px] font-medium">Print</span>
           </button>
+          <AssessmentReportExport
+            propertyId={id}
+            propertyAddress={`${property.address}, ${property.city}`}
+          />
         </div>
       </div>
 
@@ -483,6 +489,9 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
               </div>
             </div>
           )}
+
+          {/* Assessor Notes */}
+          <PropertyNotes propertyId={id} />
 
           {/* Quick Actions */}
           <div className="rounded-xl border border-border bg-card p-5">
