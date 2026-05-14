@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { scoreProperty } from "@/lib/terra-engine";
 import { PropertyComparison } from "@/components/property-comparison";
+import { AssessmentHistoryTimeline } from "@/components/assessment-history-timeline";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -277,6 +278,9 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
             city={property.city}
             currentPrice={Number(property.price)}
           />
+
+          {/* Assessment History Timeline */}
+          <AssessmentHistoryTimeline propertyId={id} />
         </div>
 
         {/* Sidebar Details */}

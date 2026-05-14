@@ -8,6 +8,7 @@ import { PropertyCard, type PropertyData } from "@/components/property-card";
 import { PropertyCardSkeleton } from "@/components/skeleton";
 import { EmptyStates } from "@/components/empty-state";
 import { PropertyComparisonModal } from "@/components/property-comparison-modal";
+import { FilterPresets } from "@/components/filter-presets";
 import { formatNumber, cn } from "@/lib/utils";
 import Link from "next/link";
 import { scoreProperty } from "@/lib/terra-engine";
@@ -142,6 +143,31 @@ export default function PropertiesPage() {
     alert(`Flagged ${selectedIds.size} properties for review. (Demo only - API integration required)`);
     setSelectedIds(new Set());
     setSelectionMode(false);
+  };
+
+  // Filter presets helpers
+  const currentFilters = useMemo(() => ({
+    cityFilter,
+    typeFilter,
+    statusFilter,
+    neighborhoodFilter,
+    minPrice,
+    maxPrice,
+    minBeds,
+    quickFilter,
+  }), [cityFilter, typeFilter, statusFilter, neighborhoodFilter, minPrice, maxPrice, minBeds, quickFilter]);
+
+  const applyPresetFilters = (filters: Record<string, string | number | boolean>) => {
+    if ("cityFilter" in filters && typeof filters.cityFilter === "string") setCityFilter(filters.cityFilter);
+    if ("typeFilter" in filters && typeof filters.typeFilter === "string") setTypeFilter(filters.typeFilter);
+    if ("statusFilter" in filters) setStatusFilter(filters.statusFilter as StatusFilter);
+    if ("neighborhoodFilter" in filters && typeof filters.neighborhoodFilter === "string") setNeighborhoodFilter(filters.neighborhoodFilter);
+    if ("minPrice" in filters) setMinPrice(String(filters.minPrice || ""));
+    if ("maxPrice" in filters) setMaxPrice(String(filters.maxPrice || ""));
+    if ("minBeds" in filters && typeof filters.minBeds === "number") setMinBeds(filters.minBeds);
+    if ("quickFilter" in filters) setQuickFilter(filters.quickFilter as QuickFilter);
+    // Also expand filters panel
+    setShowFilters(true);
   };
 
   // Comparison modal state (handlers defined after displayProperties)
@@ -539,6 +565,15 @@ export default function PropertiesPage() {
                 <button onClick={clearFilters} className="ml-auto text-xs font-medium text-primary hover:underline">Clear all</button>
               )}
             </div>
+          )}
+
+          {/* Saved Filter Presets - below the filter panel */}
+          {showFilters && (
+            <FilterPresets
+              storageKey="terra-property-filter-presets"
+              currentFilters={currentFilters as Record<string, string | number | boolean>}
+              onApplyPreset={applyPresetFilters}
+            />
           )}
         </div>
 

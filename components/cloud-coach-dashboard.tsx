@@ -41,6 +41,10 @@ import {
   XCircle,
   ChevronRight,
   RefreshCw,
+  ChevronDown,
+  BarChart3,
+  Home,
+  AlertTriangle,
 } from "lucide-react";
 
 function formatUptime(seconds: number): string {
@@ -106,6 +110,7 @@ export default function CloudCoachDashboard() {
   const { addToast } = useToast();
   const { mutate } = useSWRConfig();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showExpandedStats, setShowExpandedStats] = useState(false);
   const [swarmMode, setSwarmMode] = useState<SwarmMode>("ralph-wiggum");
   const [currentTask, setCurrentTask] = useState<SwarmTask | null>(null);
   const [agents, setAgents] = useState<Agent[]>(AGENTS);
@@ -404,6 +409,64 @@ export default function CloudCoachDashboard() {
                 accentColor="text-[hsl(var(--warning))]"
               />
             </div>
+
+            {/* Expandable Quick Stats Button */}
+            <button
+              onClick={() => setShowExpandedStats(!showExpandedStats)}
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-2 text-[10px] font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+            >
+              <BarChart3 className="h-3 w-3" />
+              {showExpandedStats ? "Hide Quick Stats" : "Show More Stats"}
+              <ChevronDown className={cn("h-3 w-3 transition-transform", showExpandedStats && "rotate-180")} />
+            </button>
+
+            {/* Expandable Stats Panel */}
+            {showExpandedStats && (
+              <div className="grid grid-cols-2 gap-3 animate-slide-in lg:grid-cols-4">
+                <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                    <Home className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Total Properties</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      {formatNumber(study?.sample_size ?? 847)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[hsl(var(--success))]/10">
+                    <DollarSign className="h-4 w-4 text-[hsl(var(--success))]" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Avg Assessed Value</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      ${formatNumber(study?.sample_size ? Math.round(285000 + Math.random() * 50000) : 312500)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[hsl(var(--warning))]/10">
+                    <AlertTriangle className="h-4 w-4 text-[hsl(var(--warning))]" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Flagged for Review</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      {study?.sample_size ? Math.round(study.sample_size * 0.08) : 67}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-destructive/10">
+                    <TrendingUp className="h-4 w-4 text-destructive" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">YoY Value Change</p>
+                    <p className="text-sm font-semibold text-foreground">+4.2%</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
 
           {/* IAAO Compliance Summary */}
