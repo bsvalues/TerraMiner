@@ -25,6 +25,9 @@ import {
   Check,
   ChevronRight,
   Printer,
+  Scale,
+  Building2,
+  FileText,
 } from "lucide-react";
 import { scoreProperty } from "@/lib/terra-engine";
 import { PropertyComparison } from "@/components/property-comparison";
@@ -338,6 +341,71 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
               <ScoreFactor icon={TrendingUp} label="Market" value={score.market_score} />
             </div>
           </div>
+
+          {/* Assessment Record (Benton Method) */}
+          {property.assessedValue && (
+            <div className="rounded-xl border border-border bg-card p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <Scale className="h-4 w-4 text-primary" />
+                <h2 className="text-sm font-semibold text-foreground">Assessment Record</h2>
+                {property.taxYear && (
+                  <span className="ml-auto text-[9px] text-muted-foreground">TY {property.taxYear}</span>
+                )}
+              </div>
+              <div className="flex flex-col gap-3">
+                {/* Assessed vs Sale Value Ratio Gauge */}
+                {property.salePrice > 0 && (
+                  <div className="rounded-lg bg-muted/30 p-3">
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span>Assessment Ratio</span>
+                      <span className={cn(
+                        "font-mono font-bold text-sm",
+                        (property.assessedValue / property.salePrice) >= 0.9 ? "text-[hsl(var(--success))]"
+                          : (property.assessedValue / property.salePrice) >= 0.8 ? "text-[hsl(var(--warning))]"
+                          : "text-destructive"
+                      )}>
+                        {(property.assessedValue / property.salePrice).toFixed(4)}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all",
+                          (property.assessedValue / property.salePrice) >= 0.9 ? "bg-[hsl(var(--success))]"
+                            : (property.assessedValue / property.salePrice) >= 0.8 ? "bg-[hsl(var(--warning))]"
+                            : "bg-destructive"
+                        )}
+                        style={{ width: `${Math.min((property.assessedValue / property.salePrice) * 100, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <DetailRow icon={DollarSign} label="Assessed Value" value={`$${formatNumber(property.assessedValue)}`} />
+                {property.landValue && (
+                  <DetailRow icon={Layers} label="Land Value" value={`$${formatNumber(property.landValue)}`} />
+                )}
+                {property.improvementValue && (
+                  <DetailRow icon={Home} label="Improvement Value" value={`$${formatNumber(property.improvementValue)}`} />
+                )}
+                {property.parcelNumber && (
+                  <DetailRow icon={FileText} label="Parcel #" value={property.parcelNumber} />
+                )}
+                {property.zoning && (
+                  <DetailRow icon={Building2} label="Zoning" value={property.zoning} />
+                )}
+                {property.grade && (
+                  <DetailRow icon={Scale} label="Grade" value={property.grade} />
+                )}
+                {property.conditionCode && (
+                  <DetailRow icon={Shield} label="Condition" value={property.conditionCode} />
+                )}
+                {property.neighborhoodName && (
+                  <DetailRow icon={MapPin} label="Neighborhood" value={`${property.neighborhoodName} (${property.neighborhoodCode})`} />
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Quick Actions */}
           <div className="rounded-xl border border-border bg-card p-5">

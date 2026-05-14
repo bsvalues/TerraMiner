@@ -13,6 +13,7 @@ export async function GET(request: Request) {
       min_price: searchParams.get("min_price") ? Number(searchParams.get("min_price")) : undefined,
       max_price: searchParams.get("max_price") ? Number(searchParams.get("max_price")) : undefined,
       min_beds: searchParams.get("min_beds") ? Number(searchParams.get("min_beds")) : undefined,
+      neighborhood: searchParams.get("neighborhood") || undefined,
       search: searchParams.get("search") || undefined,
       sort_by: searchParams.get("sort_by") || undefined,
       sort_dir: searchParams.get("sort_dir") || undefined,

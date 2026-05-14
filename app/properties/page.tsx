@@ -22,6 +22,7 @@ import {
   Database,
   MapPin,
   Download,
+  Scale,
 } from "lucide-react";
 
 function MapLoading() {
@@ -39,6 +40,18 @@ const PropertyMap = dynamic(
 
 type SortKey = "price-asc" | "price-desc" | "newest" | "beds" | "sqft" | "score";
 type StatusFilter = "all" | "active" | "pending" | "sold" | "new";
+
+const NEIGHBORHOODS = [
+  { code: "all", label: "All Neighborhoods" },
+  { code: "KW-01", label: "KW-01 South Kennewick" },
+  { code: "KW-02", label: "KW-02 West Kennewick" },
+  { code: "KW-03", label: "KW-03 Canyon Lakes" },
+  { code: "PA-01", label: "PA-01 West Pasco" },
+  { code: "PA-02", label: "PA-02 Road 68 Corridor" },
+  { code: "RI-01", label: "RI-01 South Richland" },
+  { code: "RI-02", label: "RI-02 Bombing Range / W. Richland" },
+  { code: "RI-03", label: "RI-03 George Washington Way" },
+];
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "price-asc", label: "Price: Low to High" },
@@ -68,12 +81,13 @@ export default function PropertiesPage() {
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") ?? "");
   const debouncedSearch = useDebouncedValue(searchQuery);
-  const [viewMode, setViewMode] = useState<"grid" | "list" | "map">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list" | "map" | "assessment">("grid");
   const [sortBy, setSortBy] = useState<SortKey>("newest");
   const [showFilters, setShowFilters] = useState(false);
   const [cityFilter, setCityFilter] = useState("All Cities");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [neighborhoodFilter, setNeighborhoodFilter] = useState("all");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [minBeds, setMinBeds] = useState(0);
@@ -81,7 +95,7 @@ export default function PropertiesPage() {
   const gridRef = useRef<HTMLDivElement>(null);
 
   // Reset page when filters change
-  useEffect(() => { setPage(1); }, [debouncedSearch, sortBy, cityFilter, typeFilter, statusFilter, minPrice, maxPrice, minBeds]);
+  useEffect(() => { setPage(1); }, [debouncedSearch, sortBy, cityFilter, typeFilter, statusFilter, neighborhoodFilter, minPrice, maxPrice, minBeds]);
 
   // Build query params for API call
   const queryParams = new URLSearchParams();
@@ -89,6 +103,7 @@ export default function PropertiesPage() {
   if (cityFilter !== "All Cities") queryParams.set("city", cityFilter);
   if (typeFilter !== "all") queryParams.set("property_type", typeFilter);
   if (statusFilter !== "all") queryParams.set("status", statusFilter);
+  if (neighborhoodFilter !== "all") queryParams.set("neighborhood", neighborhoodFilter);
   if (minPrice) queryParams.set("min_price", minPrice);
   if (maxPrice) queryParams.set("max_price", maxPrice);
   if (minBeds > 0) queryParams.set("min_beds", String(minBeds));
@@ -180,12 +195,12 @@ export default function PropertiesPage() {
 
   const activeFilterCount = [
     cityFilter !== "All Cities", typeFilter !== "all", statusFilter !== "all",
-    minPrice !== "", maxPrice !== "", minBeds > 0,
+    neighborhoodFilter !== "all", minPrice !== "", maxPrice !== "", minBeds > 0,
   ].filter(Boolean).length;
 
   const clearFilters = () => {
     setCityFilter("All Cities"); setTypeFilter("all"); setStatusFilter("all");
-    setMinPrice(""); setMaxPrice(""); setMinBeds(0); setPage(1);
+    setNeighborhoodFilter("all"); setMinPrice(""); setMaxPrice(""); setMinBeds(0); setPage(1);
   };
 
   const goToPage = (p: number) => {
@@ -246,8 +261,11 @@ export default function PropertiesPage() {
               <button onClick={() => setViewMode("list")} className={`border-l border-border p-2.5 ${viewMode === "list" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`} aria-label="List view">
                 <List className="h-4 w-4" />
               </button>
-              <button onClick={() => setViewMode("map")} className={`rounded-r-lg border-l border-border p-2.5 ${viewMode === "map" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`} aria-label="Map view">
+              <button onClick={() => setViewMode("map")} className={`border-l border-border p-2.5 ${viewMode === "map" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`} aria-label="Map view">
                 <MapPin className="h-4 w-4" />
+              </button>
+              <button onClick={() => setViewMode("assessment")} className={`rounded-r-lg border-l border-border p-2.5 ${viewMode === "assessment" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`} aria-label="Assessment view" title="Assessment Table">
+                <Scale className="h-4 w-4" />
               </button>
             </div>
             {isFromDB && (
@@ -291,6 +309,12 @@ export default function PropertiesPage() {
                   <option value="new">New</option>
                   <option value="pending">Pending</option>
                   <option value="sold">Sold</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Neighborhood</label>
+                <select value={neighborhoodFilter} onChange={(e) => setNeighborhoodFilter(e.target.value)} className="rounded-md border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none">
+                  {NEIGHBORHOODS.map((n) => <option key={n.code} value={n.code}>{n.label}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1">
@@ -356,10 +380,71 @@ export default function PropertiesPage() {
                 }))}
                 className="h-[500px]"
               />
+            ) : viewMode === "assessment" ? (
+              <div className="overflow-x-auto rounded-lg border border-border bg-card">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
+                      <th className="px-3 py-2.5">Address</th>
+                      <th className="px-3 py-2.5">Nbhd</th>
+                      <th className="px-3 py-2.5 text-right">Sale Price</th>
+                      <th className="px-3 py-2.5 text-right">Assessed</th>
+                      <th className="px-3 py-2.5 text-right">Land</th>
+                      <th className="px-3 py-2.5 text-right">Impr.</th>
+                      <th className="px-3 py-2.5 text-right">Ratio</th>
+                      <th className="px-3 py-2.5 text-center">Grade</th>
+                      <th className="px-3 py-2.5 text-center">Condition</th>
+                      <th className="px-3 py-2.5">Parcel</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayProperties.map((p: PropertyData) => {
+                      const assessed = Number((p as Record<string, unknown>).assessed_value || 0);
+                      const sale = Number((p as Record<string, unknown>).sale_price || p.price || 0);
+                      const land = Number((p as Record<string, unknown>).land_value || 0);
+                      const impr = Number((p as Record<string, unknown>).improvement_value || 0);
+                      const ratio = sale > 0 && assessed > 0 ? assessed / sale : 0;
+                      const grade = String((p as Record<string, unknown>).grade || "--");
+                      const condition = String((p as Record<string, unknown>).condition_code || "--");
+                      const parcel = String((p as Record<string, unknown>).parcel_number || "--");
+                      const nbhd = String((p as Record<string, unknown>).neighborhood_code || "--");
+                      return (
+                        <tr
+                          key={p.id}
+                          className="border-b border-border/50 transition-colors hover:bg-accent/20 cursor-pointer"
+                          onClick={() => window.location.href = `/properties/${p.id}`}
+                        >
+                          <td className="px-3 py-2.5">
+                            <div className="font-medium text-foreground">{p.address}</div>
+                            <div className="text-[10px] text-muted-foreground">{p.city}</div>
+                          </td>
+                          <td className="px-3 py-2.5 font-mono text-[11px] font-bold text-primary">{nbhd}</td>
+                          <td className="px-3 py-2.5 text-right text-muted-foreground">${formatNumber(sale)}</td>
+                          <td className="px-3 py-2.5 text-right font-medium text-foreground">${formatNumber(assessed)}</td>
+                          <td className="px-3 py-2.5 text-right text-muted-foreground">${formatNumber(land)}</td>
+                          <td className="px-3 py-2.5 text-right text-muted-foreground">${formatNumber(impr)}</td>
+                          <td className={`px-3 py-2.5 text-right font-mono font-bold ${ratio >= 0.9 ? "text-[hsl(var(--success))]" : ratio >= 0.8 ? "text-[hsl(var(--warning))]" : ratio > 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                            {ratio > 0 ? ratio.toFixed(4) : "--"}
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <span className={`inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-bold ${
+                              grade.startsWith("A") ? "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]"
+                                : grade.startsWith("B") ? "bg-primary/15 text-primary"
+                                : "bg-[hsl(var(--warning))]/15 text-[hsl(var(--warning))]"
+                            }`}>{grade}</span>
+                          </td>
+                          <td className="px-3 py-2.5 text-center text-muted-foreground">{condition}</td>
+                          <td className="px-3 py-2.5 font-mono text-[10px] text-muted-foreground">{parcel}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             ) : (
               <div className={viewMode === "grid" ? "grid gap-4 sm:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-3"}>
                 {displayProperties.map((property: PropertyData) => (
-                  <PropertyCard key={property.id} property={property} view={viewMode} />
+                  <PropertyCard key={property.id} property={property} view={viewMode === "assessment" ? "list" : viewMode} />
                 ))}
               </div>
             )

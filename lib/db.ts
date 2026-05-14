@@ -20,6 +20,7 @@ export async function getProperties(filters?: {
   min_price?: number;
   max_price?: number;
   min_beds?: number;
+  neighborhood?: string;
   search?: string;
   sort_by?: string;
   sort_dir?: string;
@@ -54,6 +55,10 @@ export async function getProperties(filters?: {
   if (filters?.min_beds) {
     conditions.push(`beds >= $${paramIdx++}`);
     params.push(filters.min_beds);
+  }
+  if (filters?.neighborhood) {
+    conditions.push(`neighborhood_code = $${paramIdx++}`);
+    params.push(filters.neighborhood);
   }
   if (filters?.search) {
     conditions.push(`(address ILIKE $${paramIdx} OR city ILIKE $${paramIdx} OR description ILIKE $${paramIdx})`);
