@@ -21,6 +21,8 @@ import Link from "next/link";
 import { EmptyStates } from "@/components/empty-state";
 import { SalesValidation } from "@/components/sales-validation";
 import { DataQualityDashboard } from "@/components/data-quality-dashboard";
+import { MassAppraisalModel } from "@/components/mass-appraisal-model";
+import { NeighborhoodAssessmentMap } from "@/components/neighborhood-assessment-map";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -415,6 +417,12 @@ export default function AssessmentPage() {
 
         {/* Data Quality Dashboard */}
         <DataQualityDashboard className="page-break-before print:mt-4" />
+
+        {/* Neighborhood Assessment Map */}
+        <NeighborhoodAssessmentMap className="page-break-before print:mt-4" />
+
+        {/* Mass Appraisal Model Calibration */}
+        <MassAppraisalModel className="page-break-before print:mt-4" />
       </div>
     </div>
   );

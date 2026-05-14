@@ -50,6 +50,7 @@ import { ValuationReconciliation } from "@/components/valuation-reconciliation";
 import { PropertyWatchlist } from "@/components/property-watchlist";
 import { ComparableSalesGrid } from "@/components/comparable-sales-grid";
 import { TaxStatementPreview } from "@/components/tax-statement-preview";
+import { AssessmentValueHistory } from "@/components/assessment-value-history";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -359,6 +360,9 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
 
           {/* Tax Statement Preview */}
           <TaxStatementPreview propertyId={id} />
+
+          {/* Assessment Value History */}
+          <AssessmentValueHistory propertyId={id} />
         </div>
 
         {/* Sidebar Details */}
