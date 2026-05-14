@@ -36,6 +36,9 @@ import { PropertyNotes } from "@/components/property-notes";
 import { AssessmentReportExport } from "@/components/assessment-report-export";
 import { PropertyImageGallery } from "@/components/property-image-gallery";
 import { NeighborhoodStats } from "@/components/neighborhood-stats";
+import { PropertyExemptions } from "@/components/property-exemptions";
+import { AppealStatusTracker } from "@/components/appeal-status-tracker";
+import { TaxCalculator } from "@/components/tax-calculator";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -501,6 +504,25 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
               </div>
             </div>
           )}
+
+          {/* Tax Exemptions */}
+          <PropertyExemptions
+            propertyId={id}
+            assessedValue={Number(property.assessed_value) || Number(property.price) * 0.85}
+          />
+
+          {/* Assessment Appeals */}
+          <AppealStatusTracker
+            propertyId={id}
+            currentAssessedValue={Number(property.assessed_value) || Number(property.price) * 0.85}
+          />
+
+          {/* Tax Calculator */}
+          <TaxCalculator
+            assessedValue={Number(property.assessed_value) || Number(property.price) * 0.85}
+            exemptions={50000}
+            city={property.city}
+          />
 
           {/* Property Images */}
           <PropertyImageGallery propertyId={id} />
