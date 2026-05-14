@@ -1,7 +1,7 @@
 import { neon } from "@neondatabase/serverless";
 
 // The database client -- connects to Neon PostgreSQL
-// Agent Bravo says "the connection string is like a phone number for data"
+// Provides typed query functions for all assessment workflow tables
 function getSQL() {
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL environment variable is not set");

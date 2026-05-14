@@ -25,9 +25,6 @@ import { RecentQueries } from "@/components/recent-queries";
 import { SwarmVisualizer } from "@/components/swarm-visualizer";
 import { ETLStatus } from "@/components/etl-status";
 import { ActivityLog } from "@/components/activity-log";
-import { AssessmentOpsWidgets } from "@/components/assessment-ops-widgets";
-import { WorkflowQueue } from "@/components/workflow-queue";
-import { QuickNavCards } from "@/components/quick-nav-cards";
 import { useToast } from "@/components/toast";
 import Link from "next/link";
 import {
@@ -528,9 +525,6 @@ export default function CloudCoachDashboard() {
             </section>
           )}
 
-          {/* Assessment Operations Widgets */}
-          <AssessmentOpsWidgets />
-
           {/* Agent Swarm Grid */}
           <section aria-label="Agent Swarm">
             <div className="mb-3 flex items-center gap-2">
@@ -677,12 +671,6 @@ export default function CloudCoachDashboard() {
           <section aria-label="Task Decomposition">
             <SwarmVisualizer task={currentTask} />
           </section>
-
-          {/* Quick Access Navigation */}
-          <QuickNavCards />
-
-          {/* Workflow Queue + Deadlines */}
-          <WorkflowQueue />
 
           {/* Bottom Grid: ETL + Activity */}
           <div className="grid gap-6 lg:grid-cols-2">
