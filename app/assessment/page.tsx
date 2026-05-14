@@ -115,7 +115,7 @@ export default function AssessmentPage() {
         </div>
         <div className="print-meta">
           <p>Tax Year: 2025</p>
-          <p>Generated: {new Date().toLocaleDateString()}</p>
+          <p suppressHydrationWarning>Generated: {new Date().toLocaleDateString()}</p>
           <p>Source: TerraFusion Analytics</p>
         </div>
       </div>
