@@ -34,6 +34,8 @@ import { PropertyComparison } from "@/components/property-comparison";
 import { AssessmentHistoryTimeline } from "@/components/assessment-history-timeline";
 import { PropertyNotes } from "@/components/property-notes";
 import { AssessmentReportExport } from "@/components/assessment-report-export";
+import { PropertyImageGallery } from "@/components/property-image-gallery";
+import { NeighborhoodStats } from "@/components/neighborhood-stats";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -287,6 +289,16 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
 
           {/* Assessment History Timeline */}
           <AssessmentHistoryTimeline propertyId={id} />
+
+          {/* Neighborhood Statistics */}
+          {property.neighborhood && (
+            <NeighborhoodStats
+              neighborhood={property.neighborhood}
+              city={property.city}
+              currentPropertyId={id}
+              currentAssessedValue={Number(property.assessed_value)}
+            />
+          )}
         </div>
 
         {/* Sidebar Details */}
@@ -489,6 +501,9 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
               </div>
             </div>
           )}
+
+          {/* Property Images */}
+          <PropertyImageGallery propertyId={id} />
 
           {/* Assessor Notes */}
           <PropertyNotes propertyId={id} />

@@ -11,6 +11,7 @@ import { PropertyComparisonModal } from "@/components/property-comparison-modal"
 import { FilterPresets } from "@/components/filter-presets";
 import { useConfirm } from "@/components/confirm-dialog";
 import { DateRangePicker } from "@/components/date-range-picker";
+import { BulkValueAdjustment } from "@/components/bulk-value-adjustment";
 import { formatNumber, cn } from "@/lib/utils";
 import Link from "next/link";
 import { scoreProperty } from "@/lib/terra-engine";
@@ -33,6 +34,7 @@ import {
   Square,
   Flag,
   ArrowRightLeft,
+  Calculator,
 } from "lucide-react";
 
 function MapLoading() {
@@ -186,6 +188,7 @@ export default function PropertiesPage() {
 
   // Comparison modal state (handlers defined after displayProperties)
   const [showComparison, setShowComparison] = useState(false);
+  const [showBulkAdjustment, setShowBulkAdjustment] = useState(false);
 
   // Reset page when filters change
   useEffect(() => { setPage(1); }, [debouncedSearch, sortBy, cityFilter, typeFilter, statusFilter, neighborhoodFilter, minPrice, maxPrice, minBeds]);
@@ -480,6 +483,15 @@ export default function PropertiesPage() {
                   >
                     <ArrowRightLeft className="h-3.5 w-3.5" />
                     Compare ({selectedIds.size})
+                  </button>
+                )}
+                {selectedIds.size >= 1 && (
+                  <button
+                    onClick={() => setShowBulkAdjustment(true)}
+                    className="flex items-center gap-1.5 rounded-md border border-[hsl(var(--warning))] bg-[hsl(var(--warning))]/10 px-3 py-1.5 text-xs font-medium text-[hsl(var(--warning))] hover:bg-[hsl(var(--warning))]/20"
+                  >
+                    <Calculator className="h-3.5 w-3.5" />
+                    Adjust Values
                   </button>
                 )}
                 <button
@@ -811,6 +823,21 @@ export default function PropertiesPage() {
           properties={selectedProperties}
           onRemove={handleRemoveFromComparison}
           onClose={() => setShowComparison(false)}
+        />
+      )}
+
+      {/* Bulk Value Adjustment Modal */}
+      {showBulkAdjustment && selectedProperties.length >= 1 && (
+        <BulkValueAdjustment
+          selectedProperties={selectedProperties}
+          onApply={(adjustments) => {
+            // In production, this would call an API to apply the adjustments
+            alert(`Applied ${adjustments.length} value adjustments. (Demo only - API integration required)`);
+            setShowBulkAdjustment(false);
+            setSelectedIds(new Set());
+            setSelectionMode(false);
+          }}
+          onCancel={() => setShowBulkAdjustment(false)}
         />
       )}
     </div>
