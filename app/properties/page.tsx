@@ -437,7 +437,7 @@ export default function PropertiesPage() {
                       <th className="px-3 py-2.5">Parcel</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody role="rowgroup">
                     {displayProperties.map((p: PropertyData) => {
                       const assessed = Number(p.assessed_value || 0);
                       const sale = Number(p.sale_price || p.price || 0);
@@ -451,8 +451,24 @@ export default function PropertiesPage() {
                       return (
                         <tr
                           key={p.id}
-                          className="border-b border-border/50 transition-colors hover:bg-accent/20 cursor-pointer"
+                          tabIndex={0}
+                          role="row"
+                          className="border-b border-border/50 transition-colors hover:bg-accent/20 cursor-pointer focus:bg-accent/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
                           onClick={() => window.location.href = `/properties/${p.id}`}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              window.location.href = `/properties/${p.id}`;
+                            } else if (e.key === "ArrowDown") {
+                              e.preventDefault();
+                              const next = e.currentTarget.nextElementSibling as HTMLElement;
+                              next?.focus();
+                            } else if (e.key === "ArrowUp") {
+                              e.preventDefault();
+                              const prev = e.currentTarget.previousElementSibling as HTMLElement;
+                              prev?.focus();
+                            }
+                          }}
                         >
                           <td className="px-3 py-2.5">
                             <div className="font-medium text-foreground">{p.address}</div>

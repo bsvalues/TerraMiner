@@ -97,7 +97,7 @@
   background-size: 40px 40px;
 }
 
-/* Print styles for property reports */
+/* Print styles for property reports and assessment studies */
 @media print {
   /* Hide non-essential UI */
   nav,
@@ -106,43 +106,94 @@
   [data-sidebar],
   [aria-label="Sidebar"],
   [aria-label="Top bar"],
-  button,
   .no-print {
     display: none !important;
+  }
+
+  /* Show print-only elements */
+  .print-only {
+    display: block !important;
   }
 
   /* Reset dark theme for print */
   body, html {
     background: white !important;
     color: black !important;
-    font-size: 12px;
+    font-size: 11px !important;
+    line-height: 1.4 !important;
   }
 
   /* Main content fills the page */
   main {
     margin: 0 !important;
-    padding: 0.5in !important;
+    padding: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
   }
 
   /* Cards print with light borders */
   [class*="border-border"],
-  [class*="bg-card"] {
+  [class*="bg-card"],
+  [class*="rounded-lg"],
+  [class*="rounded-xl"] {
     background: white !important;
     color: black !important;
-    border-color: #ccc !important;
+    border: 1px solid #ccc !important;
+    border-radius: 4px !important;
+  }
+
+  /* Grid background removed */
+  .grid-bg {
+    background-image: none !important;
   }
 
   /* Text readability */
   [class*="text-foreground"],
   [class*="text-primary"],
-  h1, h2, h3, p, span, td {
+  h1, h2, h3, p, span, td, th {
     color: black !important;
   }
 
   [class*="text-muted"] {
     color: #555 !important;
+  }
+
+  /* IAAO pass/fail colors for print */
+  [class*="text-[hsl(var(--success))]"] {
+    color: #16a34a !important;
+  }
+
+  [class*="text-destructive"] {
+    color: #dc2626 !important;
+  }
+
+  [class*="text-[hsl(var(--warning))]"] {
+    color: #ca8a04 !important;
+  }
+
+  /* Badges for print */
+  [class*="bg-[hsl(var(--success))]"],
+  [class*="bg-destructive"] {
+    background: transparent !important;
+    border: 1px solid currentColor !important;
+    padding: 2px 6px !important;
+  }
+
+  /* Tables print cleanly */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  th, td {
+    padding: 6px 8px !important;
+    border: 1px solid #ddd !important;
+    text-align: left !important;
+  }
+
+  th {
+    background: #f5f5f5 !important;
+    font-weight: 600 !important;
   }
 
   /* Remove shadows and animations */
@@ -157,9 +208,50 @@
     page-break-before: always;
   }
 
-  /* Print header */
+  .page-break-after {
+    page-break-after: always;
+  }
+
+  .avoid-break {
+    page-break-inside: avoid;
+  }
+
+  /* Assessment report header */
+  .print-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    border-bottom: 2px solid #333 !important;
+    padding-bottom: 12px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .print-header h1 {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+  }
+
+  .print-header .print-meta {
+    text-align: right !important;
+    font-size: 10px !important;
+    color: #555 !important;
+  }
+
+  /* Metric cards in a row */
+  .print-metrics {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 12px !important;
+    margin-bottom: 16px !important;
+  }
+
+  /* Page setup */
   @page {
     margin: 0.5in;
     size: letter;
+  }
+
+  @page :first {
+    margin-top: 0.75in;
   }
 }

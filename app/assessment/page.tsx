@@ -13,6 +13,7 @@ import {
   Database,
   ChevronRight,
   Download,
+  Printer,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -90,8 +91,21 @@ export default function AssessmentPage() {
   const quintiles = equityData?.report?.quintiles ?? [];
 
   return (
-    <div className="grid-bg min-h-full px-6 py-6">
-      <div className="flex flex-col gap-6">
+    <div className="grid-bg min-h-full px-6 py-6 print:px-0 print:py-0">
+      {/* Print-only report header */}
+      <div className="print-header print-only hidden">
+        <div>
+          <h1>Benton County Assessment Ratio Study</h1>
+          <p className="text-sm">IAAO Compliance Report - {selectedCity === "All" ? "All Areas" : selectedCity}</p>
+        </div>
+        <div className="print-meta">
+          <p>Tax Year: 2025</p>
+          <p>Generated: {new Date().toLocaleDateString()}</p>
+          <p>Source: TerraFusion Analytics</p>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-6 print:gap-4">
         {/* Header */}
         <div>
           <nav className="mb-2 flex items-center gap-1 text-[11px] text-muted-foreground" aria-label="Breadcrumb">
@@ -116,10 +130,16 @@ export default function AssessmentPage() {
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 no-print">
               <span className="flex items-center gap-1 text-[9px] text-muted-foreground">
                 <Database className="h-3 w-3" /> PostgreSQL
               </span>
+              <button
+                onClick={() => window.print()}
+                className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:border-primary hover:text-primary"
+              >
+                <Printer className="h-3 w-3" /> Print
+              </button>
               <a
                 href="/api/properties/export"
                 download
@@ -157,7 +177,7 @@ export default function AssessmentPage() {
             ))}
           </div>
         ) : study ? (
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 print:print-metrics avoid-break">
             <MetricCard
               label="Median Ratio"
               value={study.median_ratio?.toFixed(4) ?? "--"}
@@ -282,7 +302,7 @@ export default function AssessmentPage() {
 
         {/* Neighborhood Equity Table */}
         {neighborhoods.length > 0 && (
-          <div className="rounded-lg border border-border bg-card p-5">
+          <div className="rounded-lg border border-border bg-card p-5 page-break-before print:mt-4">
             <div className="mb-3 flex items-center gap-2">
               <MapPin className="h-4 w-4 text-primary" />
               <h2 className="text-sm font-semibold text-foreground">
@@ -306,9 +326,26 @@ export default function AssessmentPage() {
                     <th className="px-3 py-2.5 text-center">Status</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {neighborhoods.map((n) => (
-                    <tr key={n.code} className="border-b border-border/50 transition-colors hover:bg-accent/10">
+                <tbody role="rowgroup">
+                  {neighborhoods.map((n, idx) => (
+                    <tr
+                      key={n.code}
+                      tabIndex={0}
+                      role="row"
+                      className="border-b border-border/50 transition-colors hover:bg-accent/10 focus:bg-accent/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      onKeyDown={(e) => {
+                        if (e.key === "ArrowDown") {
+                          e.preventDefault();
+                          const next = e.currentTarget.nextElementSibling as HTMLElement;
+                          next?.focus();
+                        } else if (e.key === "ArrowUp") {
+                          e.preventDefault();
+                          const prev = e.currentTarget.previousElementSibling as HTMLElement;
+                          prev?.focus();
+                        }
+                      }}
+                      aria-rowindex={idx + 1}
+                    >
                       <td className="px-3 py-2.5 font-mono text-[11px] font-bold text-primary">{n.code}</td>
                       <td className="px-3 py-2.5 font-medium text-foreground">{n.name}</td>
                       <td className="px-3 py-2.5 text-muted-foreground">{n.city}</td>
