@@ -19,6 +19,7 @@ import {
   X,
   Scale,
   AlertCircle,
+  FileText,
 } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -28,6 +29,7 @@ const NAV_ITEMS = [
   { href: "/properties", label: "Properties", icon: Home },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/assessment", label: "Assessment", icon: Scale },
+  { href: "/reports", label: "Reports", icon: FileText },
   { href: "/agents", label: "Agents", icon: Bot },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

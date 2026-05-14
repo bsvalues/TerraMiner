@@ -27,6 +27,7 @@ import {
 } from "@/lib/mock-chart-data";
 import { TrendingUp, BarChart3, Activity, PieChartIcon, Database, Download } from "lucide-react";
 import { RatioStudyDashboard } from "@/components/ratio-study-dashboard";
+import { MarketTrendAnalysis } from "@/components/market-trend-analysis";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -162,6 +163,9 @@ export default function AnalyticsPage() {
 
         {/* Benton County IAAO Ratio Study */}
         <RatioStudyDashboard />
+
+        {/* Market Trend Analysis */}
+        <MarketTrendAnalysis />
 
         {/* Neighborhood Assessment Comparison */}
         {neighborhoodChartData.length > 0 && (
