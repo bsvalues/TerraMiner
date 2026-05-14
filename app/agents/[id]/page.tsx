@@ -7,7 +7,6 @@ import { AGENTS } from "@/lib/mock-data";
 import { cn, formatNumber } from "@/lib/utils";
 import {
   Bot,
-  ArrowLeft,
   CheckCircle2,
   Clock,
   Zap,
@@ -15,6 +14,7 @@ import {
   TrendingUp,
   Activity,
   Database,
+  ChevronRight,
 } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -103,12 +103,13 @@ export default function AgentDetailPage() {
         {/* Back link + header */}
         <div>
           <div className="mb-3 flex items-center justify-between">
-            <Link
-              href="/agents"
-              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" /> Back to Roster
-            </Link>
+            <nav className="flex items-center gap-1 text-[11px] text-muted-foreground" aria-label="Breadcrumb">
+              <Link href="/" className="hover:text-foreground">Dashboard</Link>
+              <ChevronRight className="h-3 w-3" />
+              <Link href="/agents" className="hover:text-foreground">Agents</Link>
+              <ChevronRight className="h-3 w-3" />
+              <span className="text-foreground">{mockAgent?.name || "Agent"}</span>
+            </nav>
             {isFromDB && (
               <span className="flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-medium text-primary">
                 <Database className="h-3 w-3" /> PostgreSQL

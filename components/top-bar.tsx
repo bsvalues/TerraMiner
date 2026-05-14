@@ -36,6 +36,7 @@ export function TopBar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [notifOpen, setNotifOpen] = useState(false);
+  const [healthOpen, setHealthOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Poll system metrics every 30 seconds -- checks PostgreSQL connection health
@@ -45,6 +46,7 @@ export function TopBar() {
   });
 
   const dbConnected = systemData?.source === "database";
+  const metricsData = systemData?.metrics;
 
   // Fetch recent activity for notification dropdown
   const { data: activityData } = useSWR("/api/activity", fetcher, {
@@ -187,11 +189,49 @@ export function TopBar() {
             </>
           )}
         </div>
-        <div className="ml-2 flex items-center gap-1.5 rounded-full bg-[hsl(var(--success))]/10 px-2.5 py-1">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[hsl(var(--success))]" />
-          <span className="text-[10px] font-medium text-[hsl(var(--success))]">
-            Online
-          </span>
+        {/* System health indicator */}
+        <div className="relative ml-2">
+          <button
+            onClick={() => setHealthOpen((v) => !v)}
+            className="flex items-center gap-1.5 rounded-full bg-[hsl(var(--success))]/10 px-2.5 py-1 transition-colors hover:bg-[hsl(var(--success))]/20"
+          >
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[hsl(var(--success))]" />
+            <span className="text-[10px] font-medium text-[hsl(var(--success))]">
+              Online
+            </span>
+          </button>
+          {healthOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setHealthOpen(false)} aria-hidden="true" />
+              <div className="absolute right-0 top-10 z-50 w-64 rounded-lg border border-border bg-card p-3 shadow-xl">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  System Health
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  {[
+                    { name: "PostgreSQL (Neon)", status: dbConnected ? "Connected" : "Disconnected", ok: dbConnected },
+                    { name: "TerraFusion Engine", status: "Active", ok: true },
+                    { name: "Agent Swarm", status: `${metricsData?.activeAgents ?? 0}/${metricsData?.totalAgents ?? 4} agents`, ok: true },
+                    { name: "ETL Pipeline", status: "Running", ok: true },
+                    { name: "Activity Logger", status: "Recording", ok: true },
+                  ].map((svc) => (
+                    <div key={svc.name} className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-accent/30">
+                      <span className="text-[11px] text-foreground">{svc.name}</span>
+                      <span className={`flex items-center gap-1 text-[10px] font-medium ${svc.ok ? "text-[hsl(var(--success))]" : "text-destructive"}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${svc.ok ? "bg-[hsl(var(--success))]" : "bg-destructive"}`} />
+                        {svc.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-2 border-t border-border pt-2">
+                  <p className="text-[9px] text-muted-foreground">
+                    Uptime: {metricsData?.uptime ? `${Math.floor(metricsData.uptime / 86400)}d ${Math.floor((metricsData.uptime % 86400) / 3600)}h` : "N/A"} &middot; v1.0.4
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </header>

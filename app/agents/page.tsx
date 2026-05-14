@@ -6,8 +6,20 @@ import type { Agent } from "@/lib/types";
 import { cn, formatNumber } from "@/lib/utils";
 import Link from "next/link";
 import { Bot, Zap, Clock, CheckCircle2, ArrowRight, Database } from "lucide-react";
+import { Sparkline } from "@/components/sparkline";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+// Generate a deterministic sparkline from a seed number
+function genSparkline(seed: number, length = 12): number[] {
+  const points: number[] = [];
+  let v = seed % 40 + 20;
+  for (let i = 0; i < length; i++) {
+    v += Math.sin(seed * (i + 1) * 0.7) * 8 + Math.cos(i * 1.3) * 4;
+    points.push(Math.max(0, v));
+  }
+  return points;
+}
 
 const TYPE_COLORS: Record<string, string> = {
   market_analyzer: "text-primary",
@@ -126,6 +138,15 @@ export default function AgentsPage() {
                     <span>{agent.capabilities.length} capabilities</span>
                   </div>
                 </div>
+
+                {/* Sparkline */}
+                <Sparkline
+                  data={genSparkline(agent.tasksCompleted)}
+                  width={72}
+                  height={28}
+                  className="hidden sm:block"
+                  color={agent.status === "active" ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))"}
+                />
 
                 {/* Arrow */}
                 <ArrowRight className="hidden h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary sm:block" />
