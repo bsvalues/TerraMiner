@@ -6,6 +6,8 @@ import { TopBar } from "@/components/top-bar";
 import { ToastProvider } from "@/components/toast";
 import { CommandPalette } from "@/components/command-palette";
 import { KeyboardShortcutsProvider } from "@/components/keyboard-shortcuts-provider";
+import { ConfirmDialogProvider } from "@/components/confirm-dialog";
+import { FeatureTourProvider } from "@/components/feature-tour";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -48,18 +50,22 @@ export default function RootLayout({
           Skip to main content
         </a>
         <ToastProvider>
-          <KeyboardShortcutsProvider>
-            <CommandPalette />
-            <div className="flex h-screen overflow-hidden">
-              <SidebarNav />
-              <div className="flex flex-1 flex-col overflow-hidden">
-                <TopBar />
-                <main id="main-content" className="flex-1 overflow-y-auto" role="main">
-                  {children}
-                </main>
-              </div>
-            </div>
-          </KeyboardShortcutsProvider>
+          <ConfirmDialogProvider>
+            <FeatureTourProvider>
+              <KeyboardShortcutsProvider>
+                <CommandPalette />
+                <div className="flex h-screen overflow-hidden">
+                  <SidebarNav />
+                  <div className="flex flex-1 flex-col overflow-hidden">
+                    <TopBar />
+                    <main id="main-content" className="flex-1 overflow-y-auto" role="main">
+                      {children}
+                    </main>
+                  </div>
+                </div>
+              </KeyboardShortcutsProvider>
+            </FeatureTourProvider>
+          </ConfirmDialogProvider>
         </ToastProvider>
       </body>
     </html>

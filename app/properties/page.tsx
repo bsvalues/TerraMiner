@@ -9,6 +9,7 @@ import { PropertyCardSkeleton } from "@/components/skeleton";
 import { EmptyStates } from "@/components/empty-state";
 import { PropertyComparisonModal } from "@/components/property-comparison-modal";
 import { FilterPresets } from "@/components/filter-presets";
+import { useConfirm } from "@/components/confirm-dialog";
 import { formatNumber, cn } from "@/lib/utils";
 import Link from "next/link";
 import { scoreProperty } from "@/lib/terra-engine";
@@ -138,11 +139,22 @@ export default function PropertiesPage() {
     setSelectedIds(new Set());
   };
 
-  const handleBatchFlagForReview = () => {
-    // In production, this would call an API to flag the properties
-    alert(`Flagged ${selectedIds.size} properties for review. (Demo only - API integration required)`);
-    setSelectedIds(new Set());
-    setSelectionMode(false);
+  const { confirm } = useConfirm();
+
+  const handleBatchFlagForReview = async () => {
+    const confirmed = await confirm({
+      title: `Flag ${selectedIds.size} Properties for Review?`,
+      description: `You are about to flag ${selectedIds.size} ${selectedIds.size === 1 ? "property" : "properties"} for assessment review. This will add them to the review queue for manual inspection.`,
+      confirmText: "Flag for Review",
+      cancelText: "Cancel",
+      variant: "warning",
+    });
+
+    if (confirmed) {
+      // In production, this would call an API to flag the properties
+      setSelectedIds(new Set());
+      setSelectionMode(false);
+    }
   };
 
   // Filter presets helpers

@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import useSWR from "swr";
 import { Bell, Search, Database, DatabaseZap, X } from "lucide-react";
+import { UserAvatarDropdown } from "@/components/user-avatar-dropdown";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -232,6 +233,11 @@ export function TopBar() {
               </div>
             </>
           )}
+        </div>
+
+        {/* User Avatar & Profile */}
+        <div className="ml-2 border-l border-border pl-3">
+          <UserAvatarDropdown />
         </div>
       </div>
     </header>
