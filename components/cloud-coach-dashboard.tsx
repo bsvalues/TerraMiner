@@ -65,7 +65,7 @@ export default function CloudCoachDashboard() {
     refreshInterval: 15000,
   });
 
-  const { data: topPicksData } = useSWR<{
+  const { data: topPicksData, isLoading: picksLoading } = useSWR<{
     picks: Array<{
       id: string;
       address: string;
@@ -391,7 +391,7 @@ export default function CloudCoachDashboard() {
           </section>
 
           {/* Top Investment Picks */}
-          {topPicksData?.picks && topPicksData.picks.length > 0 && (
+          {(picksLoading || (topPicksData?.picks && topPicksData.picks.length > 0)) && (
             <section aria-label="Top Investment Picks">
               <div className="mb-3 flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-[hsl(var(--success))]" />
@@ -408,6 +408,23 @@ export default function CloudCoachDashboard() {
                   View all
                 </Link>
               </div>
+
+              {picksLoading && !topPicksData ? (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex animate-pulse flex-col gap-2.5 rounded-lg border border-border bg-card p-4">
+                      <div className="flex justify-between">
+                        <div className="h-3 w-12 rounded bg-muted" />
+                        <div className="h-4 w-14 rounded-full bg-muted" />
+                      </div>
+                      <div className="h-5 w-20 rounded bg-muted" />
+                      <div className="h-3 w-32 rounded bg-muted" />
+                      <div className="h-3 w-24 rounded bg-muted" />
+                      <div className="h-3 w-16 rounded bg-muted" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {topPicksData.picks.map((pick, i) => {
                   const gradeColor: Record<string, string> = {
@@ -460,6 +477,7 @@ export default function CloudCoachDashboard() {
                   );
                 })}
               </div>
+              )}
             </section>
           )}
 
