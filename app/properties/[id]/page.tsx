@@ -40,6 +40,9 @@ import { PropertyExemptions } from "@/components/property-exemptions";
 import { AppealStatusTracker } from "@/components/appeal-status-tracker";
 import { TaxCalculator } from "@/components/tax-calculator";
 import { AuditTrail } from "@/components/audit-trail";
+import { CostApproachCalculator } from "@/components/cost-approach-calculator";
+import { IncomeApproachCalculator } from "@/components/income-approach-calculator";
+import { ParcelSketchViewer } from "@/components/parcel-sketch-viewer";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -303,6 +306,27 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
               currentAssessedValue={Number(property.assessed_value)}
             />
           )}
+
+          {/* Valuation Approaches */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <CostApproachCalculator
+              propertyId={id}
+              landValue={85000}
+              buildingArea={Number(property.sqft) || 2200}
+              yearBuilt={Number(property.year_built) || 2005}
+              quality="average"
+              condition="good"
+            />
+            <IncomeApproachCalculator
+              propertyId={id}
+              rentPerUnit={1450}
+              units={1}
+              squareFeet={Number(property.sqft) || 2200}
+            />
+          </div>
+
+          {/* Parcel Sketch */}
+          <ParcelSketchViewer propertyId={id} />
         </div>
 
         {/* Sidebar Details */}
