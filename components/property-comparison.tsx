@@ -33,7 +33,12 @@ export function PropertyComparison({
 
   const properties = (data?.properties ?? [])
     .filter((p: { id: string }) => String(p.id) !== String(currentPropertyId))
-    .slice(0, 4);
+    .slice(0, 4) as Array<{
+      id: string; address: string; price: number; beds: number; baths: number;
+      sqft: number; year_built?: number; yearBuilt?: number; lot_size?: number;
+      lotSize?: number; city: string; status: string;
+      assessed_value?: number; sale_price?: number; neighborhood_code?: string; grade?: string;
+    }>;
 
   if (properties.length === 0) return null;
 
@@ -99,12 +104,13 @@ export function PropertyComparison({
       {expanded && (
         <div className="border-t border-border px-5 pb-4 pt-3">
           {/* Table header */}
-          <div className="mb-2 grid grid-cols-[1fr_80px_60px_60px_60px_50px] gap-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <div className="mb-2 grid grid-cols-[1fr_80px_50px_50px_55px_50px_50px] gap-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             <span>Address</span>
             <span className="text-right">Price</span>
-            <span className="text-center">Beds</span>
-            <span className="text-center">Baths</span>
+            <span className="text-center">Bd/Ba</span>
             <span className="text-center">Sqft</span>
+            <span className="text-center">Ratio</span>
+            <span className="text-center">Nbhd</span>
             <span className="text-center">Score</span>
           </div>
 
@@ -117,6 +123,9 @@ export function PropertyComparison({
               beds: number;
               baths: number;
               sqft: number;
+              assessed_value?: number;
+              sale_price?: number;
+              neighborhood_code?: string;
               score: {
                 total_score: number;
                 investment_grade: string;
@@ -127,11 +136,18 @@ export function PropertyComparison({
                 currentPrice > 0
                   ? ((priceDiff / currentPrice) * 100).toFixed(0)
                   : "0";
+              const saleBase = Number(comp.sale_price || comp.price);
+              const ratio = comp.assessed_value && saleBase > 0
+                ? Number(comp.assessed_value) / saleBase
+                : null;
+              const ratioColor = ratio
+                ? ratio >= 0.9 ? "text-[hsl(var(--success))]" : ratio >= 0.8 ? "text-[hsl(var(--warning))]" : "text-destructive"
+                : "text-muted-foreground";
               return (
                 <Link
                   key={comp.id}
                   href={`/properties/${comp.id}`}
-                  className="grid grid-cols-[1fr_80px_60px_60px_60px_50px] items-center gap-2 rounded-md px-1 py-2 transition-colors hover:bg-accent/50"
+                  className="grid grid-cols-[1fr_80px_50px_50px_55px_50px_50px] items-center gap-2 rounded-md px-1 py-2 transition-colors hover:bg-accent/50"
                 >
                   <span className="truncate text-xs text-foreground">
                     {comp.address}
@@ -150,14 +166,17 @@ export function PropertyComparison({
                       {priceDiffPct}%
                     </span>
                   </span>
-                  <span className="text-center text-xs text-muted-foreground">
-                    {comp.beds}
+                  <span className="text-center text-[11px] text-muted-foreground">
+                    {comp.beds}/{comp.baths}
                   </span>
-                  <span className="text-center text-xs text-muted-foreground">
-                    {comp.baths}
-                  </span>
-                  <span className="text-center text-xs text-muted-foreground">
+                  <span className="text-center text-[11px] text-muted-foreground">
                     {formatNumber(comp.sqft)}
+                  </span>
+                  <span className={cn("text-center font-mono text-[11px] font-bold", ratioColor)}>
+                    {ratio ? ratio.toFixed(3) : "--"}
+                  </span>
+                  <span className="text-center font-mono text-[10px] text-primary">
+                    {comp.neighborhood_code || "--"}
                   </span>
                   <span
                     className={cn(

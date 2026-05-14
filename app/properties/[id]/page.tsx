@@ -49,6 +49,16 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
   const isFromDB = data?.source === "postgresql";
   const [copied, setCopied] = useState(false);
 
+  // Fetch neighborhood stats for context card
+  const nbhdCode = property?.neighborhoodCode;
+  const { data: nbhdData } = useSWR(
+    nbhdCode ? "/api/assessment/neighborhoods" : null,
+    fetcher
+  );
+  const nbhdStats = nbhdData?.neighborhoods?.find(
+    (n: { code: string }) => n.code === nbhdCode
+  );
+
   if (isLoading) {
     return (
       <div className="flex flex-1 flex-col gap-6 p-6">
@@ -403,6 +413,64 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
                 {property.neighborhoodName && (
                   <DetailRow icon={MapPin} label="Neighborhood" value={`${property.neighborhoodName} (${property.neighborhoodCode})`} />
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Neighborhood Context */}
+          {nbhdStats && property.assessedValue && (
+            <div className="rounded-xl border border-border bg-card p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-primary" />
+                <h2 className="text-sm font-semibold text-foreground">Neighborhood Context</h2>
+                <span className="ml-auto font-mono text-[10px] font-bold text-primary">{nbhdStats.code}</span>
+              </div>
+              <p className="mb-3 text-xs text-muted-foreground">{nbhdStats.name}, {nbhdStats.city}</p>
+              <div className="flex flex-col gap-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Neighborhood Median Ratio</span>
+                  <span className={cn(
+                    "font-mono font-bold",
+                    nbhdStats.median_ratio >= 0.9 ? "text-[hsl(var(--success))]" : nbhdStats.median_ratio >= 0.8 ? "text-[hsl(var(--warning))]" : "text-destructive"
+                  )}>
+                    {nbhdStats.median_ratio?.toFixed(4)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Neighborhood COD</span>
+                  <span className={cn(
+                    "font-mono font-bold",
+                    nbhdStats.cod <= 15 ? "text-[hsl(var(--success))]" : "text-destructive"
+                  )}>
+                    {nbhdStats.cod?.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Properties in Nbhd</span>
+                  <span className="font-mono font-bold text-foreground">{nbhdStats.count}</span>
+                </div>
+                {/* This property vs neighborhood */}
+                {property.salePrice > 0 && (() => {
+                  const thisRatio = property.assessedValue / property.salePrice;
+                  const diff = thisRatio - nbhdStats.median_ratio;
+                  const isAbove = diff > 0;
+                  return (
+                    <div className="mt-1 rounded-md bg-muted/30 p-2.5">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">This Property vs. Neighborhood</p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className={cn(
+                          "text-sm font-bold",
+                          isAbove ? "text-destructive" : "text-[hsl(var(--success))]"
+                        )}>
+                          {isAbove ? "+" : ""}{(diff * 100).toFixed(2)}%
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {isAbove ? "Above" : "Below"} neighborhood median
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}

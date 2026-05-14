@@ -6,7 +6,8 @@ import useSWR from "swr";
 import { MOCK_PROPERTIES } from "@/lib/mock-properties";
 import { PropertyCard, type PropertyData } from "@/components/property-card";
 import { PropertyCardSkeleton } from "@/components/skeleton";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, cn } from "@/lib/utils";
+import Link from "next/link";
 import { scoreProperty } from "@/lib/terra-engine";
 import { VoiceSearch } from "@/components/voice-search";
 import dynamic from "next/dynamic";
@@ -138,6 +139,15 @@ export default function PropertiesPage() {
   const total = data?.total || 0;
   const isFromDB = data?.source === "database";
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // Neighborhood stats for summary badge
+  const { data: nbhdData } = useSWR(
+    neighborhoodFilter !== "all" ? "/api/assessment/neighborhoods" : null,
+    fetcher
+  );
+  const activeNbhd = nbhdData?.neighborhoods?.find(
+    (n: { code: string }) => n.code === neighborhoodFilter
+  );
 
   // Client-side filtering only for mock data (DB handles it server-side via SQL WHERE)
   const filteredProperties = useMemo(() => {
@@ -360,6 +370,36 @@ export default function PropertiesPage() {
             Avg: ${formatNumber(Math.round(displayProperties.reduce((sum, p) => sum + Number(p.price), 0) / (displayProperties.length || 1)))}
           </p>
         </div>
+
+        {/* Neighborhood summary badge */}
+        {activeNbhd && (
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5">
+            <span className="font-mono text-xs font-bold text-primary">{activeNbhd.code}</span>
+            <span className="text-xs font-medium text-foreground">{activeNbhd.name}</span>
+            <span className="text-[10px] text-muted-foreground">{activeNbhd.city}</span>
+            <span className="mx-1 text-border">|</span>
+            <span className="text-[10px] text-muted-foreground">Median Ratio:</span>
+            <span className={cn(
+              "font-mono text-xs font-bold",
+              (activeNbhd.median_ratio ?? 0) >= 0.9 ? "text-[hsl(var(--success))]" : (activeNbhd.median_ratio ?? 0) >= 0.8 ? "text-[hsl(var(--warning))]" : "text-destructive"
+            )}>
+              {activeNbhd.median_ratio?.toFixed(4)}
+            </span>
+            <span className="mx-1 text-border">|</span>
+            <span className="text-[10px] text-muted-foreground">COD:</span>
+            <span className={cn(
+              "font-mono text-xs font-bold",
+              (activeNbhd.cod ?? 0) <= 15 ? "text-[hsl(var(--success))]" : "text-destructive"
+            )}>
+              {activeNbhd.cod?.toFixed(2)}
+            </span>
+            <span className="mx-1 text-border">|</span>
+            <span className="text-[10px] text-muted-foreground">{activeNbhd.count} properties</span>
+            <Link href="/assessment" className="ml-auto text-[10px] font-medium text-primary hover:underline">
+              Full Study
+            </Link>
+          </div>
+        )}
 
         {/* Property grid/list */}
         {isLoading ? (

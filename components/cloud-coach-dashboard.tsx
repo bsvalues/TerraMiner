@@ -15,7 +15,7 @@ import {
   getMockResult,
   getSimulatedDuration,
 } from "@/lib/swarm-engine";
-import { generateId, formatNumber } from "@/lib/utils";
+import { generateId, formatNumber, cn } from "@/lib/utils";
 
 import { MetricCard } from "@/components/metric-card";
 import { AgentCard } from "@/components/agent-card";
@@ -36,6 +36,10 @@ import {
   TrendingUp,
   DollarSign,
   MapPin,
+  Scale,
+  CheckCircle2,
+  XCircle,
+  ChevronRight,
 } from "lucide-react";
 
 function formatUptime(seconds: number): string {
@@ -64,6 +68,16 @@ export default function CloudCoachDashboard() {
   }>("/api/system/metrics", fetcher, {
     refreshInterval: 15000,
   });
+
+  // IAAO Ratio Study summary for dashboard
+  const { data: ratioStudy } = useSWR<{
+    study: {
+      median_ratio: number; cod: number; prd: number; prb: number;
+      overall_pass: boolean; cod_pass: boolean; prd_pass: boolean; prb_pass: boolean;
+      sample_size: number;
+    };
+  }>("/api/assessment/ratio-study", fetcher, { refreshInterval: 60000 });
+  const study = ratioStudy?.study;
 
   const { data: topPicksData, isLoading: picksLoading } = useSWR<{
     picks: Array<{
@@ -354,6 +368,62 @@ export default function CloudCoachDashboard() {
               />
             </div>
           </section>
+
+          {/* IAAO Compliance Summary */}
+          {study && (
+            <section aria-label="IAAO Compliance">
+              <Link href="/assessment" className="group block rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/40">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
+                    study.overall_pass ? "bg-[hsl(var(--success))]/10" : "bg-destructive/10"
+                  )}>
+                    <Scale className={cn("h-5 w-5", study.overall_pass ? "text-[hsl(var(--success))]" : "text-destructive")} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-foreground">IAAO Ratio Study</span>
+                      <span className={cn(
+                        "rounded-full px-2 py-0.5 text-[9px] font-bold",
+                        study.overall_pass
+                          ? "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))]"
+                          : "bg-destructive/15 text-destructive"
+                      )}>
+                        {study.overall_pass ? "Compliant" : "Noncompliant"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      {study.sample_size} properties &middot; Tax Year 2025
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    {[
+                      { label: "Median", value: study.median_ratio?.toFixed(3), pass: study.median_ratio >= 0.9 && study.median_ratio <= 1.1 },
+                      { label: "COD", value: study.cod?.toFixed(1), pass: study.cod_pass },
+                      { label: "PRD", value: study.prd?.toFixed(3), pass: study.prd_pass },
+                      { label: "PRB", value: study.prb?.toFixed(3), pass: study.prb_pass },
+                    ].map((m) => (
+                      <div key={m.label} className="hidden text-center sm:block">
+                        <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{m.label}</p>
+                        <div className="flex items-center gap-1">
+                          {m.pass
+                            ? <CheckCircle2 className="h-3 w-3 text-[hsl(var(--success))]" />
+                            : <XCircle className="h-3 w-3 text-destructive" />}
+                          <span className={cn(
+                            "font-mono text-xs font-bold",
+                            m.pass ? "text-[hsl(var(--success))]" : "text-destructive"
+                          )}>
+                            {m.value}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <ChevronRight className="hidden h-4 w-4 text-muted-foreground group-hover:text-primary sm:block" />
+                </div>
+              </Link>
+            </section>
+          )}
 
           {/* Agent Swarm Grid */}
           <section aria-label="Agent Swarm">
