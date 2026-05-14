@@ -319,7 +319,7 @@ export default function CloudCoachDashboard() {
 
   return (
     <div className="grid-bg min-h-full px-6 py-6">
-        <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6">
           {/* System Vitals */}
           <section aria-label="System Metrics">
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -511,7 +511,7 @@ export default function CloudCoachDashboard() {
               <ActivityLog entries={activityLog.slice(0, 15)} />
             </section>
           </div>
-        </div>
+      </div>
     </div>
   );
 }
