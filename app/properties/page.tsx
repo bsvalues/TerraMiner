@@ -6,6 +6,7 @@ import useSWR from "swr";
 import { MOCK_PROPERTIES } from "@/lib/mock-properties";
 import { PropertyCard, type PropertyData } from "@/components/property-card";
 import { PropertyCardSkeleton } from "@/components/skeleton";
+import { EmptyStates } from "@/components/empty-state";
 import { formatNumber, cn } from "@/lib/utils";
 import Link from "next/link";
 import { scoreProperty } from "@/lib/terra-engine";
@@ -24,6 +25,9 @@ import {
   MapPin,
   Download,
   Scale,
+  CheckSquare,
+  Square,
+  Flag,
 } from "lucide-react";
 
 function MapLoading() {
@@ -94,6 +98,49 @@ export default function PropertiesPage() {
   const [minBeds, setMinBeds] = useState(0);
   const [page, setPage] = useState(1);
   const gridRef = useRef<HTMLDivElement>(null);
+
+  // Selection mode for batch operations
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Quick filters for common assessment queries
+  type QuickFilter = "under-assessed" | "over-assessed" | "high-ratio" | "new-construction" | "high-value" | null;
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>(null);
+
+  const QUICK_FILTERS: { id: QuickFilter; label: string; description: string }[] = [
+    { id: "under-assessed", label: "Under-assessed", description: "Ratio < 0.85" },
+    { id: "over-assessed", label: "Over-assessed", description: "Ratio > 1.05" },
+    { id: "high-ratio", label: "In Range", description: "0.90-1.10" },
+    { id: "new-construction", label: "New Build", description: "Built after 2020" },
+    { id: "high-value", label: "High Value", description: ">$500K" },
+  ];
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    setSelectedIds(new Set(displayProperties.map((p: PropertyData) => p.id)));
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  const handleBatchFlagForReview = () => {
+    // In production, this would call an API to flag the properties
+    alert(`Flagged ${selectedIds.size} properties for review. (Demo only - API integration required)`);
+    setSelectedIds(new Set());
+    setSelectionMode(false);
+  };
 
   // Reset page when filters change
   useEffect(() => { setPage(1); }, [debouncedSearch, sortBy, cityFilter, typeFilter, statusFilter, neighborhoodFilter, minPrice, maxPrice, minBeds]);
@@ -194,7 +241,35 @@ export default function PropertiesPage() {
     });
   }, [properties, sortBy]);
 
-  const displayProperties = isFromDB ? scoreSorted : filteredProperties;
+  // Apply quick filter on top of the existing results
+  const quickFiltered = useMemo(() => {
+    const baseProps = isFromDB ? scoreSorted : filteredProperties;
+    if (!quickFilter) return baseProps;
+
+    return baseProps.filter((p: PropertyData) => {
+      const price = Number(p.price);
+      const assessed = p.assessed_value ? Number(p.assessed_value) : null;
+      const ratio = assessed && price > 0 ? assessed / price : null;
+      const yearBuilt = p.year_built ?? p.yearBuilt ?? 1990;
+
+      switch (quickFilter) {
+        case "under-assessed":
+          return ratio !== null && ratio < 0.85;
+        case "over-assessed":
+          return ratio !== null && ratio > 1.05;
+        case "high-ratio":
+          return ratio !== null && ratio >= 0.90 && ratio <= 1.10;
+        case "new-construction":
+          return yearBuilt >= 2020;
+        case "high-value":
+          return price >= 500000;
+        default:
+          return true;
+      }
+    });
+  }, [isFromDB, scoreSorted, filteredProperties, quickFilter]);
+
+  const displayProperties = quickFiltered;
   const displayTotal = isFromDB ? total : (() => {
     let result = MOCK_PROPERTIES as unknown as PropertyData[];
     if (debouncedSearch) { const q = debouncedSearch.toLowerCase(); result = result.filter((p) => p.address.toLowerCase().includes(q) || p.city.toLowerCase().includes(q)); }
@@ -278,6 +353,23 @@ export default function PropertiesPage() {
                 <Scale className="h-4 w-4" />
               </button>
             </div>
+            {/* Selection mode toggle */}
+            <button
+              onClick={() => {
+                setSelectionMode(!selectionMode);
+                if (selectionMode) clearSelection();
+              }}
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors",
+                selectionMode
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-card text-muted-foreground hover:border-primary hover:text-primary"
+              )}
+              aria-label="Toggle selection mode"
+            >
+              <CheckSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">Select</span>
+            </button>
             {isFromDB && (
               <a
                 href="/api/properties/export"
@@ -288,6 +380,66 @@ export default function PropertiesPage() {
                 <Download className="h-4 w-4" />
                 <span className="hidden sm:inline">Export</span>
               </a>
+            )}
+          </div>
+
+          {/* Batch action bar - appears when properties are selected */}
+          {selectionMode && selectedIds.size > 0 && (
+            <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 animate-slide-in">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-foreground">
+                  {selectedIds.size} {selectedIds.size === 1 ? "property" : "properties"} selected
+                </span>
+                <button
+                  onClick={selectAll}
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  Select all ({displayProperties.length})
+                </button>
+                <button
+                  onClick={clearSelection}
+                  className="text-xs font-medium text-muted-foreground hover:text-foreground"
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleBatchFlagForReview}
+                  className="flex items-center gap-1.5 rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground hover:bg-destructive/90"
+                >
+                  <Flag className="h-3.5 w-3.5" />
+                  Flag for Review
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Quick filter chips */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <span className="shrink-0 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Quick:</span>
+            {QUICK_FILTERS.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setQuickFilter(quickFilter === f.id ? null : f.id)}
+                className={cn(
+                  "shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                  quickFilter === f.id
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                )}
+                title={f.description}
+              >
+                {f.label}
+              </button>
+            ))}
+            {quickFilter && (
+              <button
+                onClick={() => setQuickFilter(null)}
+                className="shrink-0 text-[10px] text-muted-foreground hover:text-foreground"
+              >
+                Clear
+              </button>
             )}
           </div>
 
@@ -500,16 +652,23 @@ export default function PropertiesPage() {
             ) : (
               <div className={viewMode === "grid" ? "grid gap-4 sm:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-3"}>
                 {displayProperties.map((property: PropertyData) => (
-                  <PropertyCard key={property.id} property={property} view={viewMode as "grid" | "list"} />
+                  <PropertyCard
+                    key={property.id}
+                    property={property}
+                    view={viewMode as "grid" | "list"}
+                    selectable={selectionMode}
+                    selected={selectedIds.has(property.id)}
+                    onSelect={toggleSelection}
+                  />
                 ))}
               </div>
             )
         ) : (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border bg-card py-16">
-            <Search className="h-8 w-8 text-muted-foreground/50" />
-            <p className="text-sm text-muted-foreground">No properties match your filters</p>
-            <button onClick={clearFilters} className="text-xs font-medium text-primary hover:underline">Clear all filters</button>
-          </div>
+          <EmptyStates.NoProperties
+            variant="card"
+            action={{ label: "Clear all filters", onClick: clearFilters }}
+            className="min-h-[300px]"
+          />
         )}
 
         {/* Pagination */}

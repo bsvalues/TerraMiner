@@ -18,6 +18,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
+import { EmptyStates } from "@/components/empty-state";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -91,7 +92,7 @@ export default function AssessmentPage() {
     `/api/assessment/ratio-study${cityParam}`,
     fetcher
   );
-  const { data: neighborhoodData } = useSWR<{ neighborhoods: NeighborhoodResult[] }>(
+  const { data: neighborhoodData, isLoading: isLoadingNbhd } = useSWR<{ neighborhoods: NeighborhoodResult[] }>(
     `/api/assessment/neighborhoods${cityParam}`,
     fetcher
   );
@@ -331,6 +332,12 @@ export default function AssessmentPage() {
         )}
 
         {/* Neighborhood Equity Table */}
+        {neighborhoods.length === 0 && !isLoadingNbhd && (
+          <EmptyStates.NoNeighborhoods
+            variant="card"
+            className="min-h-[200px]"
+          />
+        )}
         {neighborhoods.length > 0 && (
           <div className="rounded-lg border border-border bg-card p-5 page-break-before print:mt-4">
             <div className="mb-3 flex items-center gap-2">

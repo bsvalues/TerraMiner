@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { cn, formatNumber } from "@/lib/utils";
-import { Bed, Bath, Maximize, Calendar, MapPin, TrendingUp } from "lucide-react";
+import { Bed, Bath, Maximize, Calendar, MapPin, TrendingUp, CheckSquare, Square } from "lucide-react";
 import { scoreProperty } from "@/lib/terra-engine";
 
 // Universal property shape -- works with both DB rows and mock data
@@ -68,9 +68,12 @@ const TYPE_LABELS: Record<string, string> = {
 interface PropertyCardProps {
   property: PropertyData;
   view?: "grid" | "list";
+  selectable?: boolean;
+  selected?: boolean;
+  onSelect?: (id: string) => void;
 }
 
-export function PropertyCard({ property, view = "grid" }: PropertyCardProps) {
+export function PropertyCard({ property, view = "grid", selectable = false, selected = false, onSelect }: PropertyCardProps) {
   const statusKey = property.status || "active";
   const status = STATUS_STYLES[statusKey] || STATUS_STYLES.active;
   const propType = property.property_type || property.propertyType || "single_family";
@@ -109,8 +112,24 @@ export function PropertyCard({ property, view = "grid" }: PropertyCardProps) {
   };
 
   if (view === "list") {
+    const CardWrapper = selectable ? "div" : Link;
+    const wrapperProps = selectable ? {} : { href: `/properties/${property.id}` };
+
     return (
-      <Link href={`/properties/${property.id}`} className="flex items-center gap-4 rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/30">
+      <CardWrapper {...wrapperProps as any} className={cn(
+        "flex items-center gap-4 rounded-lg border bg-card p-4 transition-colors",
+        selectable ? "cursor-pointer" : "",
+        selected ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"
+      )} onClick={selectable ? () => onSelect?.(property.id) : undefined}>
+        {selectable && (
+          <div className="flex shrink-0 items-center justify-center">
+            {selected ? (
+              <CheckSquare className="h-5 w-5 text-primary" />
+            ) : (
+              <Square className="h-5 w-5 text-muted-foreground" />
+            )}
+          </div>
+        )}
         <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded-md bg-secondary/50">
           <MapPin className="h-5 w-5 text-muted-foreground" />
         </div>
@@ -146,15 +165,33 @@ export function PropertyCard({ property, view = "grid" }: PropertyCardProps) {
             {score.investment_grade}
           </span>
         </div>
-      </Link>
+      </CardWrapper>
     );
   }
 
+  // Grid view
+  const GridWrapper = selectable ? "div" : Link;
+  const gridWrapperProps = selectable ? {} : { href: `/properties/${property.id}` };
+
   return (
-    <Link href={`/properties/${property.id}`} className="group flex flex-col overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+    <GridWrapper {...gridWrapperProps as any} className={cn(
+      "group flex flex-col overflow-hidden rounded-lg border bg-card transition-all hover:shadow-lg hover:shadow-primary/5",
+      selectable ? "cursor-pointer" : "",
+      selected ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"
+    )} onClick={selectable ? () => onSelect?.(property.id) : undefined}>
       <div className="relative flex h-40 items-center justify-center bg-secondary/30">
         <MapPin className="h-8 w-8 text-muted-foreground/50" />
-        <div className="absolute left-2 top-2 flex gap-1.5">
+        {/* Selection checkbox overlay */}
+        {selectable && (
+          <div className="absolute left-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-md bg-card/90 shadow-sm backdrop-blur-sm">
+            {selected ? (
+              <CheckSquare className="h-4 w-4 text-primary" />
+            ) : (
+              <Square className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
+        )}
+        <div className={cn("absolute top-2 flex gap-1.5", selectable ? "left-10" : "left-2")}>
           <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", status.className)}>
             {status.label}
           </span>
@@ -256,6 +293,6 @@ export function PropertyCard({ property, view = "grid" }: PropertyCardProps) {
           {mlsId && <span className="font-mono">{mlsId}</span>}
         </div>
       </div>
-    </Link>
+    </GridWrapper>
   );
 }
