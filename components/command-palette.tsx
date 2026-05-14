@@ -16,6 +16,9 @@ import {
   TrendingUp,
   Zap,
   Download,
+  Clock,
+  X,
+  Scale,
 } from "lucide-react";
 
 interface CommandItem {
@@ -35,12 +38,47 @@ export function CommandPalette() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Recent searches (persisted in localStorage)
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+
+  // Load recent searches from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem("terra-recent-searches");
+    if (stored) {
+      try {
+        setRecentSearches(JSON.parse(stored));
+      } catch {
+        // Ignore parse errors
+      }
+    }
+  }, []);
+
+  const addRecentSearch = (searchQuery: string) => {
+    if (!searchQuery.trim()) return;
+    const updated = [searchQuery, ...recentSearches.filter(s => s !== searchQuery)].slice(0, 5);
+    setRecentSearches(updated);
+    localStorage.setItem("terra-recent-searches", JSON.stringify(updated));
+  };
+
+  const removeRecentSearch = (searchQuery: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = recentSearches.filter(s => s !== searchQuery);
+    setRecentSearches(updated);
+    localStorage.setItem("terra-recent-searches", JSON.stringify(updated));
+  };
+
+  const clearRecentSearches = () => {
+    setRecentSearches([]);
+    localStorage.removeItem("terra-recent-searches");
+  };
+
   const items: CommandItem[] = [
     // Navigation
     { id: "nav-dashboard", label: "Dashboard", description: "Main overview", icon: LayoutDashboard, action: () => router.push("/"), category: "Navigation" },
     { id: "nav-properties", label: "Properties", description: "Browse all listings", icon: Home, action: () => router.push("/properties"), category: "Navigation" },
     { id: "nav-properties-map", label: "Properties Map View", description: "View properties on map", icon: MapPin, action: () => { router.push("/properties"); setTimeout(() => document.querySelector<HTMLButtonElement>('[aria-label="Map view"]')?.click(), 500); }, category: "Navigation" },
     { id: "nav-agents", label: "Agents", description: "AI agent management", icon: Bot, action: () => router.push("/agents"), category: "Navigation" },
+    { id: "nav-assessment", label: "Assessment", description: "IAAO ratio study", icon: Scale, action: () => router.push("/assessment"), category: "Navigation" },
     { id: "nav-analytics", label: "Analytics", description: "Charts and insights", icon: BarChart3, action: () => router.push("/analytics"), category: "Navigation" },
     { id: "nav-settings", label: "Settings", description: "System preferences", icon: Settings, action: () => router.push("/settings"), category: "Navigation" },
     // Actions
@@ -88,6 +126,9 @@ export function CommandPalette() {
       }
       if (e.key === "Enter" && flatFiltered[selectedIndex]) {
         e.preventDefault();
+        if (query.trim()) {
+          addRecentSearch(query.trim());
+        }
         flatFiltered[selectedIndex].action();
         setOpen(false);
       }
@@ -138,6 +179,42 @@ export function CommandPalette() {
               ESC
             </kbd>
           </div>
+
+          {/* Recent searches - show when query is empty */}
+          {!query.trim() && recentSearches.length > 0 && (
+            <div className="border-b border-border p-2">
+              <div className="flex items-center justify-between px-2 pb-1">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Recent Searches
+                </p>
+                <button
+                  onClick={clearRecentSearches}
+                  className="text-[10px] text-muted-foreground hover:text-foreground"
+                >
+                  Clear all
+                </button>
+              </div>
+              {recentSearches.map((search) => (
+                <button
+                  key={search}
+                  onClick={() => {
+                    setQuery(search);
+                    inputRef.current?.focus();
+                  }}
+                  className="flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-left text-foreground transition-colors hover:bg-accent"
+                >
+                  <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="flex-1 truncate text-sm">{search}</span>
+                  <button
+                    onClick={(e) => removeRecentSearch(search, e)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Results */}
           <div className="max-h-72 overflow-y-auto p-2">

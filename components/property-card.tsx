@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { cn, formatNumber } from "@/lib/utils";
-import { Bed, Bath, Maximize, Calendar, MapPin, TrendingUp, CheckSquare, Square } from "lucide-react";
+import { Bed, Bath, Maximize, Calendar, MapPin, TrendingUp, CheckSquare, Square, Share2, Check } from "lucide-react";
 import { scoreProperty } from "@/lib/terra-engine";
 
 // Universal property shape -- works with both DB rows and mock data
@@ -74,6 +75,16 @@ interface PropertyCardProps {
 }
 
 export function PropertyCard({ property, view = "grid", selectable = false, selected = false, onSelect }: PropertyCardProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = `${window.location.origin}/properties/${property.id}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
   const statusKey = property.status || "active";
   const status = STATUS_STYLES[statusKey] || STATUS_STYLES.active;
   const propType = property.property_type || property.propertyType || "single_family";
@@ -215,6 +226,18 @@ export function PropertyCard({ property, view = "grid", selectable = false, sele
             {property.data_source}
           </div>
         )}
+        {/* Share button - appears on hover */}
+        <button
+          onClick={handleShare}
+          className="absolute bottom-2 left-2 flex h-7 w-7 items-center justify-center rounded-lg bg-card/90 opacity-0 shadow-sm backdrop-blur-sm transition-opacity group-hover:opacity-100"
+          title={copied ? "Link copied!" : "Copy link"}
+        >
+          {copied ? (
+            <Check className="h-3.5 w-3.5 text-[hsl(var(--success))]" />
+          ) : (
+            <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
+          )}
+        </button>
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-3">
