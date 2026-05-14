@@ -40,8 +40,8 @@ interface NeighborhoodResult {
   median_ratio: number;
   cod: number;
   prd: number;
-  avg_assessed: number;
-  avg_sale: number;
+  mean_assessed: number;
+  mean_sale: number;
   pass: boolean;
 }
 
@@ -92,7 +92,7 @@ export default function AssessmentPage() {
   return (
     <div className="grid-bg min-h-full px-6 py-6">
       <div className="flex flex-col gap-6">
-        {/* Header with breadcrumbs */}
+        {/* Header */}
         <div>
           <nav className="mb-2 flex items-center gap-1 text-[11px] text-muted-foreground" aria-label="Breadcrumb">
             <Link href="/" className="hover:text-foreground">Dashboard</Link>
@@ -160,16 +160,16 @@ export default function AssessmentPage() {
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <MetricCard
               label="Median Ratio"
-              value={study.median_ratio.toFixed(4)}
+              value={study.median_ratio?.toFixed(4) ?? "--"}
               standard="IAAO: 0.90 - 1.10"
-              pass={study.median_ratio >= 0.9 && study.median_ratio <= 1.1}
+              pass={(study.median_ratio ?? 0) >= 0.9 && (study.median_ratio ?? 0) <= 1.1}
               icon={TrendingUp}
               color="text-primary"
             />
             <MetricCard
               label="COD"
-              value={study.cod.toFixed(2)}
-              standard="IAAO: <= 15.00"
+              value={study.cod?.toFixed(2) ?? "--"}
+              standard={"IAAO: <= 15.00"}
               pass={study.cod_pass}
               icon={BarChart3}
               color="text-[hsl(var(--success))]"
@@ -177,7 +177,7 @@ export default function AssessmentPage() {
             />
             <MetricCard
               label="PRD"
-              value={study.prd.toFixed(4)}
+              value={study.prd?.toFixed(4) ?? "--"}
               standard="IAAO: 0.98 - 1.03"
               pass={study.prd_pass}
               icon={Scale}
@@ -186,7 +186,7 @@ export default function AssessmentPage() {
             />
             <MetricCard
               label="PRB"
-              value={study.prb.toFixed(4)}
+              value={study.prb?.toFixed(4) ?? "--"}
               standard="IAAO: -0.05 to 0.05"
               pass={study.prb_pass}
               icon={TrendingUp}
@@ -200,20 +200,20 @@ export default function AssessmentPage() {
         {study && (
           <div className="rounded-lg border border-border bg-card p-5">
             <h2 className="mb-3 text-sm font-semibold text-foreground">
-              Study Summary -- {selectedCity === "All" ? "Benton County" : selectedCity}
+              {"Study Summary \u2014 "}{selectedCity === "All" ? "Benton County" : selectedCity}
             </h2>
             <div className="grid grid-cols-2 gap-4 text-xs sm:grid-cols-4">
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Sample Size</p>
-                <p className="mt-0.5 text-lg font-bold text-foreground">{study.sample_size}</p>
+                <p className="mt-0.5 text-lg font-bold text-foreground">{study.sample_size ?? 0}</p>
               </div>
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Tax Year</p>
-                <p className="mt-0.5 text-lg font-bold text-foreground">{study.tax_year}</p>
+                <p className="mt-0.5 text-lg font-bold text-foreground">{study.tax_year ?? 2025}</p>
               </div>
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Mean Ratio</p>
-                <p className="mt-0.5 text-lg font-bold text-foreground">{study.mean_ratio.toFixed(4)}</p>
+                <p className="mt-0.5 text-lg font-bold text-foreground">{study.mean_ratio?.toFixed(4) ?? "--"}</p>
               </div>
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Overall</p>
@@ -231,35 +231,37 @@ export default function AssessmentPage() {
             <div className="mb-3 flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-primary" />
               <h2 className="text-sm font-semibold text-foreground">
-                Vertical Equity -- Value Quintile Analysis
+                {"Vertical Equity \u2014 Value Quintile Analysis"}
               </h2>
             </div>
             <div className="grid grid-cols-5 gap-3">
               {quintiles.map((q) => {
-                const barHeight = Math.round((q.median_ratio / 1.0) * 100);
-                const isPass = q.median_ratio >= 0.9 && q.median_ratio <= 1.1;
+                const barHeight = Math.round(((q.median_ratio ?? 0) / 1.0) * 100);
+                const isPass = (q.median_ratio ?? 0) >= 0.9 && (q.median_ratio ?? 0) <= 1.1;
+                const priceMin = Array.isArray(q.price_range) ? q.price_range[0] : 0;
+                const priceMax = Array.isArray(q.price_range) ? q.price_range[1] : 0;
                 return (
                   <div key={q.quintile} className="flex flex-col items-center gap-2">
                     <span className={cn(
                       "font-mono text-sm font-bold",
-                      isPass ? "text-[hsl(var(--success))]" : q.median_ratio < 0.85 ? "text-destructive" : "text-[hsl(var(--warning))]"
+                      isPass ? "text-[hsl(var(--success))]" : (q.median_ratio ?? 0) < 0.85 ? "text-destructive" : "text-[hsl(var(--warning))]"
                     )}>
-                      {q.median_ratio.toFixed(3)}
+                      {q.median_ratio?.toFixed(3) ?? "--"}
                     </span>
                     <div className="relative h-24 w-full rounded-md bg-muted/20">
                       <div
                         className={cn(
                           "absolute bottom-0 w-full rounded-md transition-all",
-                          isPass ? "bg-[hsl(var(--success))]/40" : q.median_ratio < 0.85 ? "bg-destructive/40" : "bg-[hsl(var(--warning))]/40"
+                          isPass ? "bg-[hsl(var(--success))]/40" : (q.median_ratio ?? 0) < 0.85 ? "bg-destructive/40" : "bg-[hsl(var(--warning))]/40"
                         )}
                         style={{ height: `${Math.max(barHeight, 10)}%` }}
                       />
                     </div>
                     <div className="text-center">
-                      <p className="text-[10px] font-medium text-foreground">{q.label.replace("20%", "")}</p>
-                      <p className="text-[9px] text-muted-foreground">n={q.count}</p>
+                      <p className="text-[10px] font-medium text-foreground">{(q.label ?? "").replace("20%", "")}</p>
+                      <p className="text-[9px] text-muted-foreground">{"n="}{q.count ?? 0}</p>
                       <p className="font-mono text-[8px] text-muted-foreground">
-                        ${formatNumber(q.price_range[0])}-${formatNumber(q.price_range[1])}
+                        {"$"}{formatNumber(priceMin)}{"-$"}{formatNumber(priceMax)}
                       </p>
                     </div>
                   </div>
@@ -267,11 +269,11 @@ export default function AssessmentPage() {
               })}
             </div>
             <div className="mt-3 rounded-md bg-muted/10 px-3 py-2 text-[10px] text-muted-foreground">
-              <strong className="text-foreground">Interpretation:</strong> A regressive pattern exists when lower-value properties
-              have higher assessment ratios than higher-value properties. IAAO standards require PRB between -0.05 and 0.05.
+              <strong className="text-foreground">Interpretation:</strong>{" "}
+              {"A regressive pattern exists when lower-value properties have higher assessment ratios than higher-value properties. IAAO standards require PRB between -0.05 and 0.05."}
               {study && !study.prb_pass && (
                 <span className="ml-1 text-destructive">
-                  Current PRB of {study.prb.toFixed(4)} indicates significant regressivity.
+                  {"Current PRB of "}{study.prb?.toFixed(4) ?? "--"}{" indicates significant regressivity."}
                 </span>
               )}
             </div>
@@ -313,14 +315,14 @@ export default function AssessmentPage() {
                       <td className="px-3 py-2.5 text-center text-muted-foreground">{n.count}</td>
                       <td className={cn(
                         "px-3 py-2.5 text-right font-mono font-bold",
-                        n.median_ratio >= 0.9 ? "text-[hsl(var(--success))]" : n.median_ratio >= 0.8 ? "text-[hsl(var(--warning))]" : "text-destructive"
+                        (n.median_ratio ?? 0) >= 0.9 ? "text-[hsl(var(--success))]" : (n.median_ratio ?? 0) >= 0.8 ? "text-[hsl(var(--warning))]" : "text-destructive"
                       )}>
-                        {n.median_ratio.toFixed(4)}
+                        {n.median_ratio?.toFixed(4) ?? "--"}
                       </td>
-                      <td className="px-3 py-2.5 text-right font-mono text-muted-foreground">{n.cod.toFixed(2)}</td>
-                      <td className="px-3 py-2.5 text-right font-mono text-muted-foreground">{n.prd.toFixed(4)}</td>
-                      <td className="px-3 py-2.5 text-right text-muted-foreground">${formatNumber(n.avg_assessed)}</td>
-                      <td className="px-3 py-2.5 text-right text-muted-foreground">${formatNumber(n.avg_sale)}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-muted-foreground">{n.cod?.toFixed(2) ?? "--"}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-muted-foreground">{n.prd?.toFixed(4) ?? "--"}</td>
+                      <td className="px-3 py-2.5 text-right text-muted-foreground">{"$"}{formatNumber(n.mean_assessed ?? 0)}</td>
+                      <td className="px-3 py-2.5 text-right text-muted-foreground">{"$"}{formatNumber(n.mean_sale ?? 0)}</td>
                       <td className="px-3 py-2.5 text-center">
                         <PassBadge pass={n.pass} />
                       </td>
