@@ -21,6 +21,10 @@ export async function GET() {
       "Year Built", "Lot Size", "Type", "Status", "Price/SqFt",
       "Investment Grade", "Total Score", "Value Score", "Location Score",
       "Condition Score", "Market Score", "Recommendation",
+      "Assessed Value", "Land Value", "Improvement Value",
+      "Neighborhood Code", "Neighborhood Name", "Tax Year",
+      "Parcel Number", "Zoning", "Grade", "Condition",
+      "Assessment Ratio", "Sale Price", "Sale Date",
       "Latitude", "Longitude"
     ];
 
@@ -61,6 +65,19 @@ export async function GET() {
         score.condition_score.toFixed(1),
         score.market_score.toFixed(1),
         `"${score.recommendation}"`,
+        p.assessed_value || "",
+        p.land_value || "",
+        p.improvement_value || "",
+        `"${p.neighborhood_code || ""}"`,
+        `"${p.neighborhood_name || ""}"`,
+        p.tax_year || "",
+        `"${p.parcel_number || ""}"`,
+        `"${p.zoning || ""}"`,
+        `"${p.grade || ""}"`,
+        `"${p.condition_code || ""}"`,
+        p.assessed_value && price > 0 ? (Number(p.assessed_value) / price).toFixed(4) : "",
+        p.sale_price || "",
+        p.sale_date ? `"${new Date(p.sale_date).toISOString().split("T")[0]}"` : "",
         p.latitude || "",
         p.longitude || "",
       ].join(",");

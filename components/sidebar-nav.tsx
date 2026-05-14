@@ -16,13 +16,15 @@ import {
   Zap,
   Menu,
   X,
+  Scale,
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/properties", label: "Properties", icon: Home },
-  { href: "/agents", label: "Agents", icon: Bot },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/assessment", label: "Assessment", icon: Scale },
+  { href: "/agents", label: "Agents", icon: Bot },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

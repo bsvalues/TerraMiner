@@ -124,9 +124,19 @@ export function PropertyCard({ property, view = "grid" }: PropertyCardProps) {
           <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold", status.className)}>
             {status.label}
           </span>
+          {property.neighborhood_code && (
+            <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-primary">
+              {property.neighborhood_code}
+            </span>
+          )}
           <p className="shrink-0 text-sm font-bold text-primary">
             ${formatNumber(price)}
           </p>
+          {property.assessed_value && price > 0 && (() => {
+            const r = property.assessed_value / price;
+            const rc = r >= 0.9 ? "text-[hsl(var(--success))]" : r >= 0.8 ? "text-[hsl(var(--warning))]" : "text-destructive";
+            return <span className={cn("shrink-0 font-mono text-[10px] font-bold", rc)}>{r.toFixed(3)}</span>;
+          })()}
           <span className={cn("shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold", gradeColor[score.investment_grade] || gradeColor.C)}>
             {score.investment_grade}
           </span>
@@ -200,6 +210,31 @@ export function PropertyCard({ property, view = "grid" }: PropertyCardProps) {
                 {String(feature)}
               </span>
             ))}
+          </div>
+        )}
+
+        {/* Assessment badges */}
+        {(property.neighborhood_code || property.assessed_value) && (
+          <div className="flex items-center gap-2">
+            {property.neighborhood_code && (
+              <span className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-primary">
+                {property.neighborhood_code}
+              </span>
+            )}
+            {property.assessed_value && property.price > 0 && (() => {
+              const ratio = property.assessed_value / property.price;
+              const rColor = ratio >= 0.9 ? "text-[hsl(var(--success))]" : ratio >= 0.8 ? "text-[hsl(var(--warning))]" : "text-destructive";
+              return (
+                <span className={cn("font-mono text-[10px] font-bold", rColor)}>
+                  Ratio: {ratio.toFixed(3)}
+                </span>
+              );
+            })()}
+            {property.grade && (
+              <span className="rounded bg-secondary/50 px-1.5 py-0.5 text-[10px] font-semibold text-foreground">
+                {property.grade}
+              </span>
+            )}
           </div>
         )}
 
