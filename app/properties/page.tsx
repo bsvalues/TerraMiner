@@ -7,6 +7,7 @@ import { MOCK_PROPERTIES } from "@/lib/mock-properties";
 import { PropertyCard, type PropertyData } from "@/components/property-card";
 import { PropertyCardSkeleton } from "@/components/skeleton";
 import { EmptyStates } from "@/components/empty-state";
+import { PropertyComparisonModal } from "@/components/property-comparison-modal";
 import { formatNumber, cn } from "@/lib/utils";
 import Link from "next/link";
 import { scoreProperty } from "@/lib/terra-engine";
@@ -28,6 +29,7 @@ import {
   CheckSquare,
   Square,
   Flag,
+  ArrowRightLeft,
 } from "lucide-react";
 
 function MapLoading() {
@@ -141,6 +143,9 @@ export default function PropertiesPage() {
     setSelectedIds(new Set());
     setSelectionMode(false);
   };
+
+  // Comparison modal state (handlers defined after displayProperties)
+  const [showComparison, setShowComparison] = useState(false);
 
   // Reset page when filters change
   useEffect(() => { setPage(1); }, [debouncedSearch, sortBy, cityFilter, typeFilter, statusFilter, neighborhoodFilter, minPrice, maxPrice, minBeds]);
@@ -270,6 +275,30 @@ export default function PropertiesPage() {
   }, [isFromDB, scoreSorted, filteredProperties, quickFilter]);
 
   const displayProperties = quickFiltered;
+
+  // Comparison modal handlers (after displayProperties is defined)
+  const selectedProperties = useMemo(() => {
+    return displayProperties.filter((p: PropertyData) => selectedIds.has(p.id));
+  }, [displayProperties, selectedIds]);
+
+  const handleOpenComparison = () => {
+    if (selectedIds.size >= 2 && selectedIds.size <= 5) {
+      setShowComparison(true);
+    }
+  };
+
+  const handleRemoveFromComparison = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    // Close modal if less than 2 properties remain
+    if (selectedIds.size <= 2) {
+      setShowComparison(false);
+    }
+  };
+
   const displayTotal = isFromDB ? total : (() => {
     let result = MOCK_PROPERTIES as unknown as PropertyData[];
     if (debouncedSearch) { const q = debouncedSearch.toLowerCase(); result = result.filter((p) => p.address.toLowerCase().includes(q) || p.city.toLowerCase().includes(q)); }
@@ -404,6 +433,15 @@ export default function PropertiesPage() {
                 </button>
               </div>
               <div className="flex items-center gap-2">
+                {selectedIds.size >= 2 && selectedIds.size <= 5 && (
+                  <button
+                    onClick={handleOpenComparison}
+                    className="flex items-center gap-1.5 rounded-md border border-primary bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20"
+                  >
+                    <ArrowRightLeft className="h-3.5 w-3.5" />
+                    Compare ({selectedIds.size})
+                  </button>
+                )}
                 <button
                   onClick={handleBatchFlagForReview}
                   className="flex items-center gap-1.5 rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground hover:bg-destructive/90"
@@ -708,6 +746,15 @@ export default function PropertiesPage() {
           </nav>
         )}
       </div>
+
+      {/* Property Comparison Modal */}
+      {showComparison && selectedProperties.length >= 2 && (
+        <PropertyComparisonModal
+          properties={selectedProperties}
+          onRemove={handleRemoveFromComparison}
+          onClose={() => setShowComparison(false)}
+        />
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import useSWR from "swr";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -17,7 +18,10 @@ import {
   Menu,
   X,
   Scale,
+  AlertCircle,
 } from "lucide-react";
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -32,6 +36,27 @@ export function SidebarNav() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Fetch assessment status for notification badge
+  const { data: ratioStudy } = useSWR<{
+    sample_size: number;
+    median_ratio: number;
+    cod: number;
+    prd: number;
+    prb: number;
+    iaao_compliant: boolean;
+  }>("/api/assessment/ratio-study", fetcher, {
+    revalidateOnFocus: false,
+    refreshInterval: 60000, // Refresh every minute
+  });
+
+  // Count assessment issues (non-compliant metrics)
+  const assessmentIssues = ratioStudy ? [
+    ratioStudy.median_ratio < 0.9 || ratioStudy.median_ratio > 1.1,
+    ratioStudy.cod > 15,
+    ratioStudy.prd < 0.98 || ratioStudy.prd > 1.03,
+    ratioStudy.prb < -0.05 || ratioStudy.prb > 0.05,
+  ].filter(Boolean).length : 0;
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -106,7 +131,7 @@ export function SidebarNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors",
+                "relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors",
                 isActive
                   ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -115,6 +140,20 @@ export function SidebarNav() {
             >
               <Icon className="h-4 w-4 shrink-0" />
               {!collapsed && <span>{item.label}</span>}
+              {/* Notification badge for Assessment */}
+              {item.href === "/assessment" && assessmentIssues > 0 && (
+                <span
+                  className={cn(
+                    "flex items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground",
+                    collapsed
+                      ? "absolute -right-0.5 -top-0.5 h-3.5 w-3.5"
+                      : "ml-auto h-4 min-w-4 px-1"
+                  )}
+                  title={`${assessmentIssues} IAAO metric${assessmentIssues > 1 ? "s" : ""} out of compliance`}
+                >
+                  {assessmentIssues}
+                </span>
+              )}
             </Link>
           );
         })}
