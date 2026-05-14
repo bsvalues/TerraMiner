@@ -21,17 +21,19 @@ export function RecentQueries() {
     { refreshInterval: 30000, revalidateOnFocus: false }
   );
 
-  // Filter for swarm-related entries (task_completed and swarm_event types)
+  // Filter for swarm-completed entries from the DB
+  // The swarm execute API logs with type "task" and message:
+  //   Swarm completed: "query text" (N subtasks)
   const swarmEntries =
     data?.entries
       ?.filter(
         (e) =>
-          e.type === "task_completed" ||
-          (e.type === "swarm_event" && e.message.includes("decomposed"))
+          e.message.includes("Swarm completed") ||
+          e.message.includes("decomposed into")
       )
       .slice(0, 6) ?? [];
 
-  // Pair decomposed + completed entries into query objects
+  // Parse query objects from activity entries
   const queries: Array<{
     query: string;
     timestamp: string;
@@ -40,19 +42,31 @@ export function RecentQueries() {
   }> = [];
 
   for (const entry of swarmEntries) {
-    if (entry.type === "swarm_event" && entry.message.includes("decomposed")) {
-      // Extract query text: "Task decomposed into N subtask(s): "query...""
-      const match = entry.message.match(
-        /decomposed into (\d+) subtasks?:\s*"([^"]+)/
-      );
-      if (match) {
-        queries.push({
-          query: match[2].replace(/\.{3}$/, ""),
-          timestamp: entry.timestamp,
-          subtaskCount: parseInt(match[1], 10),
-          status: "completed",
-        });
-      }
+    // Match: Swarm completed: "query text" (N subtasks)
+    const completedMatch = entry.message.match(
+      /Swarm completed:\s*"([^"]+)"\s*\((\d+)\s*subtasks?\)/
+    );
+    if (completedMatch) {
+      queries.push({
+        query: completedMatch[1].replace(/\.{3}$/, ""),
+        timestamp: entry.timestamp,
+        subtaskCount: parseInt(completedMatch[2], 10),
+        status: "completed",
+      });
+      continue;
+    }
+
+    // Fallback: Task decomposed into N subtask(s): "query..."
+    const decomposedMatch = entry.message.match(
+      /decomposed into (\d+) subtasks?:\s*"([^"]+)/
+    );
+    if (decomposedMatch) {
+      queries.push({
+        query: decomposedMatch[2].replace(/\.{3}$/, ""),
+        timestamp: entry.timestamp,
+        subtaskCount: parseInt(decomposedMatch[1], 10),
+        status: "completed",
+      });
     }
   }
 

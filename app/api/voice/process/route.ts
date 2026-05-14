@@ -2,6 +2,16 @@ import { NextResponse } from "next/server";
 import { getProperties } from "@/lib/db";
 import { parseIntent } from "@/lib/terra-engine";
 
+export async function GET() {
+  return NextResponse.json({
+    status: "ok",
+    endpoint: "/api/voice/process",
+    method: "POST",
+    description: "Process a natural-language voice command",
+    usage: { command: "string" },
+  });
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();

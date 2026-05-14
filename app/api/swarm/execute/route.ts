@@ -8,6 +8,16 @@ import {
 } from "@/lib/swarm-engine";
 import { createAgentTask, addActivityEntry } from "@/lib/db";
 
+export async function GET() {
+  return NextResponse.json({
+    status: "ok",
+    endpoint: "/api/swarm/execute",
+    method: "POST",
+    description: "Execute a multi-agent swarm query",
+    usage: { query: "string", mode: "ralph-wiggum | focused | distributed | consensus" },
+  });
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as SwarmExecutionRequest;

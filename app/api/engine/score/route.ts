@@ -2,8 +2,18 @@ import { NextResponse } from "next/server";
 import { getProperties } from "@/lib/db";
 import { scoreProperty, batchScore, type PropertyInput } from "@/lib/terra-engine";
 
+// GET /api/engine/score -- info about the scoring endpoint
+export async function GET() {
+  return NextResponse.json({
+    status: "ok",
+    endpoint: "/api/engine/score",
+    method: "POST",
+    description: "Score properties using the TerraFusion investment engine",
+    usage: { property: "{ price, sqft, beds, baths, year_built, city, status }" },
+  });
+}
+
 // POST /api/engine/score -- score properties using the TerraFusion engine
-// Agent Bravo says "scoring houses is like grading homework but the homework is a building"
 export async function POST(request: Request) {
   try {
     const body = await request.json();
