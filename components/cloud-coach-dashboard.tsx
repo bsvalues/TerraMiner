@@ -426,7 +426,7 @@ export default function CloudCoachDashboard() {
                 </div>
               ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {topPicksData.picks.map((pick, i) => {
+                {topPicksData!.picks.map((pick, i) => {
                   const gradeColor: Record<string, string> = {
                     A: "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))] border-[hsl(var(--success))]/30",
                     B: "bg-primary/15 text-primary border-primary/30",

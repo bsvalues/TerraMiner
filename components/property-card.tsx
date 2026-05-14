@@ -30,6 +30,8 @@ export interface PropertyData {
   lot_size?: number;
   lotSize?: number;
   data_source?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 const STATUS_STYLES: Record<string, { label: string; className: string }> = {

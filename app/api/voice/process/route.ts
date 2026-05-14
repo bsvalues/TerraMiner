@@ -24,7 +24,6 @@ export async function POST(request: Request) {
         const result = await getProperties({
           city: intent.entities.city || undefined,
           min_beds: intent.entities.min_beds || undefined,
-          min_price: intent.entities.min_price || undefined,
           max_price: intent.entities.max_price || undefined,
           limit: 5,
         });

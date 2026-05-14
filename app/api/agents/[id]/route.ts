@@ -53,7 +53,7 @@ export async function GET(
       source: "database",
       agent: {
         ...agent,
-        dbTaskCount: Number(stats.totalTasks),
+        dbTaskCount: stats.taskCounts.reduce((sum: number, r: Record<string, unknown>) => sum + Number(r.tasks_completed || 0), 0),
       },
       taskHistory: agentTasks.length > 0 ? agentTasks : MOCK_TASK_HISTORY,
       timestamp: new Date().toISOString(),
