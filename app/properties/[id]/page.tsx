@@ -48,6 +48,8 @@ import { BuildingPermitsTracker } from "@/components/building-permits-tracker";
 import { OwnerHistory } from "@/components/owner-history";
 import { ValuationReconciliation } from "@/components/valuation-reconciliation";
 import { PropertyWatchlist } from "@/components/property-watchlist";
+import { ComparableSalesGrid } from "@/components/comparable-sales-grid";
+import { TaxStatementPreview } from "@/components/tax-statement-preview";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -351,6 +353,12 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
             incomeApproachValue={172487}
             currentAssessedValue={Number(property.assessed_value) || Number(property.price) * 0.85}
           />
+
+          {/* Comparable Sales Grid */}
+          <ComparableSalesGrid propertyId={id} />
+
+          {/* Tax Statement Preview */}
+          <TaxStatementPreview propertyId={id} />
         </div>
 
         {/* Sidebar Details */}
