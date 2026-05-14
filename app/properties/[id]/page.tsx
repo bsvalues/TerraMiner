@@ -39,6 +39,7 @@ import { NeighborhoodStats } from "@/components/neighborhood-stats";
 import { PropertyExemptions } from "@/components/property-exemptions";
 import { AppealStatusTracker } from "@/components/appeal-status-tracker";
 import { TaxCalculator } from "@/components/tax-calculator";
+import { AuditTrail } from "@/components/audit-trail";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -529,6 +530,9 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
 
           {/* Assessor Notes */}
           <PropertyNotes propertyId={id} />
+
+          {/* Recent Activity */}
+          <AuditTrail propertyId={id} compact />
 
           {/* Quick Actions */}
           <div className="rounded-xl border border-border bg-card p-5">
