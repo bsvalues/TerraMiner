@@ -80,12 +80,17 @@ export function CommandPalette() {
     { id: "nav-agents", label: "Agents", description: "AI agent management", icon: Bot, action: () => router.push("/agents"), category: "Navigation" },
     { id: "nav-assessment", label: "Assessment", description: "IAAO ratio study", icon: Scale, action: () => router.push("/assessment"), category: "Navigation" },
     { id: "nav-analytics", label: "Analytics", description: "Charts and insights", icon: BarChart3, action: () => router.push("/analytics"), category: "Navigation" },
+    { id: "nav-reports", label: "Reports", description: "IAAO compliance reports", icon: Download, action: () => router.push("/reports"), category: "Navigation" },
+    { id: "nav-notifications", label: "Notifications", description: "Activity feed and alerts", icon: Clock, action: () => router.push("/notifications"), category: "Navigation" },
+    { id: "nav-audit", label: "Audit Trail", description: "Change history log", icon: Clock, action: () => router.push("/audit"), category: "Navigation" },
     { id: "nav-settings", label: "Settings", description: "System preferences", icon: Settings, action: () => router.push("/settings"), category: "Navigation" },
     // Actions
     { id: "act-search", label: "Search Properties", description: "Find listings by keyword", icon: Search, action: () => { router.push("/properties"); setTimeout(() => document.querySelector<HTMLButtonElement>('[aria-label="Search properties"]')?.click(), 500); }, category: "Actions" },
     { id: "act-top-picks", label: "Top Investment Picks", description: "Sort by TerraFusion score", icon: TrendingUp, action: () => router.push("/properties?sort=score"), category: "Actions" },
     { id: "act-swarm", label: "Run Swarm Query", description: "Execute an AI swarm task", icon: Zap, action: () => { router.push("/"); setTimeout(() => document.querySelector<HTMLInputElement>('input[placeholder*="swarm"]')?.focus(), 500); }, category: "Actions" },
     { id: "act-export", label: "Export Properties CSV", description: "Download all properties with scores", icon: Download, action: () => { window.location.href = "/api/properties/export"; addToast({ message: "Downloading properties CSV...", type: "info" }); }, category: "Actions" },
+    { id: "act-ratio", label: "Run Ratio Study", description: "IAAO ratio analysis", icon: Scale, action: () => router.push("/analytics?section=ratio"), category: "Actions" },
+    { id: "act-validate", label: "Validate Sales", description: "Review pending sales", icon: Scale, action: () => router.push("/assessment?section=validation"), category: "Actions" },
   ];
 
   const filtered = query.trim()

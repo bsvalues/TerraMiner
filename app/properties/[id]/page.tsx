@@ -46,6 +46,8 @@ import { ParcelSketchViewer } from "@/components/parcel-sketch-viewer";
 import { FieldInspectionScheduler } from "@/components/field-inspection-scheduler";
 import { BuildingPermitsTracker } from "@/components/building-permits-tracker";
 import { OwnerHistory } from "@/components/owner-history";
+import { ValuationReconciliation } from "@/components/valuation-reconciliation";
+import { PropertyWatchlist } from "@/components/property-watchlist";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -339,6 +341,16 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
 
           {/* Field Inspections */}
           <FieldInspectionScheduler propertyId={id} />
+
+          {/* Valuation Reconciliation */}
+          <ValuationReconciliation
+            propertyId={id}
+            propertyType={property.propertyType || "Residential"}
+            salesApproachValue={Number(property.price) || 385000}
+            costApproachValue={370600}
+            incomeApproachValue={172487}
+            currentAssessedValue={Number(property.assessed_value) || Number(property.price) * 0.85}
+          />
         </div>
 
         {/* Sidebar Details */}
