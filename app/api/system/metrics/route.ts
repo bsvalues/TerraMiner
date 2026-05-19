@@ -1,20 +1,37 @@
 import { NextResponse } from "next/server";
 import { SYSTEM_METRICS } from "@/lib/mock-data";
+import { getSystemMetrics } from "@/lib/db";
 
 export async function GET() {
-  // Return metrics with slightly randomized current values for realism
-  const liveMetrics = {
-    ...SYSTEM_METRICS,
-    cpuUsage: Math.round(SYSTEM_METRICS.cpuUsage + (Math.random() - 0.5) * 10),
-    memoryUsage: Math.round(
-      SYSTEM_METRICS.memoryUsage + (Math.random() - 0.5) * 5
-    ),
-    uptime: SYSTEM_METRICS.uptime + Math.floor(Date.now() / 1000) % 3600,
-  };
+  try {
+    const dbMetrics = await getSystemMetrics();
 
-  return NextResponse.json({
-    status: "success",
-    metrics: liveMetrics,
-    timestamp: new Date().toISOString(),
-  });
+    return NextResponse.json({
+      status: "success",
+      source: "database",
+      metrics: {
+        ...SYSTEM_METRICS,
+        tasksProcessed: dbMetrics.totalTasks > 0 ? dbMetrics.totalTasks + SYSTEM_METRICS.tasksProcessed : SYSTEM_METRICS.tasksProcessed,
+        totalProperties: dbMetrics.totalProperties,
+        healthySources: dbMetrics.healthySources,
+        recentActivity: dbMetrics.recentActivity,
+        cpuUsage: Math.round(SYSTEM_METRICS.cpuUsage + (Math.random() - 0.5) * 10),
+        memoryUsage: Math.round(SYSTEM_METRICS.memoryUsage + (Math.random() - 0.5) * 5),
+        uptime: SYSTEM_METRICS.uptime + (Math.floor(Date.now() / 1000) % 3600),
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch {
+    return NextResponse.json({
+      status: "success",
+      source: "mock",
+      metrics: {
+        ...SYSTEM_METRICS,
+        cpuUsage: Math.round(SYSTEM_METRICS.cpuUsage + (Math.random() - 0.5) * 10),
+        memoryUsage: Math.round(SYSTEM_METRICS.memoryUsage + (Math.random() - 0.5) * 5),
+        uptime: SYSTEM_METRICS.uptime + (Math.floor(Date.now() / 1000) % 3600),
+      },
+      timestamp: new Date().toISOString(),
+    });
+  }
 }

@@ -27,6 +27,31 @@ interface IntentPattern {
 }
 
 const INTENT_PATTERNS: IntentPattern[] = [
+  // Assessment intents (Benton Method)
+  {
+    keywords: ["ratio", "ratio study", "iaao", "cod", "prd", "prb", "compliance", "assessment"],
+    agentType: "market_analyzer",
+    action: "compute_ratio_study",
+    description: "Compute IAAO ratio study metrics (COD, PRD, PRB)",
+  },
+  {
+    keywords: ["equity", "vertical equity", "horizontal equity", "fairness", "uniformity"],
+    agentType: "market_analyzer",
+    action: "analyze_equity",
+    description: "Analyze assessment equity across value ranges",
+  },
+  {
+    keywords: ["neighborhood", "nbhd", "area analysis", "neighborhood ratio", "neighborhood equity"],
+    agentType: "market_analyzer",
+    action: "neighborhood_analysis",
+    description: "Compute ratio metrics by neighborhood",
+  },
+  {
+    keywords: ["assessed value", "assessment", "over-assessed", "under-assessed", "outlier"],
+    agentType: "nl_search",
+    action: "search_assessment_outliers",
+    description: "Find properties with outlier assessment ratios",
+  },
   // NL Search intents
   {
     keywords: ["find", "search", "look for", "show me", "list", "homes", "properties", "houses"],
@@ -230,6 +255,16 @@ export function getSimulatedDuration(agentType: string): number {
  */
 export function getMockResult(action: string): string {
   const results: Record<string, string> = {
+    // Assessment results (Benton Method)
+    compute_ratio_study:
+      "IAAO Ratio Study Complete: Median Ratio 0.850, COD 4.31% (PASS), PRD 1.024 (PASS), PRB -0.124 (FAIL). Overall compliance: 3/4 metrics passing. Recommendation: Review high-value properties for PRB adjustment.",
+    analyze_equity:
+      "Vertical Equity Analysis: Quintile 1 (low value) median ratio 0.92, Quintile 5 (high value) median ratio 0.78. PRB of -0.124 indicates regressive assessment - higher value properties are under-assessed relative to lower value properties.",
+    neighborhood_analysis:
+      "Neighborhood Analysis: 6 neighborhoods analyzed. KW-03 (Canyon Lakes) shows best uniformity (COD 3.2%). RI-01 (West Richland) shows highest median ratio (0.92). PA-01 (East Pasco) flagged for review (COD 18.4%, exceeds IAAO threshold).",
+    search_assessment_outliers:
+      "Assessment Outliers: 8 properties identified with ratios outside 0.80-1.05 range. 3 over-assessed (ratio >1.05) in KW-02, 5 under-assessed (ratio <0.80) in RI-03. Recommend field review for these parcels.",
+    // Market results
     search_properties:
       "Found 24 matching properties in the Tri-Cities area. Top results include 3BR/2BA homes in West Richland ($345K-$389K) and newer constructions in South Kennewick ($312K-$367K).",
     analyze_market:

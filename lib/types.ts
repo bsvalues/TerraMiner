@@ -1,6 +1,6 @@
 // ============================================================================
 // TerraFusion Cloud Coach - Agent Swarm Type System
-// Maps to the existing Python AgentProtocol and agent implementations
+// Core type system for Next.js + Rust + PostgreSQL architecture
 // ============================================================================
 
 export type AgentStatus = "idle" | "active" | "processing" | "error" | "offline";
@@ -110,7 +110,7 @@ export interface ActivityLogEntry {
   severity: "info" | "success" | "warning" | "error";
 }
 
-// API response wrappers matching Flask AgentProtocol shape
+// API response wrappers for agent task execution
 export interface AgentProtocolResponse {
   status: "success" | "error";
   agent: string;

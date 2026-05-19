@@ -6,6 +6,17 @@ import {
   getMockResult,
   getSimulatedDuration,
 } from "@/lib/swarm-engine";
+import { createAgentTask, addActivityEntry } from "@/lib/db";
+
+export async function GET() {
+  return NextResponse.json({
+    status: "ok",
+    endpoint: "/api/swarm/execute",
+    method: "POST",
+    description: "Execute a multi-agent swarm query",
+    usage: { query: "string", mode: "ralph-wiggum | focused | distributed | consensus" },
+  });
+}
 
 export async function POST(request: Request) {
   try {
@@ -45,6 +56,23 @@ export async function POST(request: Request) {
     const maxDuration = Math.max(
       ...completedSubtasks.map((s) => s.duration || 0)
     );
+
+    // Persist to PostgreSQL (fire-and-forget, don't block response)
+    try {
+      const subtaskData = decomposed.map((d) => ({
+        agent_type: d.agentType,
+        action: d.action,
+      }));
+      await createAgentTask(body.query, mode, subtaskData);
+      await addActivityEntry(
+        "task",
+        `Swarm completed: "${body.query.slice(0, 60)}" (${decomposed.length} subtasks)`,
+        "info",
+        "Swarm"
+      );
+    } catch {
+      // DB persistence is best-effort -- don't fail the request
+    }
 
     return NextResponse.json({
       status: "success",
