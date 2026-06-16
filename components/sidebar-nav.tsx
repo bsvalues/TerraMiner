@@ -18,6 +18,7 @@ import {
   Menu,
   X,
   Scale,
+  Gavel,
   AlertCircle,
   FileText,
 } from "lucide-react";
@@ -29,6 +30,7 @@ const NAV_ITEMS = [
   { href: "/properties", label: "Properties", icon: Home },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/assessment", label: "Assessment", icon: Scale },
+  { href: "/appeals", label: "Appeals", icon: Gavel },
   { href: "/reports", label: "Reports", icon: FileText },
   { href: "/agents", label: "Agents", icon: Bot },
   { href: "/settings", label: "Settings", icon: Settings },
