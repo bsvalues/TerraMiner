@@ -23,6 +23,7 @@ import { SalesValidation } from "@/components/sales-validation";
 import { DataQualityDashboard } from "@/components/data-quality-dashboard";
 import { MassAppraisalModel } from "@/components/mass-appraisal-model";
 import { NeighborhoodAssessmentMap } from "@/components/neighborhood-assessment-map";
+import { SalesRatioScatter } from "@/components/sales-ratio-scatter";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -414,6 +415,9 @@ export default function AssessmentPage() {
 
         {/* Sales Validation Section */}
         <SalesValidation className="page-break-before print:mt-4" />
+
+        {/* Sales Ratio Scatter Plot */}
+        <SalesRatioScatter className="page-break-before print:mt-4" />
 
         {/* Data Quality Dashboard */}
         <DataQualityDashboard className="page-break-before print:mt-4" />

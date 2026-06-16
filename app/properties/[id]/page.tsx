@@ -51,6 +51,8 @@ import { PropertyWatchlist } from "@/components/property-watchlist";
 import { ComparableSalesGrid } from "@/components/comparable-sales-grid";
 import { TaxStatementPreview } from "@/components/tax-statement-preview";
 import { AssessmentValueHistory } from "@/components/assessment-value-history";
+import { GISParcelViewer } from "@/components/gis-parcel-viewer";
+import { PrintablePropertyCard } from "@/components/printable-property-card";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -336,6 +338,9 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
           {/* Parcel Sketch */}
           <ParcelSketchViewer propertyId={id} />
 
+          {/* GIS Parcel Viewer */}
+          <GISParcelViewer propertyId={id} />
+
           {/* Owner History & Building Permits */}
           <div className="grid gap-4 lg:grid-cols-2">
             <OwnerHistory propertyId={id} />
@@ -363,6 +368,9 @@ export default function PropertyDetailPage({ params }: PropertyDetailProps) {
 
           {/* Assessment Value History */}
           <AssessmentValueHistory propertyId={id} />
+
+          {/* Printable Property Record Card */}
+          <PrintablePropertyCard propertyId={id} />
         </div>
 
         {/* Sidebar Details */}
